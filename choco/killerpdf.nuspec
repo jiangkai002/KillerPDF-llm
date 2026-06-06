@@ -8,6 +8,7 @@
     <title>KillerPDF</title>
     <authors>Steve / thekiller.net</authors>
     <projectUrl>https://pdf.killertools.net</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/SteveTheKiller/KillerPDF/main/Resources/kp-icon.ico</iconUrl>
     <licenseUrl>https://github.com/SteveTheKiller/KillerPDF/blob/main/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <projectSourceUrl>https://github.com/SteveTheKiller/KillerPDF</projectSourceUrl>
