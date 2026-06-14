@@ -1,12 +1,19 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Documents;
 using System.Windows.Media;
+using System.Windows.Threading;
+using KillerPDF.Services;
 using Microsoft.Win32;
 
 namespace KillerPDF
@@ -45,7 +52,13 @@ namespace KillerPDF
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            DispatcherUnhandledException                    += OnDispatcherException;
+            AppDomain.CurrentDomain.UnhandledException      += OnDomainException;
+            TaskScheduler.UnobservedTaskException           += OnUnobservedTaskException;
+
             base.OnStartup(e);
+
+            if (!CheckPdfiumIntegrity()) { Shutdown(2); return; }
 
             // Handle uninstall flag (called by Add/Remove Programs)
             if (e.Args.Length > 0 &&
@@ -57,7 +70,369 @@ namespace KillerPDF
             }
 
             ShutdownMode = ShutdownMode.OnLastWindowClose;
+            CleanupStaleTemps();
+            ThemeManager.Initialize();
+            LocaleManager.Initialize();
             new MainWindow().Show();
+        }
+
+        // ============================================================
+        // Crash handling
+        // ============================================================
+        //
+        // NOTE: AccessViolationException is not catchable on .NET 4.8 without
+        // [HandleProcessCorruptedStateExceptions], which we deliberately omit.
+
+        private void OnDispatcherException(object sender, DispatcherUnhandledExceptionEventArgs e)
+        {
+            var logPath = CrashReporter.Capture(e.Exception, "Dispatcher");
+            bool cont   = ShowCrashDialog(e.Exception, logPath, isFatal: false);
+            e.Handled   = true; // always handle; we manage the exit ourselves
+            if (!cont)
+            {
+                CleanupSessionTemps();
+                Shutdown(1);
+            }
+        }
+
+        private void OnDomainException(object sender, UnhandledExceptionEventArgs e)
+        {
+            var ex = e.ExceptionObject as Exception
+                     ?? new Exception(e.ExceptionObject?.ToString() ?? "Unknown error");
+            var logPath = CrashReporter.Capture(ex, "AppDomain");
+
+            try
+            {
+                if (Dispatcher != null && !Dispatcher.HasShutdownStarted)
+                    Dispatcher.Invoke(() => ShowCrashDialog(ex, logPath, isFatal: true));
+                else
+                    ShowCrashDialog(ex, logPath, isFatal: true);
+            }
+            catch { /* at least the log was written */ }
+
+            CleanupSessionTemps();
+            // CLR will terminate the process after this handler returns.
+        }
+
+        private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+        {
+            e.SetObserved(); // prevent process teardown
+            var logPath = CrashReporter.Capture(e.Exception, "TaskScheduler");
+
+            try
+            {
+                if (Dispatcher != null && !Dispatcher.HasShutdownStarted)
+                    Dispatcher.BeginInvoke(new Action(
+                        () => ShowCrashDialog(e.Exception, logPath, isFatal: false)));
+            }
+            catch { /* best-effort */ }
+        }
+
+        /// <summary>
+        /// Dark-themed crash report dialog. Returns true if the user chose Continue.
+        /// Must be called on the UI thread.
+        /// </summary>
+        private static bool ShowCrashDialog(Exception ex, string logPath, bool isFatal)
+        {
+            bool shouldContinue = false;
+
+            // ── Palette ─────────────────────────────────────────────
+            var bg       = new SolidColorBrush(Color.FromRgb(0x1a, 0x1a, 0x1a));
+            var dimBg    = new SolidColorBrush(Color.FromRgb(0x25, 0x25, 0x25));
+            var codeBg   = new SolidColorBrush(Color.FromRgb(0x12, 0x12, 0x12));
+            var red      = new SolidColorBrush(Color.FromRgb(0xef, 0x44, 0x44));
+            var green    = new SolidColorBrush(Color.FromRgb(0x1e, 0xa5, 0x4c));
+            var greenHov = new SolidColorBrush(Color.FromRgb(0x27, 0xc8, 0x60));
+            var dimText  = new SolidColorBrush(Color.FromRgb(0x77, 0x77, 0x77));
+            var midText  = new SolidColorBrush(Color.FromRgb(0xaa, 0xaa, 0xaa));
+            var redHov   = new SolidColorBrush(Color.FromRgb(0xc4, 0x2b, 0x1c));
+            var grayBtn  = new SolidColorBrush(Color.FromRgb(0x33, 0x33, 0x33));
+            var grayHov  = new SolidColorBrush(Color.FromRgb(0x44, 0x44, 0x44));
+            var quitNorm = new SolidColorBrush(Color.FromRgb(0x5a, 0x10, 0x10));
+            var quitHov  = new SolidColorBrush(Color.FromRgb(0xc4, 0x2b, 0x1c));
+
+            var win = new Window
+            {
+                Title                 = "KillerPDF — Unexpected Error",
+                Width                 = 680,
+                Height                = 520,
+                MinWidth              = 480,
+                MinHeight             = 360,
+                WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                ResizeMode            = ResizeMode.CanResize,
+                WindowStyle           = WindowStyle.None,
+                Background            = bg,
+                ShowInTaskbar         = true
+            };
+
+            // ── Layout ──────────────────────────────────────────────
+            var root = new Grid();
+            root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(36) });
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            // ── Title bar ───────────────────────────────────────────
+            var titleBar = new DockPanel { Background = dimBg };
+            Grid.SetRow(titleBar, 0);
+            titleBar.MouseLeftButtonDown += (_, ea) =>
+            {
+                if (ea.ButtonState == MouseButtonState.Pressed) win.DragMove();
+            };
+
+            var xBtn = MakeTitleBarCloseButton(dimText, redHov);
+            xBtn.Click += (_, _) => { shouldContinue = false; win.Close(); };
+            DockPanel.SetDock(xBtn, Dock.Right);
+            titleBar.Children.Add(xBtn);
+            titleBar.Children.Add(new TextBlock
+            {
+                Text              = "KillerPDF — Unexpected Error",
+                Foreground        = dimText,
+                FontSize          = 12,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin            = new Thickness(12, 0, 0, 0)
+            });
+            root.Children.Add(titleBar);
+
+            // ── Error header ─────────────────────────────────────────
+            var headerPanel = new StackPanel
+            {
+                Background = dimBg,
+                Margin     = new Thickness(0, 1, 0, 0)
+            };
+            Grid.SetRow(headerPanel, 1);
+
+            var headerInner = new StackPanel { Margin = new Thickness(20, 14, 20, 14) };
+
+            var typeRow = new StackPanel { Orientation = Orientation.Horizontal };
+            typeRow.Children.Add(new TextBlock
+            {
+                Text              = "⚠  ",
+                Foreground        = red,
+                FontSize          = 18,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            typeRow.Children.Add(new TextBlock
+            {
+                Text              = ex.GetType().Name,
+                Foreground        = red,
+                FontSize          = 16,
+                FontWeight        = FontWeights.SemiBold,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            headerInner.Children.Add(typeRow);
+
+            headerInner.Children.Add(new TextBlock
+            {
+                Text         = ex.Message,
+                Foreground   = Brushes.White,
+                FontSize     = 13,
+                TextWrapping = TextWrapping.Wrap,
+                Margin       = new Thickness(0, 6, 0, 0)
+            });
+            headerInner.Children.Add(new TextBlock
+            {
+                Text       = $"Log: {logPath}",
+                Foreground = dimText,
+                FontSize   = 11,
+                Margin     = new Thickness(0, 6, 0, 0)
+            });
+
+            headerPanel.Children.Add(headerInner);
+            root.Children.Add(headerPanel);
+
+            // ── Stack trace ──────────────────────────────────────────
+            var traceBox = new TextBox
+            {
+                Text                          = FormatExceptionChain(ex),
+                Background                    = codeBg,
+                Foreground                    = midText,
+                FontFamily                    = new FontFamily("Consolas,Courier New"),
+                FontSize                      = 11,
+                IsReadOnly                    = true,
+                VerticalScrollBarVisibility   = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                TextWrapping                  = TextWrapping.NoWrap,
+                BorderThickness               = new Thickness(0),
+                Padding                       = new Thickness(12, 8, 12, 8),
+                Margin                        = new Thickness(0, 1, 0, 0)
+            };
+            Grid.SetRow(traceBox, 2);
+            root.Children.Add(traceBox);
+
+            // ── Button bar ───────────────────────────────────────────
+            var btnBorder = new Border
+            {
+                Background = dimBg,
+                Padding    = new Thickness(16, 10, 16, 10)
+            };
+            Grid.SetRow(btnBorder, 3);
+
+            var btnPanel = new DockPanel();
+
+            // Left: utility buttons
+            var leftBtns = new StackPanel { Orientation = Orientation.Horizontal };
+
+            var copyBtn = MakeCrashButton("Copy Report", grayBtn, grayHov, Brushes.White, 100);
+            copyBtn.Click += (_, _) =>
+            {
+                try { Clipboard.SetText(BuildFullCrashReport(ex)); } catch { }
+            };
+            leftBtns.Children.Add(copyBtn);
+
+            var logsBtn = MakeCrashButton("Open Logs", grayBtn, grayHov, Brushes.White, 88);
+            logsBtn.Margin = new Thickness(8, 0, 0, 0);
+            logsBtn.Click += (_, _) =>
+            {
+                try
+                {
+                    Directory.CreateDirectory(CrashReporter.LogDir);
+                    Process.Start(new ProcessStartInfo(CrashReporter.LogDir) { UseShellExecute = true });
+                }
+                catch { }
+            };
+            leftBtns.Children.Add(logsBtn);
+
+            var githubBtn = MakeCrashButton("Report on GitHub", grayBtn, grayHov,
+                new SolidColorBrush(Color.FromRgb(0x60, 0xc0, 0xff)), 128);
+            githubBtn.Margin = new Thickness(8, 0, 0, 0);
+            githubBtn.Click += (_, _) =>
+            {
+                try
+                {
+                    var ver    = Assembly.GetExecutingAssembly().GetName().Version;
+                    var msgLen = Math.Min(80, ex.Message.Length);
+                    var title  = Uri.EscapeDataString(
+                        $"Crash: {ex.GetType().Name}: {ex.Message[..msgLen]}");
+                    var stack  = ex.StackTrace?.Length > 800
+                        ? ex.StackTrace[..800] + "\n... (truncated)"
+                        : ex.StackTrace ?? "(no stack trace)";
+                    var body = Uri.EscapeDataString(
+                        $"**Version:** {ver?.ToString(3)}\n" +
+                        $"**OS:** {Environment.OSVersion}\n" +
+                        $"**Exception:** `{ex.GetType().FullName}`\n" +
+                        $"**Message:** {ex.Message}\n\n" +
+                        $"```\n{stack}\n```\n\n" +
+                        $"_Log folder: `{CrashReporter.LogDir}`_");
+                    Process.Start(new ProcessStartInfo(
+                        $"https://github.com/SteveTheKiller/KillerPDF/issues/new?title={title}&body={body}")
+                        { UseShellExecute = true });
+                }
+                catch { }
+            };
+            leftBtns.Children.Add(githubBtn);
+
+            DockPanel.SetDock(leftBtns, Dock.Left);
+            btnPanel.Children.Add(leftBtns);
+
+            // Right: Continue / Quit
+            var rightBtns = new StackPanel
+            {
+                Orientation         = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right
+            };
+
+            var contBtn = MakeCrashButton("Continue", green, greenHov,
+                new SolidColorBrush(Color.FromRgb(0x0a, 0x0a, 0x0a)), 88);
+            contBtn.IsEnabled  = !isFatal;
+            contBtn.FontWeight = isFatal ? FontWeights.Normal : FontWeights.SemiBold;
+            contBtn.Margin     = new Thickness(0, 0, 8, 0);
+            contBtn.Click += (_, _) => { shouldContinue = true; win.Close(); };
+
+            var quitBtnCtrl = MakeCrashButton("Quit", quitNorm, quitHov, Brushes.White, 72);
+            quitBtnCtrl.FontWeight = isFatal ? FontWeights.SemiBold : FontWeights.Normal;
+            quitBtnCtrl.Click += (_, _) => { shouldContinue = false; win.Close(); };
+
+            rightBtns.Children.Add(contBtn);
+            rightBtns.Children.Add(quitBtnCtrl);
+
+            DockPanel.SetDock(rightBtns, Dock.Right);
+            btnPanel.Children.Add(rightBtns);
+
+            btnBorder.Child = btnPanel;
+            root.Children.Add(btnBorder);
+
+            win.Content = root;
+            win.ShowDialog();
+            return shouldContinue;
+        }
+
+        private static Button MakeTitleBarCloseButton(SolidColorBrush fg, SolidColorBrush hoverBg)
+        {
+            var t  = new ControlTemplate(typeof(Button));
+            var b  = new FrameworkElementFactory(typeof(Border));
+            b.SetBinding(Border.BackgroundProperty,
+                new System.Windows.Data.Binding("Background")
+                {
+                    RelativeSource = new System.Windows.Data.RelativeSource(
+                        System.Windows.Data.RelativeSourceMode.TemplatedParent)
+                });
+            var cp = new FrameworkElementFactory(typeof(ContentPresenter));
+            cp.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            cp.SetValue(ContentPresenter.VerticalAlignmentProperty,   VerticalAlignment.Center);
+            b.AppendChild(cp);
+            t.VisualTree = b;
+
+            var s    = new Style(typeof(Button));
+            s.Setters.Add(new Setter(Button.BackgroundProperty, Brushes.Transparent));
+            s.Setters.Add(new Setter(Button.ForegroundProperty, fg));
+            s.Setters.Add(new Setter(Button.TemplateProperty,   t));
+            var trig = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
+            trig.Setters.Add(new Setter(Button.BackgroundProperty, hoverBg));
+            trig.Setters.Add(new Setter(Button.ForegroundProperty, Brushes.White));
+            s.Triggers.Add(trig);
+
+            return new Button
+            {
+                Content                  = "",
+                FontFamily               = new FontFamily("Segoe MDL2 Assets"),
+                FontSize                 = 11,
+                Width                    = 46,
+                BorderThickness          = new Thickness(0),
+                VerticalAlignment        = VerticalAlignment.Stretch,
+                VerticalContentAlignment = VerticalAlignment.Center,
+                Cursor                   = Cursors.Arrow,
+                Style                    = s
+            };
+        }
+
+        private static Button MakeCrashButton(string label,
+            SolidColorBrush normal, SolidColorBrush hover, SolidColorBrush fg,
+            double width = 88)
+            => new()
+            {
+                Content = label,
+                Width   = width,
+                Height  = 28,
+                Style   = MakeLauncherButtonStyle(normal, hover, fg)
+            };
+
+        private static string FormatExceptionChain(Exception ex)
+        {
+            var sb    = new StringBuilder();
+            var inner = ex;
+            var depth = 0;
+            while (inner != null && depth < 5)
+            {
+                if (depth > 0) { sb.AppendLine(); sb.AppendLine("=== Inner Exception ==="); }
+                sb.AppendLine($"{inner.GetType().FullName}: {inner.Message}");
+                sb.AppendLine(inner.StackTrace ?? "(no stack trace)");
+                inner = inner.InnerException;
+                depth++;
+            }
+            return sb.ToString().TrimEnd();
+        }
+
+        private static string BuildFullCrashReport(Exception ex)
+        {
+            var sb  = new StringBuilder();
+            var ver = Assembly.GetExecutingAssembly().GetName().Version;
+            sb.AppendLine($"KillerPDF v{ver?.ToString(3)}");
+            sb.AppendLine($"Time : {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            sb.AppendLine($"OS   : {Environment.OSVersion}");
+            sb.AppendLine();
+            sb.Append(FormatExceptionChain(ex));
+            return sb.ToString();
         }
 
         // ============================================================
@@ -103,6 +478,89 @@ namespace KillerPDF
         // ============================================================
         // Registry helpers
         // ============================================================
+
+        // ============================================================
+        // Temp file tracking
+        // ============================================================
+
+        /// <summary>
+        /// User-private temp directory for session working files (encrypted PDFs, etc.).
+        /// %LOCALAPPDATA% is user-private and not indexed by Windows Search.
+        /// </summary>
+        internal static readonly string TempDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "KillerPDF", "Temp");
+
+        private static readonly List<string> _sessionTemps = [];
+
+        /// <summary>
+        /// Creates a tracked temp path of the form killerpdf_&lt;tag&gt;_&lt;guid&gt;.pdf
+        /// under %LOCALAPPDATA%\KillerPDF\Temp\.
+        /// All registered paths are deleted when CleanupSessionTemps() is called.
+        /// </summary>
+        internal static string MakeTempFile(string tag)
+        {
+            try { Directory.CreateDirectory(TempDir); } catch { }
+            var path = Path.Combine(TempDir, $"killerpdf_{tag}_{Guid.NewGuid():N}.pdf");
+            lock (_sessionTemps) _sessionTemps.Add(path);
+            return path;
+        }
+
+        /// <summary>Deletes all temp files registered this session (best-effort).</summary>
+        internal static void CleanupSessionTemps()
+        {
+            lock (_sessionTemps)
+            {
+                foreach (var f in _sessionTemps)
+                    try { if (File.Exists(f)) File.Delete(f); } catch { }
+                _sessionTemps.Clear();
+            }
+        }
+
+        /// <summary>
+        /// Deletes killerpdf_*.pdf files left over from previous crashed sessions.
+        /// Sweeps both the current TempDir and the legacy %TEMP% location.
+        /// Locked files (still open by another instance) are silently skipped.
+        /// </summary>
+        internal static void CleanupStaleTemps()
+        {
+            // Current location
+            try
+            {
+                if (Directory.Exists(TempDir))
+                    foreach (var f in Directory.GetFiles(TempDir, "killerpdf_*.pdf"))
+                        try { File.Delete(f); } catch { }
+            }
+            catch { }
+
+            // Legacy %TEMP% location — sweep once for users upgrading from older builds
+            try
+            {
+                foreach (var f in Directory.GetFiles(Path.GetTempPath(), "killerpdf_*.pdf"))
+                    try { File.Delete(f); } catch { }
+            }
+            catch { }
+        }
+
+        internal static string? GetSetting(string name)
+        {
+            try
+            {
+                using var key = Registry.CurrentUser.OpenSubKey(@"Software\KillerPDF\Settings");
+                return key?.GetValue(name) as string;
+            }
+            catch { return null; }
+        }
+
+        internal static void SetSetting(string name, string value)
+        {
+            try
+            {
+                using var key = Registry.CurrentUser.CreateSubKey(@"Software\KillerPDF\Settings");
+                key.SetValue(name, value);
+            }
+            catch { /* best-effort */ }
+        }
 
         private static bool IsInstalled()
         {
@@ -344,16 +802,396 @@ namespace KillerPDF
         }
 
         // ============================================================
+        // Security — Authenticode verification + pdfium integrity
+        // ============================================================
+
+        // ── WinVerifyTrust P/Invoke ──────────────────────────────────────────
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct WINTRUST_FILE_INFO
+        {
+            public uint   cbStruct;
+            public IntPtr pcwszFilePath;   // LPCWSTR
+            public IntPtr hFile;
+            public IntPtr pgKnownSubject;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct WINTRUST_DATA
+        {
+            public uint   cbStruct;
+            public IntPtr pPolicyCallbackData;
+            public IntPtr pSIPClientData;
+            public uint   dwUIChoice;          // 2 = WTD_UI_NONE
+            public uint   fdwRevocationChecks; // 0 = WTD_REVOKE_NONE
+            public uint   dwUnionChoice;       // 1 = WTD_CHOICE_FILE
+            public IntPtr pUnion;              // → WINTRUST_FILE_INFO
+            public uint   dwStateAction;       // 0 = WTD_STATEACTION_IGNORE
+            public IntPtr hWVTStateData;
+            public IntPtr pwszURLReference;
+            public uint   dwProvFlags;         // 0 = allow network fetch of intermediates
+            public uint   dwUIContext;
+            public IntPtr pSignatureSettings;
+        }
+
+        private static readonly Guid WTD_VERIFY_GENERIC =
+            new("00AAC56B-CD44-11d0-8CC2-00C04FC295EE");
+
+        [DllImport("wintrust.dll", ExactSpelling = true, SetLastError = false,
+                   CharSet = CharSet.Unicode)]
+        private static extern uint WinVerifyTrust(
+            IntPtr hwnd, ref Guid pgActionID, IntPtr pWVTData);
+
+        // ── Public helpers ───────────────────────────────────────────────────
+
+        /// <summary>
+        /// Calls WinVerifyTrust to validate an Authenticode signature.
+        /// Returns (Valid, SubjectCN, Thumbprint).
+        /// Valid=false for unsigned, expired (past grace), or tampered files.
+        /// </summary>
+        internal static (bool Valid, string Subject, string Thumbprint)
+            VerifyAuthenticode(string filePath)
+        {
+            var subject    = "(not signed)";
+            var thumbprint = string.Empty;
+
+            // Try to read cert info regardless of signature validity
+            try
+            {
+                var raw  = X509Certificate.CreateFromSignedFile(filePath);
+                var cert = new X509Certificate2(raw);
+                subject    = cert.GetNameInfo(X509NameType.SimpleName, forIssuer: false);
+                thumbprint = cert.Thumbprint ?? string.Empty;
+            }
+            catch { /* unsigned or unreadable */ }
+
+            // Full chain + revocation check via WinVerifyTrust
+            var pathPtr      = Marshal.StringToHGlobalUni(filePath);
+            var fileInfoPtr  = Marshal.AllocHGlobal(Marshal.SizeOf<WINTRUST_FILE_INFO>());
+            var dataPtr      = Marshal.AllocHGlobal(Marshal.SizeOf<WINTRUST_DATA>());
+            try
+            {
+                Marshal.StructureToPtr(new WINTRUST_FILE_INFO
+                {
+                    cbStruct      = (uint)Marshal.SizeOf<WINTRUST_FILE_INFO>(),
+                    pcwszFilePath = pathPtr
+                }, fileInfoPtr, false);
+
+                Marshal.StructureToPtr(new WINTRUST_DATA
+                {
+                    cbStruct      = (uint)Marshal.SizeOf<WINTRUST_DATA>(),
+                    dwUIChoice    = 2,  // WTD_UI_NONE
+                    dwUnionChoice = 1,  // WTD_CHOICE_FILE
+                    pUnion        = fileInfoPtr,
+                    dwProvFlags   = 0   // allow network fetch of intermediate certs
+                }, dataPtr, false);
+
+                var actionId = WTD_VERIFY_GENERIC;
+                uint hr = WinVerifyTrust(IntPtr.Zero, ref actionId, dataPtr);
+                return (hr == 0, subject, thumbprint);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(dataPtr);
+                Marshal.FreeHGlobal(fileInfoPtr);
+                Marshal.FreeHGlobal(pathPtr);
+            }
+        }
+
+        /// <summary>
+        /// Convenience wrapper: verify the currently running EXE.
+        /// </summary>
+        internal static (bool Valid, string Subject, string Thumbprint) GetExeSignerInfo()
+        {
+            try
+            {
+                return VerifyAuthenticode(Process.GetCurrentProcess().MainModule!.FileName);
+            }
+            catch
+            {
+                return (false, "(not signed)", string.Empty);
+            }
+        }
+
+        /// <summary>SHA256 hex of the currently running EXE (for the About dialog).</summary>
+        internal static string GetExeSha256()
+        {
+            try
+            {
+                var path = Process.GetCurrentProcess().MainModule!.FileName;
+                using var sha = SHA256.Create();
+                using var fs  = File.OpenRead(path);
+                return BitConverter.ToString(sha.ComputeHash(fs)).Replace("-", "");
+            }
+            catch { return "(unavailable)"; }
+        }
+
+        // ── About dialog ────────────────────────────────────────────────────────
+
+        internal static void ShowAboutDialog(Window owner)
+        {
+            // Gather info on a background thread so the UI isn't blocked by hashing
+            var version    = System.Reflection.Assembly.GetExecutingAssembly()
+                                   .GetName().Version?.ToString(3) ?? "?";
+            var (sigValid, sigSubject, sigThumbprint) = GetExeSignerInfo();
+            var sha256 = GetExeSha256();
+
+            // ── Layout ──────────────────────────────────────────────────────
+            var bg     = new SolidColorBrush(Color.FromRgb(0x1e, 0x1e, 0x1e));
+            var bgCard = new SolidColorBrush(Color.FromRgb(0x2a, 0x2a, 0x2a));
+            var fg     = new SolidColorBrush(Color.FromRgb(0xe0, 0xe0, 0xe0));
+            var fgDim  = new SolidColorBrush(Color.FromRgb(0x77, 0x77, 0x77));
+            var accent = new SolidColorBrush(Color.FromRgb(0x1e, 0xa5, 0x4c));
+            var mono   = new FontFamily("Consolas");
+
+            // Title bar
+            var titleBar = new Grid
+            {
+                Background = new SolidColorBrush(Color.FromRgb(0x25, 0x25, 0x25)),
+                Height = 32
+            };
+            titleBar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            titleBar.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var titleText = new TextBlock
+            {
+                Text = $"About KillerPDF",
+                Foreground = fg, VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(12, 0, 0, 0), FontSize = 13, FontWeight = FontWeights.SemiBold
+            };
+            Grid.SetColumn(titleText, 0);
+            titleBar.Children.Add(titleText);
+
+            Window? dlg = null;
+            var closeBtn = MakeTitleBarCloseButton(
+                new SolidColorBrush(Color.FromRgb(0xcc, 0xcc, 0xcc)),
+                new SolidColorBrush(Color.FromRgb(0xc0, 0x3b, 0x3b)));
+            closeBtn.Click += (_, __) => dlg!.Close();
+            Grid.SetColumn(closeBtn, 1);
+            titleBar.Children.Add(closeBtn);
+
+            // Helper: labelled row (onClick makes the value a clickable hyperlink)
+            static StackPanel MakeRow(string label, string value,
+                SolidColorBrush labelBrush, SolidColorBrush valueBrush,
+                FontFamily? valueFont = null, bool wrap = false, Action? onClick = null)
+            {
+                var sp = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(0, 0, 0, 10) };
+                sp.Children.Add(new TextBlock
+                {
+                    Text = label, Foreground = labelBrush,
+                    FontSize = 10, Margin = new Thickness(0, 0, 0, 2)
+                });
+                if (onClick != null)
+                {
+                    var tb = new TextBlock
+                    {
+                        FontFamily = valueFont ?? new FontFamily("Segoe UI"),
+                        FontSize = 12,
+                        Cursor = Cursors.Hand
+                    };
+                    var hl = new Hyperlink(new Run(value))
+                    {
+                        Foreground = valueBrush,
+                        TextDecorations = null
+                    };
+                    hl.Click += (_, _) => onClick();
+                    tb.Inlines.Add(hl);
+                    sp.Children.Add(tb);
+                }
+                else
+                {
+                    sp.Children.Add(new TextBlock
+                    {
+                        Text = value, Foreground = valueBrush,
+                        FontFamily = valueFont ?? new FontFamily("Segoe UI"),
+                        FontSize = 12,
+                        TextWrapping = wrap ? TextWrapping.Wrap : TextWrapping.NoWrap
+                    });
+                }
+                return sp;
+            }
+
+            static void OpenUrl(string url)
+            {
+                try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
+            }
+
+            var sigInfo = sigValid
+                ? $"{sigSubject}"
+                : "(not signed or chain failed)";
+
+            var thumbInfo = string.IsNullOrEmpty(sigThumbprint) ? "(none)" : sigThumbprint;
+
+            var card = new Border
+            {
+                Background = bgCard,
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(16),
+                Margin = new Thickness(0, 0, 0, 0)
+            };
+            var cardContent = new StackPanel();
+            cardContent.Children.Add(MakeRow("VERSION", $"v{version}", fgDim, accent,
+                onClick: () => OpenUrl($"https://github.com/SteveTheKiller/KillerPDF/releases/tag/v{version}")));
+            cardContent.Children.Add(MakeRow("PUBLISHER", sigInfo,         fgDim, fg));
+            cardContent.Children.Add(MakeRow("THUMBPRINT", thumbInfo,      fgDim, fg, mono, wrap: true));
+            cardContent.Children.Add(MakeRow("EXE SHA256", sha256,         fgDim, fg, mono, wrap: true));
+            card.Child = cardContent;
+
+            // Close button
+            var okBtn = new Button
+            {
+                Content = "Close", Width = 80, Height = 28,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(0, 12, 0, 0),
+                Style = MakeLauncherButtonStyle(
+                    new SolidColorBrush(Color.FromRgb(0x1e, 0xa5, 0x4c)),
+                    new SolidColorBrush(Color.FromRgb(0x17, 0x7a, 0x38)),
+                    new SolidColorBrush(Colors.White))
+            };
+            okBtn.Click += (_, __) => dlg!.Close();
+
+            // KillerPDF logo — clickable link to product site
+            var logo = new TextBlock { FontSize = 22, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) };
+            var logoHl = new Hyperlink(new Run("KillerPDF"))
+            {
+                Foreground = accent,
+                TextDecorations = null
+            };
+            logoHl.Click += (_, _) => OpenUrl("https://pdf.killertools.com");
+            logo.Inlines.Add(logoHl);
+
+            // Tagline with Killer Tools link
+            var tagline = new TextBlock { FontSize = 11, Margin = new Thickness(0, 0, 0, 16) };
+            tagline.Inlines.Add(new Run("A fast, free PDF toolkit for Windows. Part of ") { Foreground = fgDim });
+            var ktHl = new Hyperlink(new Run("Killer Tools"))
+            {
+                Foreground = accent,
+                TextDecorations = null
+            };
+            ktHl.Click += (_, _) => OpenUrl("https://killertools.net");
+            tagline.Inlines.Add(ktHl);
+            tagline.Inlines.Add(new Run(".") { Foreground = fgDim });
+
+            var body = new StackPanel { Margin = new Thickness(16, 16, 16, 20) };
+            body.Children.Add(logo);
+            body.Children.Add(tagline);
+            body.Children.Add(card);
+            body.Children.Add(okBtn);
+
+            var root = new DockPanel();
+            DockPanel.SetDock(titleBar, Dock.Top);
+            root.Children.Add(titleBar);
+            root.Children.Add(body);
+            root.Background = bg;
+
+            // Make title bar draggable
+            titleBar.MouseLeftButtonDown += (_, me) =>
+            {
+                if (me.ButtonState == MouseButtonState.Pressed) dlg!.DragMove();
+            };
+
+            dlg = new Window
+            {
+                Content = root,
+                WindowStyle = WindowStyle.None,
+                ResizeMode = ResizeMode.NoResize,
+                SizeToContent = SizeToContent.Height,
+                Width = 540,
+                Owner = owner,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Background = bg
+            };
+
+            dlg.ShowDialog();
+        }
+
+        // ── pdfium.dll integrity check ───────────────────────────────────────
+
+        /// <summary>
+        /// Finds the Costura-embedded pdfium resource, decompresses it in-memory,
+        /// and compares its SHA256 to BuildInfo.PdfiumSha256.
+        /// Returns false (and shows a message box) only on a confirmed mismatch.
+        /// Fails-open if the check cannot complete (dev builds, missing resource, I/O error).
+        /// </summary>
+        private static bool CheckPdfiumIntegrity()
+        {
+            if (string.Equals(BuildInfo.PdfiumSha256, BuildInfo.PdfiumSha256Disabled, StringComparison.Ordinal))
+                return true; // disabled for this build (dev / SkipSign)
+
+            var asm = Assembly.GetExecutingAssembly();
+            var resourceName = Array.Find(asm.GetManifestResourceNames(),
+                n => n.IndexOf("pdfium", StringComparison.OrdinalIgnoreCase) >= 0
+                     && n.EndsWith(".compressed", StringComparison.OrdinalIgnoreCase));
+
+            if (resourceName == null)
+                return true; // not bundled via Costura (dev build running from bin/)
+
+            try
+            {
+                string actual;
+                using (var rs      = asm.GetManifestResourceStream(resourceName)!)
+                using (var deflate = new DeflateStream(rs, CompressionMode.Decompress))
+                using (var sha     = SHA256.Create())
+                    actual = BitConverter.ToString(sha.ComputeHash(deflate)).Replace("-", "");
+
+                if (!string.Equals(actual, BuildInfo.PdfiumSha256,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    MessageBox.Show(
+                        "Security check failed: pdfium.dll integrity verification failed.\n\n" +
+                        $"Expected: {BuildInfo.PdfiumSha256}\n" +
+                        $"Actual  : {actual}\n\n" +
+                        "The bundled PDF engine may have been tampered with. KillerPDF will exit.",
+                        $"{AppName} — Security", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return false;
+                }
+                return true;
+            }
+            catch
+            {
+                return true; // fail-open: only block on confirmed mismatch
+            }
+        }
+
+        // ============================================================
         // Installation
         // ============================================================
 
         private static void DoInstall(bool wantDesktop)
         {
+            string src = Process.GetCurrentProcess().MainModule!.FileName;
+
+            // ── Trust gate: refuse to install an unsigned or wrong-publisher EXE ──
+            var (valid, _, _) = VerifyAuthenticode(src);
+            if (!valid)
+            {
+                MessageBox.Show(
+                    "Installation refused: the running EXE does not carry a valid Authenticode " +
+                    "signature.\n\nOnly signed builds of KillerPDF can be installed.",
+                    AppName, MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // ── Downgrade guard ────────────────────────────────────────────────────
+            if (File.Exists(InstallExe))
+            {
+                var runVer  = FileVersionInfo.GetVersionInfo(src).FileVersion ?? "";
+                var instVer = FileVersionInfo.GetVersionInfo(InstallExe).FileVersion ?? "";
+                if (string.Compare(runVer, instVer, StringComparison.OrdinalIgnoreCase) < 0)
+                {
+                    var res = MessageBox.Show(
+                        $"You are about to install an older version ({runVer}) " +
+                        $"over the currently installed version ({instVer}).\n\n" +
+                        "Downgrade anyway?",
+                        AppName, MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                    if (res != MessageBoxResult.Yes) return;
+                }
+            }
+
             try
             {
                 // Copy EXE to install location
                 Directory.CreateDirectory(InstallDir);
-                string src = Process.GetCurrentProcess().MainModule!.FileName;
                 File.Copy(src, InstallExe, overwrite: true);
 
                 // Shortcuts

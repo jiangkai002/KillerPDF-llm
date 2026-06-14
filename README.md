@@ -20,12 +20,14 @@ Part of [killertools.net](https://killertools.net).
 - PDF form filling: text inputs, checkboxes, and radio buttons render as live controls - fill and save back to PDF
 - PDF outline (bookmark) navigation: OUTLINES tab in the sidebar displays the bookmark tree; click any entry to jump to that page
 - Clickable PDF links and internal cross-references, including TOC back-links
-- Multi-page grid view toggle - switch between a scrollable grid of all pages and a focused single-page view
+- Four view modes selectable in Settings: Single Page, Continuous scroll (all pages in one vertical strip), Two-Page (side-by-side), and Grid. Choice persists across sessions.
+- Localized UI: English, Spanish, and Traditional Chinese included. Contribute a translation via `Strings/TRANSLATING.md`.
+- Six color themes: Dark, Light, High Contrast, Blood, Greed, and Cyanotic. Switch live in Settings.
 - Zoom preset dropdown with scroll-wheel sync; Fit to Width and Fit Page re-apply on window resize
-- Page number jump box in the toolbar - type a page number and press Enter to navigate directly
+- Page number jump box in the toolbar; type a page number and press Enter to navigate directly
 - Arrow key navigation and middle mouse button panning
 - Ctrl+S saves to the current file; Ctrl+Shift+S opens Save As
-- Keyboard shortcut overlay - press Ctrl+? for a full shortcut reference
+- Keyboard shortcut overlay; press Ctrl+? for a full shortcut reference
 - Full-text search across the entire document with result highlighting, drag-select to copy text
 - Print with annotations flattened into the output
 - Save Flattened PDF: rasterizes every page at 150 DPI into a fully uneditable document
@@ -34,13 +36,25 @@ Part of [killertools.net](https://killertools.net).
 
 ## Screenshots
 
-![KillerPDF outlines support](screenshots/outlines.png)
+Five new built-in themes plus the original dark theme:
 
-![KillerPDF form fill](screenshots/forms.png)
+**Blood**
+![KillerPDF - Blood theme](screenshots/1_Blood.png)
 
-![KillerPDF broken PDF dialog](screenshots/broken_dialog.png)
+**Greed**
+![KillerPDF - Greed theme](screenshots/2_Greed.png)
 
-![KillerPDF broken PDF fixed](screenshots/broken_fixed.png)
+**Cyanotic**
+![KillerPDF - Cyanotic theme](screenshots/3_Cyanotic.png)
+
+**High Contrast**
+![KillerPDF - High Contrast theme](screenshots/4_High_Contrast.png)
+
+**Light**
+![KillerPDF - Light theme](screenshots/5_Light.png)
+
+**Dark**
+![KillerPDF - Dark theme](screenshots/6_Dark.png)
 
 ## Requirements
 
@@ -54,7 +68,7 @@ winget install killerpdf
 ```
 
 - Prebuilt binary: <https://github.com/SteveTheKiller/KillerPDF/releases/latest/download/KillerPDF.exe>
-- Source (GPL3 corresponding source for this release): <https://github.com/SteveTheKiller/KillerPDF/releases/download/v1.4.1/KillerPDF-1.4.2-src.zip>
+- Source (GPL3 corresponding source for this release): <https://github.com/SteveTheKiller/KillerPDF/releases/download/v1.5.1/KillerPDF-1.5.1-src.zip>
 
 ## Build from source
 
@@ -74,10 +88,4 @@ See [CHANGELOG.md](CHANGELOG.md).
 
 ## Why this exists
 
-I hate Adobe. Acrobat is bloated, tries to hijack file associations, wants a subscription to do basic things, and phones home constantly. Most of the "free" alternatives are either ad-riddled, cloud-based, or rebrands of the same PDF engine sold under three different names.
-
-KillerPDF is what I wanted: local-only, portable, no account, no telemetry. The PDF equivalent of Notepad.
-
-## License
-
-GPLv3. See [LICENSE](LICENSE). If you fork, modify, or redistribute KillerPDF, your version must also be released under GPLv3 with source available. No exceptions for commercial rebrands.
+I hate Adobe. Acrobat is bloated, tries to hijack file associations, wants a subscription to do basic things, and phones home constantly. Most of the "free" alternatives are either ad

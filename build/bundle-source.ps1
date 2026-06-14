@@ -35,6 +35,9 @@ try {
             return
         }
         foreach ($f in $files) {
+            # A file can be tracked in git but deleted on disk (removed without `git rm`).
+            # Skip it instead of aborting the whole bundle.
+            if (-not (Test-Path $f)) { Write-Warning "Skipping tracked file missing on disk: $f"; continue }
             $dst = Join-Path $staging $f
             $parent = Split-Path $dst -Parent
             if (-not (Test-Path $parent)) { New-Item -ItemType Directory -Force -Path $parent | Out-Null }

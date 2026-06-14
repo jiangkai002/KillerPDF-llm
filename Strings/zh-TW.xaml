@@ -40,6 +40,13 @@
     <sys:String x:Key="Str_TT_Settings">設定</sys:String>
     <sys:String x:Key="Str_TT_About">關於 KillerPDF</sys:String>
 
+    <!-- ── About overlay ─────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_About_Version">版本</sys:String>
+    <sys:String x:Key="Str_About_Publisher">發行者</sys:String>
+    <sys:String x:Key="Str_About_Thumbprint">憑證指紋</sys:String>
+    <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
+    <sys:String x:Key="Str_About_Computing">計算中...</sys:String>
+
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">頁面</sys:String>
     <sys:String x:Key="Str_TabOutlines">大綱</sys:String>
@@ -138,5 +145,14 @@
 
     <!-- ── KS overlay font size (sys:Double) ──────────────────────────── -->
     <sys:Double x:Key="Str_KS_FontSize">12.5</sys:Double>
+
+
+    <!-- ── View mode ──────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_ViewMode">檢視模式</sys:String>
+    <sys:String x:Key="Str_View_Single">單頁</sys:String>
+    <sys:String x:Key="Str_View_Continuous">連續捲動</sys:String>
+    <sys:String x:Key="Str_View_TwoPage">雙頁</sys:String>
+    <sys:String x:Key="Str_View_Grid">格狀</sys:String>
+    <sys:String x:Key="Str_Continuous_EditMsg">請切換至單頁模式以使用編輯工具</sys:String>
 
 </ResourceDictionary>

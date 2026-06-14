@@ -4,6 +4,62 @@ All notable changes to KillerPDF are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-06-14
+
+### Fixed
+- PDFs that opened fine in browsers and Acrobat/Foxit but failed in KillerPDF with "Unexpected EOF" now open. PdfSharpCore rejected them during parsing; KillerPDF now falls back to re-saving the file losslessly through PDFium (which reads them) and opening that copy (Issue #72).
+- Files opened from UNC / network shares (including the WSL `\\wsl$` filesystem) are now copied to a local temp before opening, avoiding partial-read failures on network filesystems.
+- Grid view now renders every page, and tiles stream in progressively as they render instead of blocking until the whole document is done. Grid was previously capped at the first 26 pages, so longer documents stopped loading partway through.
+- Ctrl+Scroll in grid view no longer re-renders every page when the zoom is already at its limit (the column count cannot change), which made large documents reload pointlessly.
+- Lowered the minimum zoom from 10% to 5% so grid view can pack more columns (useful for wide/landscape pages) and single-page view can zoom out further.
+- Removed a stray horizontal scrollbar (a thin green line) that appeared across the bottom of grid view; grid fits its columns to the window and no longer scrolls sideways.
+
+### Changed
+- Save Flattened PDF now rasterizes across multiple CPU cores. PNG encoding runs in parallel; the PDFium render step is serialized because the library is not thread-safe. Large documents flatten faster and the UI stays responsive (Issue #68).
+
+## [1.5.0] - 2026-06-14
+
+### Added
+- Localization support (Issue #53 / contributor leox243). Language selector in Settings panel. Ships with English (en-US), Spanish (es), and Traditional Chinese (zh-TW). Theme names, zoom dropdown, fit-mode status, and keyboard shortcut overlay all update with the selected language. Contributor guide at `Strings/TRANSLATING.md`.
+- Continuous scroll view mode. Opens all pages in a single vertical strip with progressive async rendering. Page number and sidebar thumbnail track automatically as you scroll.
+- Two-page view mode. Displays two pages side-by-side (primary + one secondary). Editing tools are available in this mode.
+- Re-edit placed text by double-clicking it with the Select tool. The text re-opens with its current content, size, and color; the size dropdown and color swatches restyle it live while editing.
+- Per-monitor DPI v2 support. Window and page re-render correctly when dragging between monitors with different scale factors.
+- Zoom +/− toolbar buttons and keyboard shortcuts (Ctrl+=, Ctrl+−, Ctrl+0, Ctrl+Scroll).
+- Crop tool improvements (Issue #15): editable CropBox coordinates, page range apply, TrimBox sync, rotation-aware coordinate conversion, draggable confirm bar.
+- Settings persistence - window size, zoom, and fit mode saved/restored on launch (Issue #69).
+- Global crash handler with structured log files and recovery dialog.
+- About dialog (click the version label in the status bar).
+- Authenticode install gate, downgrade protection, and pdfium.dll integrity check.
+- Theme system: Dark, Light, High Contrast, Blood, Greed, and Cyanotic themes with live switching and settings panel (gear icon)
+- Grid view zoom fits a whole number of pages across the window. Ctrl+Scroll steps through column counts (3, 4, 5 and up) and the grid opens at three pages across.
+- Built-in print dialog with working print preview. Replaces the Windows print dialog (which showed "This app doesn't support print preview") with a themed dialog that previews each page and exposes printer, orientation, copies, and page-range (for example 1-3,5) settings.
+
+### Changed
+- Continuous scroll is now the default view mode for new installs.
+- View mode order in Settings: Continuous, Single Page, Two-Page, Grid.
+- Settings and keyboard shortcut overlay borders widened to 2px for better visibility.
+- Text tool size value is now interpreted as points. A size of 14 renders and exports as roughly 14pt instead of about 5pt of internal render units.
+- Placing an image now switches to the Select tool with the image selected, so you can immediately drag to reposition or use the corner handle to resize instead of the next click reopening the image picker (matching signature placement).
+- Extracted SignatureStore and SearchService into Services/ with unit tests (KillerPDF.Tests).
+- Encrypted PDF temp files written to `%LOCALAPPDATA%\KillerPDF\Temp\` instead of `%TEMP%`.
+- Reopens last file on startup; ESC closes the app when no overlay is active (Issue #69).
+- Grid view mode moved from a toolbar toggle to the Settings panel alongside Theme and Language. Four modes: Single Page, Continuous, Two-Page, Grid. Selection persists across sessions.
+- Switching to Single or Two-Page view fits the page to the window, Continuous opens fit-to-width, and Grid opens at its column-fit default, rather than carrying the previous mode's zoom level.
+- Annotation toolbars (text and draw size/color) now appear at the top-right under the toolbar buttons instead of the top-left.
+- Four corner resize handles on placed images and signatures. Drag any corner to resize with the opposite corner held fixed. Handles are larger and render at the same on-screen size in every view mode.
+
+### Fixed
+- Stale debug string appearing in status bar after Fit Width in single-page mode.
+- Text edit box closed when changing the font size, because the size dropdown took keyboard focus and triggered a commit. Focus moving into the size or color bar no longer commits the edit.
+- Crop confirm bar was scaled down with page zoom, making it unreadable at low zoom levels. Selection rectangle improvements.
+- Save Flattened PDF now runs on a background thread (Issue #68).
+- Cropped pages rasterize at CropBox size instead of document-wide maximum (Issue #68).
+- Temp files cleaned up on close, crash, and startup.
+- Undo of a document change (crop, rotate, page operations) now re-renders the active view, so a page no longer keeps showing its pre-undo state while the sidebar shows the correct version.
+
+---
+
 ## [1.4.3] - 2026-06-08
 
 ### Fixed
@@ -145,19 +201,3 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Post-publish MSBuild target that automatically bundles a GPL3-compliant source zip alongside the published EXE.
 - CHANGELOG.md.
 
-## [1.0.1]
-
-_Historical entries to be backfilled._
-
-[Unreleased]: https://github.com/SteveTheKiller/KillerPDF/compare/v1.4.2...HEAD
-[1.4.2]: https://github.com/SteveTheKiller/KillerPDF/compare/v1.4.1...v1.4.2
-[1.4.1]: https://github.com/SteveTheKiller/KillerPDF/compare/v1.4.0...v1.4.1
-[1.4.0]: https://github.com/SteveTheKiller/KillerPDF/compare/v1.3.2...v1.4.0
-[1.3.2]: https://github.com/SteveTheKiller/KillerPDF/compare/v1.3.1...v1.3.2
-[1.3.1]: https://github.com/SteveTheKiller/KillerPDF/compare/v1.3.0...v1.3.1
-[1.3.0]: https://github.com/SteveTheKiller/KillerPDF/compare/v1.2.1...v1.3.0
-[1.2.1]: https://github.com/SteveTheKiller/KillerPDF/compare/v1.2.0...v1.2.1
-[1.2.0]: https://github.com/SteveTheKiller/KillerPDF/compare/v1.1.1...v1.2.0
-[1.1.1]: https://github.com/SteveTheKiller/KillerPDF/releases/tag/v1.1.1
-[1.1.0]: https://github.com/SteveTheKiller/KillerPDF/releases/tag/v1.1.0
-[1.0.1]: https://github.com/SteveTheKiller/KillerPDF/releases/tag/v1.0.1

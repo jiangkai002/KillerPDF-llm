@@ -38,6 +38,13 @@
     <sys:String x:Key="Str_TT_Settings">Settings</sys:String>
     <sys:String x:Key="Str_TT_About">About KillerPDF</sys:String>
 
+    <!-- ── About overlay ─────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_About_Version">VERSION</sys:String>
+    <sys:String x:Key="Str_About_Publisher">PUBLISHER</sys:String>
+    <sys:String x:Key="Str_About_Thumbprint">THUMBPRINT</sys:String>
+    <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
+    <sys:String x:Key="Str_About_Computing">Computing...</sys:String>
+
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">PAGES</sys:String>
     <sys:String x:Key="Str_TabOutlines">OUTLINES</sys:String>
@@ -136,5 +143,14 @@ You can uninstall via Add/Remove Programs at any time.</sys:String>
 
     <!-- ── KS overlay font size (sys:Double) ──────────────────────────── -->
     <sys:Double x:Key="Str_KS_FontSize">11</sys:Double>
+
+
+    <!-- ── View mode ──────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_ViewMode">VIEW MODE</sys:String>
+    <sys:String x:Key="Str_View_Single">Single Page</sys:String>
+    <sys:String x:Key="Str_View_Continuous">Continuous</sys:String>
+    <sys:String x:Key="Str_View_TwoPage">Two Page</sys:String>
+    <sys:String x:Key="Str_View_Grid">Grid</sys:String>
+    <sys:String x:Key="Str_Continuous_EditMsg">Switch to Single Page to use editing tools</sys:String>
 
 </ResourceDictionary>

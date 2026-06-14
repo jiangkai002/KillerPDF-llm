@@ -3,30 +3,25 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:KillerPDF"
         mc:Ignorable="d"
         Title="KillerPDF" Height="700" Width="1000"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         AllowsTransparency="True"
         ResizeMode="CanResizeWithGrip"
-        Background="#333333">
+        Background="{DynamicResource BgDark}"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType">
 
     <Window.Resources>
-        <!-- Killer Tools dark/green theme -->
-        <SolidColorBrush x:Key="BgDark" Color="#333333"/>
-        <SolidColorBrush x:Key="BgPanel" Color="#3a3a3a"/>
-        <SolidColorBrush x:Key="BgHover" Color="#404040"/>
-        <SolidColorBrush x:Key="BorderDim" Color="#2e2e2e"/>
-        <SolidColorBrush x:Key="AccentGreen" Color="#1ea54c"/>
-        <SolidColorBrush x:Key="AccentGreenDim" Color="#0d2a18"/>
-        <SolidColorBrush x:Key="TextPrimary" Color="#e0e0e0"/>
-        <SolidColorBrush x:Key="TextSecondary" Color="#888888"/>
-        <SolidColorBrush x:Key="DangerRed" Color="#ef4444"/>
+        <!-- Brush keys come from Application.Resources (theme dicts) via DynamicResource.
+             Only non-colour styles live here. -->
 
         <!-- Toolbar button -->
         <Style x:Key="ToolbarButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="10,6"/>
             <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
@@ -47,7 +42,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="{StaticResource BgHover}"/>
+                                <Setter Property="Background" Value="{DynamicResource BgHover}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.4"/>
@@ -58,14 +53,14 @@
             </Setter>
         </Style>
         <Style x:Key="ToolbarButtonAccent" TargetType="Button" BasedOn="{StaticResource ToolbarButton}">
-            <Setter Property="Foreground" Value="{StaticResource AccentGreen}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Accent}"/>
         </Style>
         <Style x:Key="ToolbarButtonDanger" TargetType="Button" BasedOn="{StaticResource ToolbarButton}">
-            <Setter Property="Foreground" Value="{StaticResource DangerRed}"/>
+            <Setter Property="Foreground" Value="{DynamicResource DangerRed}"/>
         </Style>
         <Style x:Key="ToolbarToggleButton" TargetType="ToggleButton">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="Padding" Value="10,6"/>
@@ -88,12 +83,12 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentGreenDim}"/>
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentGreen}"/>
-                                <Setter Property="Foreground" Value="{StaticResource AccentGreen}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentDim}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Accent}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource Accent}"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource BgHover}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BgHover}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.4"/>
@@ -106,11 +101,12 @@
 
         <Style x:Key="ChromeButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Width" Value="46"/>
             <Setter Property="Height" Value="36"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -120,7 +116,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource BgHover}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BgHover}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -128,7 +124,7 @@
             </Setter>
         </Style>
         <Style x:Key="ChromeCloseButton" TargetType="Button" BasedOn="{StaticResource ChromeButton}">
-            <Setter Property="Foreground" Value="{StaticResource DangerRed}"/>
+            <Setter Property="Foreground" Value="{DynamicResource DangerRed}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -137,7 +133,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource DangerRed}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource DangerRed}"/>
                                 <Setter Property="Foreground" Value="White"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -164,12 +160,12 @@
                                                     <Setter.Value>
                                                         <ControlTemplate TargetType="Thumb">
                                                             <Border x:Name="thumbBorder"
-                                                                    Background="#551ea54c"
+                                                                    Background="{DynamicResource BgScrollThumb}"
                                                                     CornerRadius="3"
                                                                     Margin="1,0"/>
                                                             <ControlTemplate.Triggers>
                                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter TargetName="thumbBorder" Property="Background" Value="{StaticResource AccentGreen}"/>
+                                                                    <Setter TargetName="thumbBorder" Property="Background" Value="{DynamicResource Accent}"/>
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>
                                                         </ControlTemplate>
@@ -195,10 +191,10 @@
 
         <!-- Dark context menu -->
         <Style TargetType="ContextMenu">
-            <Setter Property="Background" Value="{StaticResource BgPanel}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderDim}"/>
+            <Setter Property="Background" Value="{DynamicResource BgPanel}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderDim}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="HasDropShadow" Value="True"/>
@@ -217,7 +213,7 @@
         </Style>
         <Style TargetType="MenuItem">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="Padding" Value="20,6,40,6"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="12"/>
@@ -233,13 +229,13 @@
                                 </Grid.ColumnDefinitions>
                                 <ContentPresenter ContentSource="Header" VerticalAlignment="Center"/>
                                 <TextBlock Grid.Column="1" Text="{TemplateBinding InputGestureText}"
-                                           Foreground="{StaticResource TextSecondary}" FontSize="11"
+                                           Foreground="{DynamicResource TextSecondary}" FontSize="11"
                                            VerticalAlignment="Center" Margin="24,0,0,0"/>
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsHighlighted" Value="True">
-                                <Setter TargetName="MenuBd" Property="Background" Value="{StaticResource BgHover}"/>
+                                <Setter TargetName="MenuBd" Property="Background" Value="{DynamicResource BgHover}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -247,7 +243,7 @@
             </Setter>
         </Style>
         <Style TargetType="Separator">
-            <Setter Property="Background" Value="{StaticResource BorderDim}"/>
+            <Setter Property="Background" Value="{DynamicResource BorderDim}"/>
             <Setter Property="Height" Value="1"/>
             <Setter Property="Margin" Value="4,4"/>
         </Style>
@@ -276,7 +272,7 @@
         <Style x:Key="DarkComboItem" TargetType="ComboBoxItem">
             <Setter Property="OverridesDefaultStyle" Value="True"/>
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="Padding" Value="8,5"/>
             <Setter Property="FontFamily" Value="Consolas"/>
             <Setter Property="FontSize" Value="11"/>
@@ -291,12 +287,12 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsHighlighted" Value="True">
-                                <Setter TargetName="ItemBd" Property="Background" Value="{StaticResource AccentGreenDim}"/>
-                                <Setter Property="Foreground" Value="{StaticResource AccentGreen}"/>
+                                <Setter TargetName="ItemBd" Property="Background" Value="{DynamicResource AccentDim}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource Accent}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="ItemBd" Property="Background" Value="{StaticResource AccentGreenDim}"/>
-                                <Setter Property="Foreground" Value="{StaticResource AccentGreen}"/>
+                                <Setter TargetName="ItemBd" Property="Background" Value="{DynamicResource AccentDim}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource Accent}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -307,9 +303,9 @@
         <!-- The ComboBox itself -->
         <Style x:Key="DarkComboBox" TargetType="ComboBox">
             <Setter Property="OverridesDefaultStyle" Value="True"/>
-            <Setter Property="Background" Value="{StaticResource BgPanel}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderDim}"/>
+            <Setter Property="Background" Value="{DynamicResource BgPanel}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderDim}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontFamily" Value="Consolas"/>
             <Setter Property="FontSize" Value="11"/>
@@ -345,22 +341,22 @@
                                              Margin="5,0,0,0"
                                              Background="Transparent"
                                              BorderThickness="0"
-                                             Foreground="{StaticResource TextPrimary}"
+                                             Foreground="{DynamicResource TextPrimary}"
                                              FontFamily="Consolas"
                                              FontSize="11"
                                              VerticalAlignment="Center"
                                              IsReadOnly="{TemplateBinding IsReadOnly}"
                                              Visibility="Hidden"
                                              Focusable="True"
-                                             SelectionBrush="{StaticResource AccentGreenDim}"
-                                             SelectionTextBrush="{StaticResource AccentGreen}"
-                                             CaretBrush="{StaticResource AccentGreen}"/>
+                                             SelectionBrush="{DynamicResource AccentDim}"
+                                             SelectionTextBrush="{DynamicResource Accent}"
+                                             CaretBrush="{DynamicResource Accent}"/>
                                     <!-- Chevron arrow -->
                                     <TextBlock Grid.Column="1"
                                                Text="&#xE70D;"
                                                FontFamily="Segoe MDL2 Assets"
                                                FontSize="8"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                VerticalAlignment="Center"
                                                HorizontalAlignment="Center"
                                                IsHitTestVisible="False"/>
@@ -378,8 +374,8 @@
                                    Focusable="False"
                                    PopupAnimation="Fade"
                                    Placement="Bottom">
-                                <Border Background="{StaticResource BgPanel}"
-                                        BorderBrush="{StaticResource AccentGreenDim}"
+                                <Border Background="{DynamicResource BgPanel}"
+                                        BorderBrush="{DynamicResource AccentDim}"
                                         BorderThickness="1"
                                         CornerRadius="3"
                                         Padding="2"
@@ -399,11 +395,11 @@
                                 <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentGreen}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Accent}"/>
                             </Trigger>
                             <Trigger Property="IsDropDownOpen" Value="True">
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentGreen}"/>
-                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource BgHover}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Accent}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BgHover}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="Bd" Property="Opacity" Value="0.4"/>
@@ -416,15 +412,15 @@
 
         <!-- Page list styles -->
         <Style x:Key="PageListBox" TargetType="ListBox">
-            <Setter Property="Background" Value="#222222"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderDim}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Background" Value="{DynamicResource BgSidebar}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderDim}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="FontFamily" Value="Consolas"/>
             <Setter Property="FontSize" Value="13"/>
         </Style>
         <Style TargetType="ListBoxItem">
             <Setter Property="Padding" Value="8,6"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="Template">
@@ -439,11 +435,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource BgHover}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BgHover}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentGreenDim}"/>
-                                <Setter Property="Foreground" Value="{StaticResource AccentGreen}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentDim}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource Accent}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -455,7 +451,7 @@
         <Style x:Key="SidebarTabBtn" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="10"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -467,7 +463,7 @@
                         <ContentPresenter/>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.35"/>
@@ -482,29 +478,23 @@
         <Style x:Key="OutlineTreeStyle" TargetType="TreeView">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="12"/>
-            <Style.Resources>
-                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}"                        Color="#0d2a18"/>
-                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}"                    Color="#1ea54c"/>
-                <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}"       Color="#0d2a18"/>
-                <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}"   Color="#1ea54c"/>
-            </Style.Resources>
         </Style>
         <Style x:Key="OutlineItemStyle" TargetType="TreeViewItem">
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="IsExpanded" Value="True"/>
             <Setter Property="Padding" Value="2,3"/>
         </Style>
 
-        <!-- General-purpose dark text button (use on non-icon buttons to bypass WPF default blue hover) -->
+        <!-- General-purpose themed text button -->
         <Style x:Key="DarkButton" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource BgPanel}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderDim}"/>
+            <Setter Property="Background" Value="{DynamicResource BgPanel}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderDim}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="12,6"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -531,6 +521,15 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Settings panel radio button -->
+        <Style x:Key="ThemeRadio" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -542,74 +541,67 @@
         </Grid.RowDefinitions>
 
         <!-- Title bar -->
-        <Border Grid.Row="0" Background="#222222" BorderBrush="{StaticResource BorderDim}" BorderThickness="0,0,0,1"
+        <Border Grid.Row="0" Background="{DynamicResource BgSidebar}" BorderBrush="{DynamicResource BorderDim}" BorderThickness="0,0,0,1"
                 MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
             <Grid>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
-                    <TextBlock Text="Killer" FontFamily="Segoe UI" FontWeight="Bold" FontSize="16" Foreground="{StaticResource TextPrimary}"/>
-                    <TextBlock Text="PDF" FontFamily="Segoe UI" FontWeight="Bold" FontSize="16" Foreground="{StaticResource AccentGreen}"/>
+                    <TextBlock Text="Killer" FontFamily="Segoe UI" FontWeight="Bold" FontSize="16" Foreground="{DynamicResource TextPrimary}"/>
+                    <TextBlock Text="PDF" FontFamily="Segoe UI" FontWeight="Bold" FontSize="16" Foreground="{DynamicResource AccentLogo}"/>
                     <TextBlock Text="" x:Name="FileNameLabel" VerticalAlignment="Center" Margin="16,0,0,0"
-                               Foreground="{StaticResource TextSecondary}" FontFamily="Consolas" FontSize="11"/>
+                               Foreground="{DynamicResource TextSecondary}" FontFamily="Consolas" FontSize="11"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="&#x2015;" Click="MinimizeBtn_Click" Style="{StaticResource ChromeButton}"/>
-                    <Button Content="&#x25A1;" Click="MaximizeBtn_Click" Style="{StaticResource ChromeButton}"/>
-                    <Button Content="&#x2715;" Click="CloseBtn_Click" Style="{StaticResource ChromeCloseButton}"/>
+                    <Button Content="&#xE921;" Click="MinimizeBtn_Click" Style="{StaticResource ChromeButton}"/>
+                    <Button Content="&#xE922;" Click="MaximizeBtn_Click" Style="{StaticResource ChromeButton}"/>
+                    <Button Content="&#xE8BB;" Click="CloseBtn_Click" Style="{StaticResource ChromeCloseButton}"/>
                 </StackPanel>
             </Grid>
         </Border>
 
         <!-- Toolbar -->
-        <Border Grid.Row="1" Background="#222222" BorderBrush="{StaticResource BorderDim}" BorderThickness="0,0,0,1" Padding="4,2">
+        <Border Grid.Row="1" Background="{DynamicResource BgSidebar}" BorderBrush="{DynamicResource BorderDim}" BorderThickness="0,0,0,1" Padding="4,2">
             <Grid>
                 <!-- File operations -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                     <!-- File: New / Open / Close / Save / Print -->
-                    <Button Content="&#xE7C3;" Style="{StaticResource ToolbarButton}" Click="New_Click" ToolTip="New Blank Document (Ctrl+N)"/>
-                    <Button Content="&#xE8DA;" Style="{StaticResource ToolbarButton}" Click="Open_Click" ToolTip="Open (Ctrl+O)"/>
-                    <Button x:Name="CloseFileBtn" Content="&#xE711;" Style="{StaticResource ToolbarButton}" Click="CloseFile_Click" ToolTip="Close File (Ctrl+W)" IsEnabled="False"/>
-                    <Button x:Name="SaveAsBtn" Content="&#xE74E;" Style="{StaticResource ToolbarButtonAccent}" Click="SaveAs_Click" ToolTip="Save As (Ctrl+Shift+S)"/>
-                    <Button Content="&#xE8B9;" Style="{StaticResource ToolbarButton}" Click="SaveFlattened_Click" ToolTip="Save Flattened PDF (rasterize all pages — fully uneditable)"/>
-                    <Button Content="&#xE749;" Style="{StaticResource ToolbarButton}" Click="Print_Click" ToolTip="Print (Ctrl+P)"/>
-                    <Rectangle Width="1" Fill="{StaticResource BorderDim}" Margin="4,6"/>
+                    <Button Content="&#xE7C3;" Style="{StaticResource ToolbarButton}" Click="New_Click" ToolTip="{DynamicResource Str_TT_NewBlank}"/>
+                    <Button Content="&#xE8DA;" Style="{StaticResource ToolbarButton}" Click="Open_Click" ToolTip="{DynamicResource Str_TT_Open}"/>
+                    <Button x:Name="CloseFileBtn" Content="&#xE711;" Style="{StaticResource ToolbarButton}" Click="CloseFile_Click" ToolTip="{DynamicResource Str_TT_CloseFile}" IsEnabled="False"/>
+                    <Button x:Name="SaveAsBtn" Content="&#xE74E;" Style="{StaticResource ToolbarButtonAccent}" Click="Save_Click" ToolTip="Save (Ctrl+S)"/>
+                    <Button Content="&#xE8B9;" Style="{StaticResource ToolbarButton}" Click="SaveFlattened_Click" ToolTip="{DynamicResource Str_TT_SaveFlattened}"/>
+                    <Button Content="&#xE749;" Style="{StaticResource ToolbarButton}" Click="Print_Click" ToolTip="{DynamicResource Str_TT_Print}"/>
+                    <Rectangle Width="1" Fill="{DynamicResource BorderDim}" Margin="4,6"/>
                     <!-- Page ops: Merge / Extract -->
-                    <Button Content="&#xE710;" Style="{StaticResource ToolbarButton}" Click="Merge_Click" ToolTip="Merge PDFs (combine additional PDFs into this one)"/>
-                    <Button Content="&#xE8B1;" Style="{StaticResource ToolbarButton}" Click="Split_Click" ToolTip="Extract Pages (save selected pages to a new PDF)"/>
-                    <Rectangle Width="1" Fill="{StaticResource BorderDim}" Margin="4,6"/>
+                    <Button Content="&#xE710;" Style="{StaticResource ToolbarButton}" Click="Merge_Click" ToolTip="{DynamicResource Str_TT_MergePDFs}"/>
+                    <Button Content="&#xE8B1;" Style="{StaticResource ToolbarButton}" Click="Split_Click" ToolTip="{DynamicResource Str_TT_ExtractPages}"/>
+                    <Rectangle Width="1" Fill="{DynamicResource BorderDim}" Margin="4,6"/>
                     <!-- Page ops: Delete / Move -->
-                    <Button Content="&#xE8C6;" Style="{StaticResource ToolbarButton}" Click="Delete_Click" ToolTip="Delete Selected Pages"/>
-                    <Button Content="&#xE74A;" Style="{StaticResource ToolbarButton}" Click="MoveUp_Click" ToolTip="Move Page Up (reorder)"/>
-                    <Button Content="&#xE74B;" Style="{StaticResource ToolbarButton}" Click="MoveDown_Click" ToolTip="Move Page Down (reorder)"/>
+                    <Button Content="&#xE8C6;" Style="{StaticResource ToolbarButton}" Click="Delete_Click" ToolTip="{DynamicResource Str_TT_DeletePages}"/>
+                    <Button Content="&#xE74A;" Style="{StaticResource ToolbarButton}" Click="MoveUp_Click" ToolTip="{DynamicResource Str_TT_MovePageUp}"/>
+                    <Button Content="&#xE74B;" Style="{StaticResource ToolbarButton}" Click="MoveDown_Click" ToolTip="{DynamicResource Str_TT_MovePageDown}"/>
                 </StackPanel>
                 <!-- Edit tools + zoom -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button x:Name="ToolSelectBtn" Content="&#xE8B3;" Style="{StaticResource ToolbarButton}" Click="ToolSelect_Click" ToolTip="Select Tool - click annotations, drag to select text, double-click to edit"/>
-                    <Button x:Name="ToolTextBtn" Content="&#xE8D2;" Style="{StaticResource ToolbarButton}" Click="ToolText_Click" ToolTip="Text Tool - click to add text"/>
-                    <Button x:Name="ToolHighlightBtn" Content="&#xED56;" Style="{StaticResource ToolbarButton}" Click="ToolHighlight_Click" ToolTip="Highlight Tool - drag to highlight"/>
-                    <Button x:Name="ToolDrawBtn" Content="&#xED63;" Style="{StaticResource ToolbarButton}" Click="ToolDraw_Click" ToolTip="Draw Tool - freehand ink"/>
-                    <Button x:Name="ToolCropBtn" Content="&#xE7A8;" Style="{StaticResource ToolbarButton}" Click="ToolCrop_Click" ToolTip="Crop Tool - drag to set crop area, then apply to page(s)"/>
-                    <Button x:Name="ToolImageBtn" Content="&#xEB9F;" Style="{StaticResource ToolbarButton}" Click="ToolImage_Click" ToolTip="Image Tool - click to insert an image onto the page"/>
-                    <Rectangle Width="1" Fill="{StaticResource BorderDim}" Margin="4,6"/>
-                    <Button x:Name="ToolSignatureBtn" Content="&#xEE56;" Style="{StaticResource ToolbarButton}" Click="ToolSignature_Click" ToolTip="Signature - create and place signatures"/>
-                    <Rectangle Width="1" Fill="{StaticResource BorderDim}" Margin="4,6"/>
-                    <Button Content="&#xE7A7;" Style="{StaticResource ToolbarButton}" Click="Undo_Click" ToolTip="Undo Last (Ctrl+Z)"/>
-                    <Button Content="&#xED62;" Style="{StaticResource ToolbarButtonDanger}" Click="ClearAnnotations_Click" ToolTip="Clear All Annotations"/>
-                    <Rectangle Width="1" Fill="{StaticResource BorderDim}" Margin="4,6"/>
-                    <ToggleButton x:Name="GridViewToggle"
-                                  Content="&#xE8A9;"
-                                  Style="{StaticResource ToolbarToggleButton}"
-                                  IsChecked="True"
-                                  IsEnabled="False"
-                                  Click="GridViewToggle_Click"
-                                  ToolTip="Multi-page grid view"
-                                  Margin="0,0,4,0"/>
+                    <Button x:Name="ToolSelectBtn" Content="&#xE8B3;" Style="{StaticResource ToolbarButton}" Click="ToolSelect_Click" ToolTip="{DynamicResource Str_TT_SelectTool}"/>
+                    <Button x:Name="ToolTextBtn" Content="&#xE8D2;" Style="{StaticResource ToolbarButton}" Click="ToolText_Click" ToolTip="{DynamicResource Str_TT_TextTool}"/>
+                    <Button x:Name="ToolHighlightBtn" Content="&#xED56;" Style="{StaticResource ToolbarButton}" Click="ToolHighlight_Click" ToolTip="{DynamicResource Str_TT_HighlightTool}"/>
+                    <Button x:Name="ToolDrawBtn" Content="&#xED63;" Style="{StaticResource ToolbarButton}" Click="ToolDraw_Click" ToolTip="{DynamicResource Str_TT_DrawTool}"/>
+                    <Button x:Name="ToolCropBtn" Content="&#xE7A8;" Style="{StaticResource ToolbarButton}" Click="ToolCrop_Click" ToolTip="{DynamicResource Str_TT_CropTool}"/>
+                    <Button x:Name="ToolImageBtn" Content="&#xEB9F;" Style="{StaticResource ToolbarButton}" Click="ToolImage_Click" ToolTip="{DynamicResource Str_TT_ImageTool}"/>
+                    <Rectangle Width="1" Fill="{DynamicResource BorderDim}" Margin="4,6"/>
+                    <Button x:Name="ToolSignatureBtn" Content="&#xEE56;" Style="{StaticResource ToolbarButton}" Click="ToolSignature_Click" ToolTip="{DynamicResource Str_TT_SignatureTool}"/>
+                    <Rectangle Width="1" Fill="{DynamicResource BorderDim}" Margin="4,6"/>
+                    <Button Content="&#xE7A7;" Style="{StaticResource ToolbarButton}" Click="Undo_Click" ToolTip="{DynamicResource Str_TT_UndoLast}"/>
+                    <Button Content="&#xED62;" Style="{StaticResource ToolbarButtonDanger}" Click="ClearAnnotations_Click" ToolTip="{DynamicResource Str_TT_ClearAnnotations}"/>
+                    <Button x:Name="ZoomOutBtn" Content="&#xE71F;" Style="{StaticResource ToolbarButton}"
+                            Click="ZoomOut_Click" ToolTip="{DynamicResource Str_TT_ZoomOut}"/>
                     <ComboBox x:Name="ZoomBox" Width="96" Height="24" VerticalAlignment="Center"
-                              Margin="0,0,4,0"
+                              Margin="0,0,2,0"
                               IsEditable="True" IsReadOnly="True"
                               Style="{StaticResource DarkComboBox}"
-                              SelectionChanged="ZoomBox_SelectionChanged" ToolTip="Zoom level (Ctrl+scroll to zoom)">
-                        <ComboBoxItem Tag="fitwidth">Fit Width</ComboBoxItem>
-                        <ComboBoxItem Tag="fitpage">Fit Page</ComboBoxItem>
+                              SelectionChanged="ZoomBox_SelectionChanged" ToolTip="{DynamicResource Str_TT_ZoomLevel}">
+                        <ComboBoxItem Tag="fitpage" Content="{DynamicResource Str_Zoom_FitPage}"/>
+                        <ComboBoxItem Tag="fitwidth" Content="{DynamicResource Str_Zoom_FitWidth}"/>
                         <ComboBoxItem Tag="0.5">50%</ComboBoxItem>
                         <ComboBoxItem Tag="0.75">75%</ComboBoxItem>
                         <ComboBoxItem Tag="1.0" IsSelected="True">100%</ComboBoxItem>
@@ -617,6 +609,8 @@
                         <ComboBoxItem Tag="1.5">150%</ComboBoxItem>
                         <ComboBoxItem Tag="2.0">200%</ComboBoxItem>
                     </ComboBox>
+                    <Button x:Name="ZoomInBtn" Content="&#xE8A3;" Style="{StaticResource ToolbarButton}"
+                            Click="ZoomIn_Click" ToolTip="{DynamicResource Str_TT_ZoomIn}" Margin="0,0,4,0"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -640,18 +634,18 @@
 
                 <!-- Page list content (hidden when collapsed) -->
                 <Border x:Name="SidebarBorder" Grid.Column="0"
-                        Background="#222222"
-                        BorderBrush="{StaticResource BorderDim}" BorderThickness="0,0,0,0">
+                        Background="{DynamicResource BgSidebar}"
+                        BorderBrush="{DynamicResource BorderDim}" BorderThickness="0,0,0,0">
                     <DockPanel>
                         <!-- Sticky header — lives outside the ScrollViewer so it never scrolls away -->
                         <!-- Tab row: PAGES (left) | OUTLINES (right) -->
                         <DockPanel DockPanel.Dock="Top" LastChildFill="False" Margin="10,6,8,0">
-                            <Button x:Name="SidebarPagesTab" Content="PAGES"
+                            <Button x:Name="SidebarPagesTab" Content="{DynamicResource Str_TabPages}"
                                     DockPanel.Dock="Left"
                                     Style="{StaticResource SidebarTabBtn}"
-                                    Foreground="{StaticResource AccentGreen}"
+                                    Foreground="{DynamicResource Accent}"
                                     Click="SidebarPagesTab_Click"/>
-                            <Button x:Name="SidebarOutlinesTab" Content="OUTLINES"
+                            <Button x:Name="SidebarOutlinesTab" Content="{DynamicResource Str_TabOutlines}"
                                     DockPanel.Dock="Right"
                                     Style="{StaticResource SidebarTabBtn}"
                                     IsEnabled="False"
@@ -659,53 +653,77 @@
                         </DockPanel>
                         <!-- Page controls row (hidden in outlines mode) -->
                         <DockPanel x:Name="PageControlsRow" DockPanel.Dock="Top" LastChildFill="False" Margin="12,2,8,4">
-                            <TextBlock x:Name="PageTotalLabel" DockPanel.Dock="Right"
-                                       Text="/ –" VerticalAlignment="Center"
-                                       FontFamily="Consolas" FontSize="11"
-                                       Foreground="{StaticResource TextSecondary}"
-                                       Margin="2,0,0,0"/>
-                            <TextBox x:Name="PageJumpBox" DockPanel.Dock="Right"
+                            <TextBox x:Name="PageJumpBox" DockPanel.Dock="Left"
                                      Width="30" Height="20" VerticalAlignment="Center"
                                      TextAlignment="Center" VerticalContentAlignment="Center"
                                      FontFamily="Consolas" FontSize="11"
-                                     Background="{StaticResource BgPanel}"
-                                     Foreground="{StaticResource TextPrimary}"
-                                     BorderBrush="{StaticResource BorderDim}" BorderThickness="1"
-                                     CaretBrush="{StaticResource AccentGreen}"
-                                     SelectionBrush="{StaticResource AccentGreenDim}"
+                                     Background="{DynamicResource BgPanel}"
+                                     Foreground="{DynamicResource TextPrimary}"
+                                     BorderBrush="{DynamicResource BorderDim}" BorderThickness="1"
+                                     CaretBrush="{DynamicResource Accent}"
+                                     SelectionBrush="{DynamicResource AccentDim}"
                                      IsEnabled="False"
                                      FocusVisualStyle="{x:Null}"
                                      KeyDown="PageJumpBox_KeyDown"
                                      GotFocus="PageJumpBox_GotFocus"
-                                     ToolTip="Go to page (Enter to navigate)"
+                                     ToolTip="{DynamicResource Str_TT_GoToPage}"
                                      Margin="0,0,2,0">
                                     <TextBox.Style>
                                         <Style TargetType="TextBox">
-                                            <Setter Property="BorderBrush" Value="{StaticResource BorderDim}"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource BorderDim}"/>
                                             <Style.Triggers>
                                                 <Trigger Property="IsFocused" Value="True">
-                                                    <Setter Property="BorderBrush" Value="{StaticResource AccentGreen}"/>
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource Accent}"/>
                                                 </Trigger>
                                             </Style.Triggers>
                                         </Style>
                                     </TextBox.Style>
                                 </TextBox>
+                            <TextBlock x:Name="PageTotalLabel" DockPanel.Dock="Left"
+                                       Text="/ –" VerticalAlignment="Center"
+                                       FontFamily="Consolas" FontSize="11"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="2,0,0,0"/>
                         </DockPanel><!-- /PageControlsRow -->
-                        <!-- Scrollable page list -->
-                        <ScrollViewer x:Name="SidebarScrollViewer"
-                                      VerticalScrollBarVisibility="Auto"
-                                      HorizontalScrollBarVisibility="Disabled">
-                            <ListBox x:Name="PageList" Style="{StaticResource PageListBox}"
-                                     BorderThickness="0" SelectionMode="Extended"
-                                     ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                     PreviewMouseWheel="PageList_PreviewMouseWheel"
-                                     SelectionChanged="PageList_SelectionChanged"
-                                     AllowDrop="True" Drop="PageList_Drop" DragOver="PageList_DragOver"
-                                     PreviewMouseLeftButtonDown="PageList_PreviewMouseLeftButtonDown"
-                                     PreviewMouseMove="PageList_PreviewMouseMove"
-                                     MouseRightButtonUp="PageList_MouseRightButtonUp"/>
-                        </ScrollViewer>
+                        <!-- Scrollable page list (virtualized) -->
+                        <ListBox x:Name="PageList" Style="{StaticResource PageListBox}"
+                                 BorderThickness="0" SelectionMode="Extended"
+                                 VirtualizingPanel.IsVirtualizing="True"
+                                 VirtualizingPanel.VirtualizationMode="Recycling"
+                                 ScrollViewer.CanContentScroll="True"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 SelectionChanged="PageList_SelectionChanged"
+                                 AllowDrop="True" Drop="PageList_Drop" DragOver="PageList_DragOver"
+                                 PreviewMouseLeftButtonDown="PageList_PreviewMouseLeftButtonDown"
+                                 PreviewMouseMove="PageList_PreviewMouseMove"
+                                 MouseRightButtonUp="PageList_MouseRightButtonUp">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate DataType="{x:Type local:PageThumbnailVm}">
+                                    <StackPanel HorizontalAlignment="Center" Margin="0,2,0,2">
+                                        <Border x:Name="ThumbBorder"
+                                                Background="White"
+                                                BorderBrush="{DynamicResource BgDark}"
+                                                BorderThickness="1">
+                                            <Image Source="{Binding Thumbnail}"
+                                                   Width="140"
+                                                   Stretch="Uniform"/>
+                                        </Border>
+                                        <TextBlock Text="{Binding Label}"
+                                                   Foreground="{DynamicResource TextSecondary}"
+                                                   FontFamily="Segoe UI"
+                                                   FontSize="10"
+                                                   HorizontalAlignment="Center"
+                                                   Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding Thumbnail}" Value="{x:Null}">
+                                            <Setter TargetName="ThumbBorder" Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                         <!-- Outline/bookmark tree (visible when OUTLINES tab is active) -->
                         <ScrollViewer x:Name="OutlineScrollViewer"
                                       Visibility="Collapsed"
@@ -721,17 +739,76 @@
                     </DockPanel>
                 </Border>
 
-                <!-- Toggle strip — always 24px wide, right edge of sidebar column -->
+                <!-- Toggle strip — 24px wide vertical icon bar -->
                 <Border Grid.Column="1"
-                        Background="#333333"
-                        BorderBrush="{StaticResource BorderDim}"
-                        BorderThickness="1,0,0,0">
-                    <Button x:Name="SidebarToggleBtn"
-                            Content="&#xE76B;" ToolTip="Collapse sidebar"
-                            Style="{StaticResource ToolbarButton}"
-                            Width="24" Padding="0" FontSize="10"
-                            VerticalAlignment="Top" Margin="0,6,0,0"
-                            Click="SidebarToggle_Click"/>
+                        Background="{DynamicResource BgSidebar}"
+                        BorderThickness="0">
+                    <Grid>
+                        <!-- Collapse/expand arrow at top -->
+                        <Button x:Name="SidebarToggleBtn"
+                                Content="&#xE76B;" ToolTip="{DynamicResource Str_TT_CollapseSidebar}"
+                                Style="{StaticResource ToolbarButton}"
+                                Width="24" Padding="0" FontSize="10"
+                                VerticalAlignment="Top" Margin="0,6,0,0"
+                                Click="SidebarToggle_Click"/>
+                        <!-- Settings and help icons pinned to bottom -->
+                        <StackPanel VerticalAlignment="Bottom" Margin="0,0,0,6">
+                            <Button Click="ShortcutHelp_Click"
+                                    Cursor="Hand" FocusVisualStyle="{x:Null}"
+                                    ToolTip="{DynamicResource Str_TT_KeyboardShortcuts}"
+                                    Width="24" Height="24" Padding="0" Margin="0,0,0,6">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="Transparent">
+                                            <TextBlock Text="?"
+                                                       Foreground="{DynamicResource TextPrimary}"
+                                                       FontFamily="Consolas" FontSize="18"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
+                                                                <Setter Property="Foreground" Value="{DynamicResource Accent}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                            <Button x:Name="SettingsBtn"
+                                    Click="SettingsBtn_Click"
+                                    Cursor="Hand" FocusVisualStyle="{x:Null}"
+                                    ToolTip="{DynamicResource Str_TT_Settings}"
+                                    Width="24" Height="24" Padding="0">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="Transparent">
+                                            <TextBlock Text="&#xE713;"
+                                                       FontFamily="Segoe MDL2 Assets"
+                                                       Foreground="{DynamicResource TextPrimary}"
+                                                       FontSize="16"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
+                                                                <Setter Property="Foreground" Value="{DynamicResource Accent}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
                 </Border>
             </Grid>
 
@@ -741,7 +818,7 @@
                           Width="6"
                           HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch"
-                          Background="{StaticResource BorderDim}"
+                          Background="{DynamicResource BorderDim}"
                           Cursor="SizeWE"
                           IsEnabled="False"
                           ResizeBehavior="PreviousAndNext"
@@ -757,14 +834,14 @@
                                         <StackPanel Orientation="Vertical"/>
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
-                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="#555555"/>
-                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="#555555"/>
-                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="#555555"/>
+                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource BgDragHandle}"/>
+                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource BgDragHandle}"/>
+                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource BgDragHandle}"/>
                             </ItemsControl>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#3a3a3a"/>
+                                <Setter Property="Background" Value="{DynamicResource BgPanel}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Background" Value="Transparent"/>
@@ -775,21 +852,21 @@
             </GridSplitter>
 
             <!-- Preview area -->
-            <Border Grid.Column="2" Background="{StaticResource BgDark}">
+            <Border Grid.Column="2" Background="{DynamicResource BgCanvas}">
                 <Grid>
                     <!-- Drop zone -->
                     <Border x:Name="DropZone" Background="Transparent"
                             AllowDrop="True" Drop="DropZone_Drop" DragOver="DropZone_DragOver"
                             MouseLeftButtonDown="DropZone_Click">
-                        <Border BorderBrush="{StaticResource BorderDim}" BorderThickness="2"
+                        <Border BorderBrush="{DynamicResource BorderDim}" BorderThickness="2"
                                 CornerRadius="8" Margin="40" Padding="40"
                                 HorizontalAlignment="Center" VerticalAlignment="Center"
                                 Background="Transparent" Style="{x:Null}">
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <TextBlock Text="Drop PDF here" FontFamily="Segoe UI" FontSize="20"
-                                           Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center"/>
+                                           Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center"/>
                                 <TextBlock Text="or click to browse" FontFamily="Segoe UI" FontSize="13"
-                                           Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                                           Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center" Margin="0,8,0,0"/>
                             </StackPanel>
                         </Border>
                     </Border>
@@ -812,7 +889,7 @@
                                 </Grid.LayoutTransform>
                                 <WrapPanel x:Name="PageContentPanel" Orientation="Horizontal">
                                     <!-- Primary page (always present) -->
-                                    <Border Background="White" Margin="0,0,12,12">
+                                    <Border Background="White" VerticalAlignment="Top" Margin="0,0,12,12">
                                         <Grid>
                                             <Image x:Name="PageImage" RenderOptions.BitmapScalingMode="HighQuality" Stretch="None"/>
                                             <Canvas x:Name="AnnotationCanvas" Background="Transparent" ClipToBounds="True"
@@ -823,6 +900,11 @@
                                     </Border>
                                     <!-- Additional pages rendered dynamically in code-behind -->
                                 </WrapPanel>
+                                <!-- Continuous scroll panel - shown in Continuous view mode -->
+                                <StackPanel x:Name="ContinuousPanel"
+                                            HorizontalAlignment="Center"
+                                            Orientation="Vertical"
+                                            Visibility="Collapsed"/>
                             </Grid>
                         </Border>
                     </ScrollViewer>
@@ -831,24 +913,24 @@
         </Grid>
 
         <!-- Status bar -->
-        <Border Grid.Row="3" Background="#222222" BorderBrush="{StaticResource BorderDim}" BorderThickness="0,1,0,0">
+        <Border Grid.Row="3" Background="{DynamicResource BgSidebar}" BorderBrush="{DynamicResource BorderDim}" BorderThickness="0,1,0,0">
             <Grid Margin="16,0">
-                <TextBlock x:Name="StatusText" Text="Ready"
-                           Foreground="{StaticResource TextSecondary}"
+                <TextBlock x:Name="StatusText" Text="{DynamicResource Str_Ready}"
+                           Foreground="{DynamicResource TextSecondary}"
                            FontFamily="Segoe UI" FontSize="11" VerticalAlignment="Center"/>
                 <!-- Portable mode indicator (hidden when installed) -->
                 <StackPanel x:Name="PortableBadge" Orientation="Horizontal"
                             HorizontalAlignment="Center" VerticalAlignment="Center"
                             Visibility="Collapsed">
-                    <TextBlock Text="PORTABLE" Foreground="#555555"
+                    <TextBlock Text="{DynamicResource Str_Portable}" Foreground="{DynamicResource TextSecondary}"
                                FontFamily="Consolas" FontSize="9"
                                VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <Button x:Name="InstallBtn" Content="Install KillerPDF..."
+                    <Button x:Name="InstallBtn" Content="{DynamicResource Str_InstallBtn}"
                             Click="Install_Click"
                             FontFamily="Segoe UI" FontSize="10"
-                            Foreground="{StaticResource AccentGreen}"
+                            Foreground="{DynamicResource Accent}"
                             Background="Transparent"
-                            BorderThickness="1" BorderBrush="#2a5a3a"
+                            BorderThickness="1" BorderBrush="{DynamicResource AccentDim}"
                             Padding="8,1" Cursor="Hand"
                             VerticalAlignment="Center">
                         <Button.Template>
@@ -861,7 +943,7 @@
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#1a3a28"/>
+                                        <Setter Property="Background" Value="{DynamicResource AccentDim}"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
@@ -869,28 +951,17 @@
                     </Button>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button Click="ShortcutHelp_Click"
-                            Cursor="Hand" VerticalAlignment="Center"
-                            Margin="0,0,12,0" FocusVisualStyle="{x:Null}"
-                            ToolTip="Keyboard shortcuts (Ctrl+?)">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <TextBlock Text="?"
-                                           Foreground="#555555"
-                                           FontFamily="Consolas" FontSize="10"
-                                           VerticalAlignment="Center"/>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
-                    <TextBlock x:Name="VersionLabel" Text="v1.4.3"
-                               Foreground="#6a6a6a" FontFamily="Consolas"
-                               FontSize="10" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <TextBlock x:Name="VersionLabel" Text="v1.5.1"
+                               Foreground="{DynamicResource TextFooter}" FontFamily="Consolas"
+                               FontSize="10" VerticalAlignment="Center" Margin="0,0,12,0"
+                               Cursor="Hand" ToolTip="{DynamicResource Str_TT_About}"
+                               MouseLeftButtonDown="VersionLabel_MouseLeftButtonDown"/>
                     <TextBlock FontSize="10" VerticalAlignment="Center"
                                FontFamily="Consolas">
-                        <Run Text="&#x00A9; 2026 " Foreground="#6a6a6a"/>
+                        <Run Text="&#x00A9; 2026 " Foreground="{DynamicResource TextFooter}"/>
                         <Hyperlink NavigateUri="https://thekiller.net"
                                    RequestNavigate="Hyperlink_RequestNavigate"
-                                   Foreground="#6a6a6a" TextDecorations="None">
+                                   Foreground="{DynamicResource TextFooter}" TextDecorations="None">
                             <Run Text="Steve the Killer"/>
                         </Hyperlink>
                     </TextBlock>
@@ -898,16 +969,144 @@
             </Grid>
         </Border>
 
-        <!-- Keyboard shortcut overlay -->
+        <!-- Settings overlay -->
+        <Grid x:Name="SettingsOverlay"
+              Grid.RowSpan="4"
+              Panel.ZIndex="9999"
+              Visibility="Collapsed"
+              Background="Transparent"
+              MouseLeftButtonDown="SettingsOverlay_MouseLeftButtonDown">
+            <Border Background="{DynamicResource BgModal}"
+                    BorderBrush="{DynamicResource AccentBorder}"
+                    BorderThickness="2"
+                    CornerRadius="6"
+                    Padding="20,16,20,20"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Bottom"
+                    Margin="8,0,0,36"
+                    MinWidth="220"
+                    MouseLeftButtonDown="SettingsOverlayCard_MouseLeftButtonDown">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" BlurRadius="16" ShadowDepth="2" Direction="270" Opacity="0.5"/>
+                </Border.Effect>
+                <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <TextBlock Text="{DynamicResource Str_Settings}"
+                                   FontFamily="Segoe UI" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        <Button Click="SettingsOverlayClose_Click"
+                                HorizontalAlignment="Right" VerticalAlignment="Center"
+                                Cursor="Hand" FocusVisualStyle="{x:Null}"
+                                Width="24" Height="24">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <TextBlock Text="&#xE711;"
+                                               FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                               Foreground="{DynamicResource TextSecondary}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
+                                                        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </Grid>
+                    <TextBlock Text="{DynamicResource Str_Theme}" Foreground="{DynamicResource Accent}"
+                               FontFamily="Segoe UI" FontSize="11" FontWeight="SemiBold"
+                               Margin="0,0,0,8"/>
+                    <RadioButton x:Name="ThemeDarkRadio"
+                                 Content="{DynamicResource Str_Theme_Dark}"
+                                 GroupName="ThemeGroup"
+                                 Style="{StaticResource ThemeRadio}"
+                                 Checked="ThemeDarkRadio_Checked"/>
+                    <RadioButton x:Name="ThemeLightRadio"
+                                 Content="{DynamicResource Str_Theme_Light}"
+                                 GroupName="ThemeGroup"
+                                 Style="{StaticResource ThemeRadio}"
+                                 Checked="ThemeLightRadio_Checked"/>
+                    <RadioButton x:Name="ThemeHCRadio"
+                                 Content="{DynamicResource Str_Theme_HighContrast}"
+                                 GroupName="ThemeGroup"
+                                 Style="{StaticResource ThemeRadio}"
+                                 Checked="ThemeHCRadio_Checked"/>
+                    <RadioButton x:Name="ThemeBloodRadio"
+                                 Content="{DynamicResource Str_Theme_Blood}"
+                                 GroupName="ThemeGroup"
+                                 Style="{StaticResource ThemeRadio}"
+                                 Checked="ThemeBloodRadio_Checked"/>
+                    <RadioButton x:Name="ThemeGreedRadio"
+                                 Content="{DynamicResource Str_Theme_Greed}"
+                                 GroupName="ThemeGroup"
+                                 Style="{StaticResource ThemeRadio}"
+                                 Checked="ThemeGreedRadio_Checked"/>
+                    <RadioButton x:Name="ThemeCyanoticRadio"
+                                 Content="{DynamicResource Str_Theme_Cyanotic}"
+                                 GroupName="ThemeGroup"
+                                 Style="{StaticResource ThemeRadio}"
+                                 Checked="ThemeCyanoticRadio_Checked"/>
+                    <TextBlock Text="{DynamicResource Str_Language}" Foreground="{DynamicResource Accent}"
+                               FontFamily="Segoe UI" FontSize="11" FontWeight="SemiBold"
+                               Margin="0,12,0,8"/>
+                    <RadioButton x:Name="LangEnRadio"
+                                 Content="{DynamicResource Str_Lang_English}"
+                                 GroupName="LangGroup"
+                                 Style="{StaticResource ThemeRadio}"
+                                 Checked="LangEnRadio_Checked"/>
+                    <RadioButton x:Name="LangEsRadio"
+                                 Content="{DynamicResource Str_Lang_Spanish}"
+                                 GroupName="LangGroup"
+                                 Style="{StaticResource ThemeRadio}"
+                                 Checked="LangEsRadio_Checked"/>
+                    <RadioButton x:Name="LangZhTWRadio"
+                                 Content="{DynamicResource Str_Lang_Chinese}"
+                                 GroupName="LangGroup"
+                                 Style="{StaticResource ThemeRadio}"
+                                 Checked="LangZhTWRadio_Checked"/>
+                    <TextBlock Text="{DynamicResource Str_ViewMode}" Foreground="{DynamicResource Accent}"
+                               FontFamily="Segoe UI" FontSize="11" FontWeight="SemiBold"
+                               Margin="0,12,0,8"/>
+                    <RadioButton x:Name="ViewContinuousRadio"
+                                 Content="{DynamicResource Str_View_Continuous}"
+                                 GroupName="ViewGroup"
+                                 Style="{StaticResource ThemeRadio}"
+                                 Checked="ViewContinuousRadio_Checked"/>
+                    <RadioButton x:Name="ViewSingleRadio"
+                                 Content="{DynamicResource Str_View_Single}"
+                                 GroupName="ViewGroup"
+                                 Style="{StaticResource ThemeRadio}"
+                                 Checked="ViewSingleRadio_Checked"/>
+                    <RadioButton x:Name="ViewTwoPageRadio"
+                                 Content="{DynamicResource Str_View_TwoPage}"
+                                 GroupName="ViewGroup"
+                                 Style="{StaticResource ThemeRadio}"
+                                 Checked="ViewTwoPageRadio_Checked"/>
+                    <RadioButton x:Name="ViewGridRadio"
+                                 Content="{DynamicResource Str_View_Grid}"
+                                 GroupName="ViewGroup"
+                                 Style="{StaticResource ThemeRadio}"
+                                 Checked="ViewGridRadio_Checked"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Keyboard shortcut overlay — neutral dark dim regardless of theme -->
         <Grid x:Name="ShortcutOverlay"
               Grid.RowSpan="4"
               Panel.ZIndex="10000"
               Visibility="Collapsed"
-              Background="#BB000000"
+              Background="#88000000"
               MouseLeftButtonDown="ShortcutOverlay_MouseLeftButtonDown">
-            <Border Background="#1e1e1e"
-                    BorderBrush="{StaticResource AccentGreen}"
-                    BorderThickness="1"
+            <Border Background="{DynamicResource BgModal}"
+                    BorderBrush="{DynamicResource AccentBorder}"
+                    BorderThickness="2"
                     CornerRadius="6"
                     Padding="28,16,28,22"
                     HorizontalAlignment="Center"
@@ -917,9 +1116,9 @@
                     MouseLeftButtonDown="ShortcutOverlayCard_MouseLeftButtonDown">
                 <StackPanel>
                     <Grid Margin="0,0,0,12">
-                        <TextBlock Text="Keyboard Shortcuts"
+                        <TextBlock Text="{DynamicResource Str_KS_Title}"
                                    FontFamily="Segoe UI" FontSize="15" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimary}"
+                                   Foreground="{DynamicResource TextPrimary}"
                                    HorizontalAlignment="Left" VerticalAlignment="Center"/>
                         <Button Click="ShortcutOverlayClose_Click"
                                 HorizontalAlignment="Right" VerticalAlignment="Center"
@@ -929,13 +1128,13 @@
                                 <ControlTemplate TargetType="Button">
                                     <TextBlock Text="&#xE711;"
                                                FontFamily="Segoe MDL2 Assets" FontSize="11"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                HorizontalAlignment="Center" VerticalAlignment="Center">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
-                                                        <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -956,43 +1155,133 @@
 
                         <!-- Left column -->
                         <StackPanel Grid.Column="0">
-                            <TextBlock Text="FILE" Foreground="{StaticResource AccentGreen}"
-                                       FontFamily="Consolas" FontSize="10" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+O" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Open" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+W" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Close file" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+N" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="New blank document" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+S" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Save" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+Shift+S" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Save As" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,0"><TextBlock Text="Ctrl+P" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Print" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
+                            <TextBlock Text="{DynamicResource Str_KS_File}" Foreground="{DynamicResource Accent}"
+                                       FontFamily="Segoe UI" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+O" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_Open}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+W" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_CloseFile}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+N" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_NewBlank}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+Shift+S" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_SaveAs}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,0"><TextBlock Text="Ctrl+P" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_Print}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
 
-                            <TextBlock Text="NAVIGATION" Foreground="{StaticResource AccentGreen}"
-                                       FontFamily="Consolas" FontSize="10" FontWeight="SemiBold" Margin="0,12,0,4"/>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="&#x2190; / &#x2192; or &#x2191; / &#x2193;" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Previous / next page" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+Scroll" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Zoom in / out" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,0"><TextBlock Text="Middle drag" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Pan view" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
+                            <TextBlock Text="{DynamicResource Str_KS_Navigation}" Foreground="{DynamicResource Accent}"
+                                       FontFamily="Segoe UI" FontSize="11" FontWeight="SemiBold" Margin="0,12,0,4"/>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="&#x2190; / &#x2192; or &#x2191; / &#x2193;" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_PrevNext}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+Scroll" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_ZoomCursor}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+= / Ctrl+-" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_ZoomInOut}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+0" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_ResetZoom}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Middle drag" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_PanView}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,0"><TextBlock Text="Space + drag" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_PanView}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
                         </StackPanel>
 
                         <!-- Right column -->
                         <StackPanel Grid.Column="2">
-                            <TextBlock Text="EDITING" Foreground="{StaticResource AccentGreen}"
-                                       FontFamily="Consolas" FontSize="10" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+Z" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Undo" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Delete" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Delete selected annotation" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Enter / Escape" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Confirm / cancel text or crop" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-
-                            <TextBlock Text="SEARCH &amp; SELECT" Foreground="{StaticResource AccentGreen}"
-                                       FontFamily="Consolas" FontSize="10" FontWeight="SemiBold" Margin="0,12,0,4"/>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+F" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Find / search" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Enter / Shift+Enter" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Next / previous result" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+A" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Select all text on page" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,0"><TextBlock Text="Ctrl+C" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Copy selected text" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-
-                            <TextBlock Text="HELP" Foreground="{StaticResource AccentGreen}"
-                                       FontFamily="Consolas" FontSize="10" FontWeight="SemiBold" Margin="0,12,0,4"/>
-                            <DockPanel Margin="0,0,0,0"><TextBlock Text="Ctrl+?" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="This shortcut list" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
+                            <TextBlock Text="{DynamicResource Str_KS_Editing}" Foreground="{DynamicResource Accent}"
+                                       FontFamily="Segoe UI" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+Z" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_Undo}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Delete" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_DeleteAnnot}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Enter / Escape" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_ConfirmCancel}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <TextBlock Text="{DynamicResource Str_KS_SearchSelect}" Foreground="{DynamicResource Accent}"
+                                       FontFamily="Segoe UI" FontSize="11" FontWeight="SemiBold" Margin="0,12,0,4"/>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+F" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_Find}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Enter / Shift+Enter" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_NextPrevResult}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+A" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_SelectAll}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,0"><TextBlock Text="Ctrl+C" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_CopyText}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <TextBlock Text="{DynamicResource Str_KS_Help}" Foreground="{DynamicResource Accent}"
+                                       FontFamily="Segoe UI" FontSize="11" FontWeight="SemiBold" Margin="0,12,0,4"/>
+                            <DockPanel Margin="0,0,0,0"><TextBlock Text="Ctrl+?" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_ThisList}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
                         </StackPanel>
                     </Grid>
                 </StackPanel>
+            </Border>
+        </Grid>
+        <!-- About overlay -->
+        <Grid x:Name="AboutOverlay"
+              Grid.RowSpan="4"
+              Panel.ZIndex="10001"
+              Visibility="Collapsed"
+              Background="#88000000"
+              MouseLeftButtonDown="AboutOverlay_MouseLeftButtonDown">
+            <Border Background="{DynamicResource BgModal}"
+                    BorderBrush="{DynamicResource AccentBorder}"
+                    BorderThickness="2"
+                    CornerRadius="6"
+                    Padding="28,20,28,22"
+                    VerticalAlignment="Center"
+                    Width="560"
+                    MouseLeftButtonDown="AboutOverlayCard_MouseLeftButtonDown">
+                <Grid>
+                    <StackPanel Margin="0,0,20,0">
+                    <!-- Logo (populated in code-behind with hyperlink) -->
+                    <TextBlock x:Name="AboutLogoBlock"
+                               FontSize="22" FontWeight="Bold"
+                               Margin="0,0,0,4" Cursor="Hand"/>
+                    <!-- Tagline (populated in code-behind with hyperlinks) -->
+                    <TextBlock x:Name="AboutTaglineBlock"
+                               FontSize="11" Margin="0,0,0,16"/>
+                    <!-- Info card -->
+                    <Border Background="{DynamicResource BgPanel}"
+                            CornerRadius="4"
+                            Padding="14,12,14,4">
+                        <StackPanel>
+                            <StackPanel Margin="0,0,0,10">
+                                <TextBlock Text="{DynamicResource Str_About_Version}" Foreground="{DynamicResource TextDim}"
+                                           FontFamily="Segoe UI" FontSize="11" Margin="0,0,0,2"/>
+                                <TextBlock x:Name="AboutVersionBlock"
+                                           FontFamily="Segoe UI" FontSize="12"
+                                           Foreground="{DynamicResource Accent}"
+                                           Cursor="Hand"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,0,10">
+                                <TextBlock Text="{DynamicResource Str_About_Publisher}" Foreground="{DynamicResource TextDim}"
+                                           FontFamily="Segoe UI" FontSize="11" Margin="0,0,0,2"/>
+                                <TextBlock x:Name="AboutPublisherBlock"
+                                           FontFamily="Segoe UI" FontSize="12"
+                                           Foreground="{DynamicResource TextPrimary}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,0,10">
+                                <TextBlock Text="{DynamicResource Str_About_Thumbprint}" Foreground="{DynamicResource TextDim}"
+                                           FontFamily="Segoe UI" FontSize="11" Margin="0,0,0,2"/>
+                                <TextBlock x:Name="AboutThumbprintBlock"
+                                           FontFamily="Consolas" FontSize="11"
+                                           Foreground="{DynamicResource TextPrimary}"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,0,10">
+                                <TextBlock Text="{DynamicResource Str_About_ExeSha}" Foreground="{DynamicResource TextDim}"
+                                           FontFamily="Segoe UI" FontSize="11" Margin="0,0,0,2"/>
+                                <TextBlock x:Name="AboutSha256Block"
+                                           FontFamily="Consolas" FontSize="11"
+                                           Foreground="{DynamicResource TextPrimary}"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    </StackPanel>
+                    <!-- X close button overlaid at top-right - no vertical space consumed -->
+                    <Button Click="AboutOverlayClose_Click"
+                            HorizontalAlignment="Right" VerticalAlignment="Top"
+                            Cursor="Hand" FocusVisualStyle="{x:Null}"
+                            Width="24" Height="24">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <TextBlock Text="&#xE711;"
+                                           FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
+                                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </Grid>
             </Border>
         </Grid>
 
