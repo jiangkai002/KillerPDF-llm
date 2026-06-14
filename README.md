@@ -5,7 +5,13 @@
 
 PDF editor for field techs. View, annotate, merge, split, edit text, draw, sign, print, flatten, and open password-protected PDFs without an Adobe subscription or a phone-home. Install or run portable. Single Windows EXE, ~6 MB zipped, no runtime install required.
 
-Part of [killertools.net](https://killertools.net).
+[pdf.killertools.net](https://pdf.killertools.net) is part of [killertools.net](https://killertools.net).
+
+## Why this exists
+
+I hate Adobe. Acrobat is bloated, tries to hijack file associations, wants a subscription to do basic things, and phones home constantly. Most of the "free" alternatives are either ad-riddled, cloud-based, or rebrands of the same PDF engine sold under three different names.
+
+KillerPDF is what I wanted: local-only, portable, no account, no telemetry. The PDF equivalent of Notepad.
 
 ## Features
 
@@ -38,6 +44,9 @@ Part of [killertools.net](https://killertools.net).
 
 Five new built-in themes plus the original dark theme:
 
+**Dark**
+![KillerPDF - Dark theme](screenshots/6_Dark.png)
+
 **Blood**
 ![KillerPDF - Blood theme](screenshots/1_Blood.png)
 
@@ -53,9 +62,6 @@ Five new built-in themes plus the original dark theme:
 **Light**
 ![KillerPDF - Light theme](screenshots/5_Light.png)
 
-**Dark**
-![KillerPDF - Dark theme](screenshots/6_Dark.png)
-
 ## Requirements
 
 - Windows 10 or 11 (x64)
@@ -63,7 +69,7 @@ Five new built-in themes plus the original dark theme:
 
 ## Download
 
-```
+```powershell
 winget install killerpdf
 ```
 
@@ -86,6 +92,6 @@ Requires the .NET 8 SDK or later to build (even though the output targets .NET F
 
 See [CHANGELOG.md](CHANGELOG.md).
 
-## Why this exists
+## License
 
-I hate Adobe. Acrobat is bloated, tries to hijack file associations, wants a subscription to do basic things, and phones home constantly. Most of the "free" alternatives are either ad
+GPLv3. See [LICENSE](LICENSE). If you fork, modify, or redistribute KillerPDF, your version must also be released under GPLv3 with source available. No exceptions for commercial rebrands.
