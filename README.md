@@ -5,7 +5,7 @@
 
 PDF editor for field techs. View, annotate, merge, split, edit text, draw, sign, print, flatten, and open password-protected PDFs without an Adobe subscription or a phone-home. Install or run portable. Single Windows EXE, ~6 MB zipped, no runtime install required.
 
-[pdf.killertools.net](https://pdf.killertools.net) is part of [killertools.net](https://killertools.net).
+Landing page is hosted at [pdf.killertools.net](https://pdf.killertools.net)
 
 ## Why this exists
 
