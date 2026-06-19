@@ -259,4 +259,18 @@ Bu işlem uygulamayı %LocalAppData%\KillerPDF konumuna kopyalar ve bir Başlat 
     <sys:String x:Key="Str_Pos_Left">Sol</sys:String>
     <sys:String x:Key="Str_Pos_Right">Sağ</sys:String>
 
+    <!-- ── Save / recent menus + signature dialog ──────────────────── -->
+    <sys:String x:Key="Str_Menu_Save">Kaydet</sys:String>
+    <sys:String x:Key="Str_Menu_SaveAs">Farklı Kaydet...</sys:String>
+    <sys:String x:Key="Str_Menu_SaveNothing">Kaydedilecek bir şey yok</sys:String>
+    <sys:String x:Key="Str_Menu_RecentNone">Son dosya yok</sys:String>
+    <sys:String x:Key="Str_Menu_ClearList">Listeyi temizle</sys:String>
+    <sys:String x:Key="Str_Sig_Title">İmzalar</sys:String>
+    <sys:String x:Key="Str_Sig_None">Kayıtlı imza yok</sys:String>
+    <sys:String x:Key="Str_Sig_Create">İmza Oluştur</sys:String>
+    <sys:String x:Key="Str_Sig_Import">Görüntü İçe Aktar</sys:String>
+    <sys:String x:Key="Str_Sig_DrawHere">İmzanızı buraya çizin</sys:String>
+    <sys:String x:Key="Str_Sig_Clear">Temizle</sys:String>
+    <sys:String x:Key="Str_Sig_SaveSig">İmzayı Kaydet</sys:String>
+
 </ResourceDictionary>

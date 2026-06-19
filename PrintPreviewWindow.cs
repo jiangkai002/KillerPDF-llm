@@ -176,8 +176,7 @@ namespace KillerPDF
             box.SetValue(Border.VerticalAlignmentProperty, VerticalAlignment.Center);
             box.SetValue(Border.MarginProperty, new Thickness(0, 0, 8, 0));
 
-            var check = new FrameworkElementFactory(typeof(TextBlock));
-            check.Name = "check";
+            var check = new FrameworkElementFactory(typeof(TextBlock)) { Name = "check" };
             check.SetValue(TextBlock.TextProperty, "");   // Segoe MDL2 checkmark
             check.SetValue(TextBlock.FontFamilyProperty, new FontFamily("Segoe MDL2 Assets"));
             check.SetValue(TextBlock.FontSizeProperty, 14.0);
@@ -212,8 +211,7 @@ namespace KillerPDF
             b.SetBinding(Border.BorderBrushProperty, new Binding("BorderBrush") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
             b.SetBinding(Border.BorderThicknessProperty, new Binding("BorderThickness") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
             b.SetValue(Border.CornerRadiusProperty, new CornerRadius(3));
-            var sv = new FrameworkElementFactory(typeof(ScrollViewer));
-            sv.Name = "PART_ContentHost";
+            var sv = new FrameworkElementFactory(typeof(ScrollViewer)) { Name = "PART_ContentHost" };
             b.AppendChild(sv);
             var ct = new ControlTemplate(typeof(TextBox)) { VisualTree = b };
             // Dim the box when disabled (e.g. the custom-scale % field unless Scale = Custom) so it
@@ -418,7 +416,7 @@ namespace KillerPDF
                 };
                 wm.Children.Add(new TextBlock { Text = "Killer", FontFamily = new FontFamily("Segoe UI, Microsoft JhengHei UI, Nirmala UI"), FontWeight = FontWeights.Bold, FontSize = 15, Foreground = R("TextPrimary"), VerticalAlignment = VerticalAlignment.Center });
                 wm.Children.Add(new TextBlock { Text = "PDF",    FontFamily = new FontFamily("Segoe UI, Microsoft JhengHei UI, Nirmala UI"), FontWeight = FontWeights.Bold, FontSize = 15, Foreground = R("AccentLogo"), VerticalAlignment = VerticalAlignment.Center });
-                string after = printTitle.Substring(kpIdx + "KillerPDF".Length);
+                string after = printTitle[(kpIdx + "KillerPDF".Length)..];
                 if (!string.IsNullOrEmpty(after))
                     wm.Children.Add(new TextBlock { Text = after, FontFamily = new FontFamily("Segoe UI, Microsoft JhengHei UI, Nirmala UI"), FontSize = 13, Foreground = R("TextSecondary"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 1, 0, 0) });
                 titleText = wm;
@@ -522,7 +520,7 @@ namespace KillerPDF
                 ("Str_Pos_TopLeft", 0, 0), ("Str_Pos_TopRight", 2, 0),
                 ("Str_Pos_BottomLeft", 0, 2), ("Str_Pos_BottomRight", 2, 2)
             };
-            foreach (var p in positions) position.Items.Add(S(p.key));
+            foreach (var (key, _, _) in positions) position.Items.Add(S(key));
             position.SelectedIndex = 0;
             position.SelectionChanged += (s, _) =>
             {
@@ -547,7 +545,7 @@ namespace KillerPDF
                 ($"{S("Str_Margin_Normal")} (0.5\")", 0.5),
                 ($"{S("Str_Margin_Wide")} (1\")", 1.0)
             };
-            foreach (var mo in marginOpts) margins.Items.Add(mo.name);
+            foreach (var (name, _) in marginOpts) margins.Items.Add(name);
             margins.SelectedIndex = 0;
             margins.SelectionChanged += (s, _) =>
             {
@@ -929,7 +927,7 @@ namespace KillerPDF
             {
                 Width = 36, Height = 36, StrokeThickness = 3,
                 Stroke = R("TextSecondary"),
-                StrokeDashArray = new DoubleCollection { 22, 200 },
+                StrokeDashArray = [22, 200],
                 StrokeDashCap = PenLineCap.Round,
                 RenderTransformOrigin = new Point(0.5, 0.5)
             };

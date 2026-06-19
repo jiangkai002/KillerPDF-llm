@@ -259,4 +259,18 @@ Puede desinstalarla en cualquier momento desde Agregar o quitar programas.</sys:
     <sys:String x:Key="Str_Pos_Left">Izquierda</sys:String>
     <sys:String x:Key="Str_Pos_Right">Derecha</sys:String>
 
+    <!-- ── Save / recent menus + signature dialog ──────────────────── -->
+    <sys:String x:Key="Str_Menu_Save">Guardar</sys:String>
+    <sys:String x:Key="Str_Menu_SaveAs">Guardar como...</sys:String>
+    <sys:String x:Key="Str_Menu_SaveNothing">Nada que guardar</sys:String>
+    <sys:String x:Key="Str_Menu_RecentNone">No hay archivos recientes</sys:String>
+    <sys:String x:Key="Str_Menu_ClearList">Borrar lista</sys:String>
+    <sys:String x:Key="Str_Sig_Title">Firmas</sys:String>
+    <sys:String x:Key="Str_Sig_None">No hay firmas guardadas</sys:String>
+    <sys:String x:Key="Str_Sig_Create">Crear firma</sys:String>
+    <sys:String x:Key="Str_Sig_Import">Importar imagen</sys:String>
+    <sys:String x:Key="Str_Sig_DrawHere">Dibuja tu firma aquí</sys:String>
+    <sys:String x:Key="Str_Sig_Clear">Borrar</sys:String>
+    <sys:String x:Key="Str_Sig_SaveSig">Guardar firma</sys:String>
+
 </ResourceDictionary>

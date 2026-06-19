@@ -580,7 +580,7 @@ namespace KillerPDF
             var list = new System.Collections.Generic.List<string>();
             var raw = GetSetting("RecentFiles");
             if (string.IsNullOrEmpty(raw)) return list;
-            foreach (var p in raw.Split('|'))
+            foreach (var p in raw!.Split('|'))
                 if (!string.IsNullOrWhiteSpace(p)) list.Add(p);
             return list;
         }

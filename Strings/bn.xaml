@@ -259,4 +259,18 @@
     <sys:String x:Key="Str_Pos_Left">বামে</sys:String>
     <sys:String x:Key="Str_Pos_Right">ডানে</sys:String>
 
+    <!-- ── Save / recent menus + signature dialog ──────────────────── -->
+    <sys:String x:Key="Str_Menu_Save">সংরক্ষণ</sys:String>
+    <sys:String x:Key="Str_Menu_SaveAs">এভাবে সংরক্ষণ করুন...</sys:String>
+    <sys:String x:Key="Str_Menu_SaveNothing">সংরক্ষণ করার কিছু নেই</sys:String>
+    <sys:String x:Key="Str_Menu_RecentNone">সাম্প্রতিক কোনো ফাইল নেই</sys:String>
+    <sys:String x:Key="Str_Menu_ClearList">তালিকা সাফ করুন</sys:String>
+    <sys:String x:Key="Str_Sig_Title">স্বাক্ষর</sys:String>
+    <sys:String x:Key="Str_Sig_None">কোনো সংরক্ষিত স্বাক্ষর নেই</sys:String>
+    <sys:String x:Key="Str_Sig_Create">স্বাক্ষর তৈরি করুন</sys:String>
+    <sys:String x:Key="Str_Sig_Import">ছবি আমদানি করুন</sys:String>
+    <sys:String x:Key="Str_Sig_DrawHere">এখানে আপনার স্বাক্ষর আঁকুন</sys:String>
+    <sys:String x:Key="Str_Sig_Clear">সাফ করুন</sys:String>
+    <sys:String x:Key="Str_Sig_SaveSig">স্বাক্ষর সংরক্ষণ করুন</sys:String>
+
 </ResourceDictionary>

@@ -261,4 +261,18 @@
     <sys:String x:Key="Str_Pos_Left">靠左</sys:String>
     <sys:String x:Key="Str_Pos_Right">靠右</sys:String>
 
+    <!-- ── Save / recent menus + signature dialog ──────────────────── -->
+    <sys:String x:Key="Str_Menu_Save">儲存</sys:String>
+    <sys:String x:Key="Str_Menu_SaveAs">另存新檔...</sys:String>
+    <sys:String x:Key="Str_Menu_SaveNothing">沒有可儲存的內容</sys:String>
+    <sys:String x:Key="Str_Menu_RecentNone">沒有最近的檔案</sys:String>
+    <sys:String x:Key="Str_Menu_ClearList">清除清單</sys:String>
+    <sys:String x:Key="Str_Sig_Title">簽名</sys:String>
+    <sys:String x:Key="Str_Sig_None">沒有已儲存的簽名</sys:String>
+    <sys:String x:Key="Str_Sig_Create">建立簽名</sys:String>
+    <sys:String x:Key="Str_Sig_Import">匯入圖片</sys:String>
+    <sys:String x:Key="Str_Sig_DrawHere">在此繪製您的簽名</sys:String>
+    <sys:String x:Key="Str_Sig_Clear">清除</sys:String>
+    <sys:String x:Key="Str_Sig_SaveSig">儲存簽名</sys:String>
+
 </ResourceDictionary>

@@ -1,0 +1,276 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- ================================================================
+         KillerPDF  -  Simplified Chinese (zh-CN) strings
+         ================================================================ -->
+
+    <!-- ── Toolbar tooltips ─────────────────────────────────────────── -->
+    <sys:String x:Key="Str_TT_Open">打开 (Ctrl+O)</sys:String>
+    <sys:String x:Key="Str_TT_NewBlank">添加空白文档 (Ctrl+N)</sys:String>
+    <sys:String x:Key="Str_TT_CloseFile">关闭文件 (Ctrl+W)</sys:String>
+    <sys:String x:Key="Str_TT_Save">保存 (Ctrl+S)</sys:String>
+    <sys:Double x:Key="ZoomBoxWidth">96</sys:Double>
+    <sys:String x:Key="Str_TT_SaveAs">另存为 (Ctrl+Shift+S)</sys:String>
+    <sys:String x:Key="Str_TT_SaveFlattened">保存平面化 PDF（栅格化所有页面，完全不可编辑）</sys:String>
+    <sys:String x:Key="Str_TT_Print">打印 (Ctrl+P)</sys:String>
+    <sys:String x:Key="Str_TT_MergePDFs">合并 PDF（将其他 PDF 加入此文档）</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">截取页面（将选取的页面另存为新 PDF）</sys:String>
+    <sys:String x:Key="Str_TT_DeletePages">删除选取的页面</sys:String>
+    <sys:String x:Key="Str_TT_MovePageUp">向上移动页面（重新排序）</sys:String>
+    <sys:String x:Key="Str_TT_MovePageDown">向下移动页面（重新排序）</sys:String>
+    <sys:String x:Key="Str_TT_SelectTool">选取工具 - 点击注释、拖曳选取文本、双击编辑</sys:String>
+    <sys:String x:Key="Str_TT_TextTool">文本工具 - 点击以添加文本</sys:String>
+    <sys:String x:Key="Str_TT_HighlightTool">高亮笔工具 - 拖曳以高亮标记</sys:String>
+    <sys:String x:Key="Str_TT_StrikeTool">删除线 - 拖曳划过文本</sys:String>
+    <sys:String x:Key="Str_TT_UnderlineTool">底线 - 拖曳划过文本</sys:String>
+    <sys:String x:Key="Str_TT_DrawTool">绘图工具 - 自由手绘</sys:String>
+    <sys:String x:Key="Str_TT_SignatureTool">签名 - 创建并放置签名</sys:String>
+    <sys:String x:Key="Str_TT_ImageTool">图片工具 - 点击以插入图片至页面</sys:String>
+    <sys:String x:Key="Str_TT_CropTool">裁切工具 - 拖曳设置裁切区域，然后套用至页面</sys:String>
+    <sys:String x:Key="Str_TT_ClearAnnotations">清除所有注释</sys:String>
+    <sys:String x:Key="Str_TT_UndoLast">复原上一步 (Ctrl+Z)</sys:String>
+    <sys:String x:Key="Str_TT_MultiPageGrid">多页网格视图</sys:String>
+    <sys:String x:Key="Str_TT_ZoomOut">缩小 (Ctrl+-)</sys:String>
+    <sys:String x:Key="Str_TT_ZoomLevel">缩放比例 (Ctrl+滚轮 · Ctrl+=/- · Ctrl+0=重设)</sys:String>
+    <sys:String x:Key="Str_TT_ZoomIn">放大 (Ctrl+=)</sys:String>
+    <sys:String x:Key="Str_TT_GoToPage">前往页面（按 Enter 导航）</sys:String>
+    <sys:String x:Key="Str_TT_CollapseSidebar">折叠侧边栏</sys:String>
+    <sys:String x:Key="Str_TT_ExpandSidebar">展开侧边栏</sys:String>
+    <sys:String x:Key="Str_TT_KeyboardShortcuts">键盘快速键 (Ctrl+?)</sys:String>
+    <sys:String x:Key="Str_TT_Settings">设置</sys:String>
+    <sys:String x:Key="Str_TT_About">关于 KillerPDF</sys:String>
+
+    <!-- ── About overlay ─────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_About_Version">版本</sys:String>
+    <sys:String x:Key="Str_About_Publisher">发布者</sys:String>
+    <sys:String x:Key="Str_About_Thumbprint">证书指纹</sys:String>
+    <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
+    <sys:String x:Key="Str_About_Computing">计算中...</sys:String>
+    <sys:String x:Key="Str_Tagline">适用于 Windows 的快速、免费 PDF 工具组。{0} 的一部分。</sys:String>
+
+    <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_TabPages">页面</sys:String>
+    <sys:String x:Key="Str_TabOutlines">大纲</sys:String>
+
+    <!-- ── Settings panel ───────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Settings">设置</sys:String>
+    <sys:String x:Key="Str_Theme">主题</sys:String>
+    <sys:String x:Key="Str_Language">语言</sys:String>
+    <sys:String x:Key="Str_Toolbar">工具栏</sys:String>
+    <sys:String x:Key="Str_Toolbar_SmallIcons">小图标</sys:String>
+    <sys:String x:Key="Str_Toolbar_LargeIcons">大图标</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextBeside">图标加文本</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextUnder">图标下方文本</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextOnly">仅文本</sys:String>
+    <sys:String x:Key="Str_Lang_English">English</sys:String>
+    <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
+    <sys:String x:Key="Str_Lang_Chinese">中文 (简体)</sys:String>
+
+    <!-- ── Keyboard shortcuts overlay ───────────────────────────────── -->
+    <sys:String x:Key="Str_KS_Title">键盘快速键</sys:String>
+    <sys:String x:Key="Str_KS_File">文件</sys:String>
+    <sys:String x:Key="Str_KS_Open">打开</sys:String>
+    <sys:String x:Key="Str_KS_CloseFile">关闭文件</sys:String>
+    <sys:String x:Key="Str_KS_NewBlank">添加空白文档</sys:String>
+    <sys:String x:Key="Str_KS_SaveAs">另存为</sys:String>
+    <sys:String x:Key="Str_KS_Print">打印</sys:String>
+    <sys:String x:Key="Str_KS_Navigation">导航</sys:String>
+    <sys:String x:Key="Str_KS_PrevNext">上一页 / 下一页</sys:String>
+    <sys:String x:Key="Str_KS_ZoomCursor">放大 / 缩小（以光标为中心）</sys:String>
+    <sys:String x:Key="Str_KS_ZoomInOut">放大 / 缩小</sys:String>
+    <sys:String x:Key="Str_KS_ResetZoom">重设缩放至 100%</sys:String>
+    <sys:String x:Key="Str_KS_PanView">平移查看</sys:String>
+    <sys:String x:Key="Str_KS_Editing">编辑</sys:String>
+    <sys:String x:Key="Str_KS_Undo">复原</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">删除选取的注释</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">确认 / 取消文本或裁切</sys:String>
+    <sys:String x:Key="Str_KS_SearchSelect">搜索与选取</sys:String>
+    <sys:String x:Key="Str_KS_Find">寻找 / 搜索</sys:String>
+    <sys:String x:Key="Str_KS_NextPrevResult">下一个 / 上一个结果</sys:String>
+    <sys:String x:Key="Str_KS_SelectAll">选取页面上所有文本</sys:String>
+    <sys:String x:Key="Str_KS_CopyText">复制选取的文本</sys:String>
+    <sys:String x:Key="Str_KS_Help">说明</sys:String>
+    <sys:String x:Key="Str_KS_ThisList">此快速键清单</sys:String>
+    <sys:String x:Key="Str_KS_About">关于对话框</sys:String>
+    <sys:String x:Key="Str_KS_Tools">工具</sys:String>
+    <sys:String x:Key="Str_KS_Paste">粘贴图片／文本</sys:String>
+    <sys:String x:Key="Str_KS_MultiSelect">加入选取</sys:String>
+
+    <!-- ── Status bar ────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Ready">就绪</sys:String>
+    <sys:String x:Key="Str_Portable">便携版</sys:String>
+    <sys:String x:Key="Str_InstallBtn">安装 KillerPDF...</sys:String>
+
+    <!-- ── Status messages (format strings - use string.Format) ─────── -->
+    <sys:String x:Key="Str_Opened">已打开 {0} - {1} 页</sys:String>
+    <sys:String x:Key="Str_OpenedReadOnly">已打开 {0}（只读 - 拥有者限制）- {1} 页</sys:String>
+    <sys:String x:Key="Str_OpenedReadOnlyXRef">已打开 {0}（只读 - 非标准 XRef 表）- {1} 页</sys:String>
+    <sys:String x:Key="Str_OpenedRepaired">已打开 {0}（已修复副本 - 请保存以保留变更）- {1} 页</sys:String>
+    <sys:String x:Key="Str_OpenedRasterRepair">已打开 {0}（栅格化修复 - 请保存以保留变更）- {1} 页</sys:String>
+    <sys:String x:Key="Str_PageOf">第 {0} 页，共 {1} 页</sys:String>
+    <sys:String x:Key="Str_PageOfLinks">第 {0} 页，共 {1} 页（{2} 个链接）</sys:String>
+    <sys:String x:Key="Str_PageFormFields">第 {0} 页，共 {1} 页 - 此页面包含可填写的表单字段</sys:String>
+    <sys:String x:Key="Str_PageRenderError">第 {0} 页 - 无法呈现</sys:String>
+    <sys:String x:Key="Str_RenderError">呈现错误：{0}</sys:String>
+    <sys:String x:Key="Str_Rotated">已旋转 {0} 页</sys:String>
+    <sys:String x:Key="Str_Cropped">已裁切 {0} 页</sys:String>
+    <sys:String x:Key="Str_CropFailed">裁切失败：{0}</sys:String>
+    <sys:String x:Key="Str_RemovedCrop">已从 {0} 页移除 CropBox</sys:String>
+    <sys:String x:Key="Str_RemoveCropFailed">移除裁切失败：{0}</sys:String>
+    <sys:String x:Key="Str_Extracted">已将 {0} 页截取至 {1}</sys:String>
+    <sys:String x:Key="Str_Deleted">已删除 {0} 页 - 剩余 {1} 页</sys:String>
+    <sys:String x:Key="Str_Printed">已将 {0} 页发送至打印机</sys:String>
+    <sys:String x:Key="Str_LinkRemoved">链接已移除。</sys:String>
+    <sys:String x:Key="Str_InvalidRange">范围无效 - 请使用例如 1-3,5,7</sys:String>
+    <sys:String x:Key="Str_CropNoDoc">裁切：未打开文档</sys:String>
+    <sys:String x:Key="Str_CropNoPage">裁切：未选取页面</sys:String>
+    <sys:String x:Key="Str_CropNoDims">裁切：页面尺寸无法取得</sys:String>
+    <sys:String x:Key="Str_RotateFailed">旋转失败：{0}</sys:String>
+
+    <!-- ── Dialog strings ───────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Dlg_InstallTitle">安装 KillerPDF</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallMsg">要将 KillerPDF 安装到您的用户设置档吗？
+
+这将把应用程序复制到 %LocalAppData%\KillerPDF 并创建开始功能表捷径。
+您可以随时通过添加或移除程序来卸载。</sys:String>
+    <sys:String x:Key="Str_Dlg_UnsavedClose">您有未保存的变更。要在不保存的情况下关闭此文件吗？</sys:String>
+    <sys:String x:Key="Str_Dlg_UnsavedExit">您有未保存的变更。要在不保存的情况下关闭 KillerPDF 吗？</sys:String>
+    <sys:String x:Key="Str_Dlg_FailedOpen">无法打开 PDF：
+{0}</sys:String>
+    <sys:String x:Key="Str_Dlg_AppTitle">KillerPDF</sys:String>
+
+
+    <!-- ── Theme names ────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Theme_Dark">深色</sys:String>
+    <sys:String x:Key="Str_Theme_Light">浅色</sys:String>
+    <sys:String x:Key="Str_Theme_HighContrast">高对比</sys:String>
+    <sys:String x:Key="Str_Theme_Blood">血色</sys:String>
+    <sys:String x:Key="Str_Theme_Greed">贪婪</sys:String>
+    <sys:String x:Key="Str_Theme_Cyanotic">青色</sys:String>
+
+    <!-- ── Zoom dropdown ──────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Zoom_FitWidth">适合宽度</sys:String>
+    <sys:String x:Key="Str_Zoom_FitPage">适合页面</sys:String>
+    <sys:String x:Key="Str_FitWidth">第 {0} 页，共 {1} 页 - 适合宽度 ({2}%)</sys:String>
+    <sys:String x:Key="Str_FitPage">第 {0} 页，共 {1} 页 - 适合页面 ({2}%)</sys:String>
+
+    <!-- ── KS overlay font size (sys:Double) ──────────────────────────── -->
+    <sys:Double x:Key="Str_KS_FontSize">12.5</sys:Double>
+
+
+    <!-- ── View mode ──────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_ViewMode">查看模式</sys:String>
+    <sys:String x:Key="Str_View_Single">单页</sys:String>
+    <sys:String x:Key="Str_View_Continuous">连续卷动</sys:String>
+    <sys:String x:Key="Str_View_TwoPage">双页</sys:String>
+    <sys:String x:Key="Str_View_Grid">格状</sys:String>
+    <sys:String x:Key="Str_Continuous_EditMsg">请切换至单页模式以使用编辑工具</sys:String>
+
+    <!-- ── Overflow menu + menu item labels ───────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_Merge">合并 PDF</sys:String>
+    <sys:String x:Key="Str_Lbl_Extract">截取页面</sys:String>
+    <sys:String x:Key="Str_Lbl_Delete">删除页面</sys:String>
+    <sys:String x:Key="Str_Lbl_MoveUp">向上移动页面</sys:String>
+    <sys:String x:Key="Str_Lbl_MoveDown">向下移动页面</sys:String>
+    <sys:String x:Key="Str_Lbl_Text">文本</sys:String>
+    <sys:String x:Key="Str_Lbl_Highlight">高亮标记</sys:String>
+    <sys:String x:Key="Str_Lbl_Strike">删除线</sys:String>
+    <sys:String x:Key="Str_Lbl_Underline">底线</sys:String>
+    <sys:String x:Key="Str_Lbl_Draw">绘图</sys:String>
+    <sys:String x:Key="Str_Lbl_Crop">裁切</sys:String>
+    <sys:String x:Key="Str_Lbl_Image">加入图片</sys:String>
+    <sys:String x:Key="Str_Lbl_Signature">签名</sys:String>
+    <sys:String x:Key="Str_Lbl_Undo">复原</sys:String>
+    <sys:String x:Key="Str_Lbl_Clear">清除注释</sys:String>
+    <sys:String x:Key="Str_Lbl_New">添加</sys:String>
+    <sys:String x:Key="Str_Lbl_Open">打开</sys:String>
+    <sys:String x:Key="Str_Lbl_Close">关闭</sys:String>
+    <sys:String x:Key="Str_Lbl_Save">保存</sys:String>
+    <sys:String x:Key="Str_Lbl_Flatten">平面化</sys:String>
+    <sys:String x:Key="Str_Lbl_Print">打印</sys:String>
+    <sys:String x:Key="Str_Lbl_Select">选取</sys:String>
+    <sys:String x:Key="Str_Lbl_ZoomOut">缩小</sys:String>
+    <sys:String x:Key="Str_Lbl_ZoomIn">放大</sys:String>
+
+    <!-- ── Right-click menu labels ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Ctx_CopyText">复制文本</sys:String>
+    <sys:String x:Key="Str_Ctx_Print">打印</sys:String>
+    <sys:String x:Key="Str_Ctx_SelectTool">选取工具</sys:String>
+    <sys:String x:Key="Str_Ctx_TextTool">文本工具</sys:String>
+    <sys:String x:Key="Str_Ctx_HighlightTool">高亮笔工具</sys:String>
+    <sys:String x:Key="Str_Ctx_DrawTool">绘图工具</sys:String>
+    <sys:String x:Key="Str_Ctx_RotateCW">顺时针旋转页面</sys:String>
+    <sys:String x:Key="Str_Ctx_RotateCCW">逆时针旋转页面</sys:String>
+    <sys:String x:Key="Str_Ctx_StampNumbers">标记页码...</sys:String>
+    <sys:String x:Key="Str_Ctx_DeleteSel">删除选取</sys:String>
+    <sys:String x:Key="Str_Ctx_UndoLast">复原上一步</sys:String>
+    <sys:String x:Key="Str_Ctx_ClearPage">清除页面注释</sys:String>
+    <sys:String x:Key="Str_Ctx_InsertBlank">在后方插入空白页</sys:String>
+    <sys:String x:Key="Str_Ctx_RotateCWShort">顺时针旋转</sys:String>
+    <sys:String x:Key="Str_Ctx_RotateCCWShort">逆时针旋转</sys:String>
+    <sys:String x:Key="Str_Ctx_ExtractPages">截取页面</sys:String>
+    <sys:String x:Key="Str_Ctx_DeletePages">删除页面</sys:String>
+
+    <!-- ── Stamp Page Numbers dialog ──────────────────────────────────── -->
+    <sys:String x:Key="Str_Stamp_Title">标记页码</sys:String>
+    <sys:String x:Key="Str_Stamp_StartAt">起始号码</sys:String>
+    <sys:String x:Key="Str_Stamp_Format">格式</sys:String>
+    <sys:String x:Key="Str_Stamp_Hint">{}{n} = 页码，{N} = 总页数。例如「Page {n} of {N}」</sys:String>
+    <sys:String x:Key="Str_Stamp_Position">位置</sys:String>
+    <sys:String x:Key="Str_Stamp_FontSize">字体大小 (pt)</sys:String>
+    <sys:String x:Key="Str_Stamp_Cancel">取消</sys:String>
+    <sys:String x:Key="Str_Stamp_Stamp">套用</sys:String>
+    <sys:String x:Key="Str_Pos_BottomCenter">底部置中</sys:String>
+    <sys:String x:Key="Str_Pos_BottomRight">右下</sys:String>
+    <sys:String x:Key="Str_Pos_BottomLeft">左下</sys:String>
+    <sys:String x:Key="Str_Pos_TopCenter">顶部置中</sys:String>
+    <sys:String x:Key="Str_Pos_TopRight">右上</sys:String>
+    <sys:String x:Key="Str_Pos_TopLeft">左上</sys:String>
+
+    <!-- ── Print dialog ───────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Print_Title">KillerPDF - 打印</sys:String>
+    <sys:String x:Key="Str_Print_Printer">打印机</sys:String>
+    <sys:String x:Key="Str_Print_Orientation">方向</sys:String>
+    <sys:String x:Key="Str_Print_Portrait">直向</sys:String>
+    <sys:String x:Key="Str_Print_Landscape">横向</sys:String>
+    <sys:String x:Key="Str_Print_Scale">缩放</sys:String>
+    <sys:String x:Key="Str_Print_Fit">符合页面</sys:String>
+    <sys:String x:Key="Str_Print_Actual">实际大小 (100%)</sys:String>
+    <sys:String x:Key="Str_Print_Custom">自订 %</sys:String>
+    <sys:String x:Key="Str_Print_ScaleHint">缩放百分比（例如 50 或 50.23）</sys:String>
+    <sys:String x:Key="Str_Print_Copies">份数</sys:String>
+    <sys:String x:Key="Str_Print_Pages">页面</sys:String>
+    <sys:String x:Key="Str_Print_PagesHint">例如 1-3,5（空白 = 全部）</sys:String>
+    <sys:String x:Key="Str_Print_NoPages">无页面</sys:String>
+    <sys:String x:Key="Str_Print_Margins">边界</sys:String>
+    <sys:String x:Key="Str_Margin_None">无</sys:String>
+    <sys:String x:Key="Str_Margin_Narrow">窄</sys:String>
+    <sys:String x:Key="Str_Margin_Normal">标准</sys:String>
+    <sys:String x:Key="Str_Margin_Wide">宽</sys:String>
+    <sys:String x:Key="Str_Print_PagesPerSheet">每张页数</sys:String>
+    <sys:String x:Key="Str_Print_TwoSided">双面打印</sys:String>
+    <sys:String x:Key="Str_Print_Color">彩色</sys:String>
+    <sys:String x:Key="Str_Print_BW">黑白</sys:String>
+    <sys:String x:Key="Str_Pos_Center">置中</sys:String>
+    <sys:String x:Key="Str_Pos_Top">顶部</sys:String>
+    <sys:String x:Key="Str_Pos_Bottom">底部</sys:String>
+    <sys:String x:Key="Str_Pos_Left">靠左</sys:String>
+    <sys:String x:Key="Str_Pos_Right">靠右</sys:String>
+
+    <!-- ── Save / recent menus + signature dialog ──────────────────── -->
+    <sys:String x:Key="Str_Menu_Save">保存</sys:String>
+    <sys:String x:Key="Str_Menu_SaveAs">另存为...</sys:String>
+    <sys:String x:Key="Str_Menu_SaveNothing">没有可保存的内容</sys:String>
+    <sys:String x:Key="Str_Menu_RecentNone">没有最近的文件</sys:String>
+    <sys:String x:Key="Str_Menu_ClearList">清除列表</sys:String>
+    <sys:String x:Key="Str_Sig_Title">签名</sys:String>
+    <sys:String x:Key="Str_Sig_None">没有已保存的签名</sys:String>
+    <sys:String x:Key="Str_Sig_Create">创建签名</sys:String>
+    <sys:String x:Key="Str_Sig_Import">导入图片</sys:String>
+    <sys:String x:Key="Str_Sig_DrawHere">在此处绘制您的签名</sys:String>
+    <sys:String x:Key="Str_Sig_Clear">清除</sys:String>
+    <sys:String x:Key="Str_Sig_SaveSig">保存签名</sys:String>
+
+</ResourceDictionary>

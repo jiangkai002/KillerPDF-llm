@@ -102,7 +102,7 @@ namespace KillerPDF
             panel.Children.Add(Label(S("Str_Stamp_Position")));
             _posCombo = new ComboBox { Margin = new Thickness(0, 4, 0, 10), Height = 26 };
             ApplyComboStyle(_posCombo);
-            foreach (var p in Positions) _posCombo.Items.Add(S(p.key));
+            foreach (var (key, _, _) in Positions) _posCombo.Items.Add(S(key));
             _posCombo.SelectedIndex = 0;
             panel.Children.Add(_posCombo);
 
@@ -171,8 +171,7 @@ namespace KillerPDF
             b.SetBinding(Border.BorderBrushProperty, new Binding("BorderBrush") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
             b.SetBinding(Border.BorderThicknessProperty, new Binding("BorderThickness") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
             b.SetValue(Border.CornerRadiusProperty, new CornerRadius(3));
-            var sv = new FrameworkElementFactory(typeof(ScrollViewer));
-            sv.Name = "PART_ContentHost";
+            var sv = new FrameworkElementFactory(typeof(ScrollViewer)) { Name = "PART_ContentHost" };
             b.AppendChild(sv);
             return new ControlTemplate(typeof(TextBox)) { VisualTree = b };
         }

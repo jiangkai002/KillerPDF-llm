@@ -1363,7 +1363,7 @@
                     </Button>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <TextBlock x:Name="VersionLabel" Text="v1.5.1"
+                    <TextBlock x:Name="VersionLabel" Text="v1.5.3"
                                Foreground="{DynamicResource TextFooter}" FontFamily="Consolas"
                                FontSize="10" VerticalAlignment="Center" Margin="0,0,12,0"
                                Cursor="Hand" ToolTip="{DynamicResource Str_TT_About}"
@@ -1490,21 +1490,86 @@
                                 <Grid>
                                 <Border CornerRadius="4" Margin="-12,-10,-12,-10" IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}" Background="{StaticResource GrainBrushShared}"/>
                                 <StackPanel>
-                                    <RadioButton x:Name="LangEnRadio"   Content="English"
-                                                 GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
-                                                 Checked="LangEnRadio_Checked"/>
-                                    <RadioButton x:Name="LangEsRadio"   Content="Español"
-                                                 GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
-                                                 Checked="LangEsRadio_Checked"/>
-                                    <RadioButton x:Name="LangZhTWRadio" Content="中文 (繁體)"
-                                                 GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
-                                                 Checked="LangZhTWRadio_Checked"/>
-                                    <RadioButton x:Name="LangBnRadio"   Content="বাংলা"
-                                                 GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
-                                                 Checked="LangBnRadio_Checked"/>
-                                    <RadioButton x:Name="LangTrRadio"   Content="Türkçe"
-                                                 GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
-                                                 Checked="LangTrRadio_Checked"/>
+                                    <!-- Each row: native name (autonym) on the left, dim locale-file
+                                         code on the right. MinWidth keeps the codes aligned in a column. -->
+                                    <RadioButton x:Name="LangEnRadio" GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
+                                                 Checked="LangEnRadio_Checked">
+                                        <Grid MinWidth="150">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="English" VerticalAlignment="Center"
+                                                       FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
+                                            <TextBlock Grid.Column="1" Text="en-US" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
+                                                       Foreground="{DynamicResource TextSecondary}"/>
+                                        </Grid>
+                                    </RadioButton>
+                                    <RadioButton x:Name="LangEsRadio" GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
+                                                 Checked="LangEsRadio_Checked">
+                                        <Grid MinWidth="150">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Español" VerticalAlignment="Center"
+                                                       FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
+                                            <TextBlock Grid.Column="1" Text="es" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
+                                                       Foreground="{DynamicResource TextSecondary}"/>
+                                        </Grid>
+                                    </RadioButton>
+                                    <RadioButton x:Name="LangZhTWRadio" GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
+                                                 Checked="LangZhTWRadio_Checked">
+                                        <Grid MinWidth="150">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="中文 (繁體)" VerticalAlignment="Center"
+                                                       FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
+                                            <TextBlock Grid.Column="1" Text="zh-TW" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
+                                                       Foreground="{DynamicResource TextSecondary}"/>
+                                        </Grid>
+                                    </RadioButton>
+                                    <RadioButton x:Name="LangZhCNRadio" GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
+                                                 Checked="LangZhCNRadio_Checked">
+                                        <Grid MinWidth="150">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="中文 (简体)" VerticalAlignment="Center"
+                                                       FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
+                                            <TextBlock Grid.Column="1" Text="zh-CN" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
+                                                       Foreground="{DynamicResource TextSecondary}"/>
+                                        </Grid>
+                                    </RadioButton>
+                                    <RadioButton x:Name="LangBnRadio" GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
+                                                 Checked="LangBnRadio_Checked">
+                                        <Grid MinWidth="150">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="বাংলা" VerticalAlignment="Center"
+                                                       FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
+                                            <TextBlock Grid.Column="1" Text="bn" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
+                                                       Foreground="{DynamicResource TextSecondary}"/>
+                                        </Grid>
+                                    </RadioButton>
+                                    <RadioButton x:Name="LangTrRadio" GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
+                                                 Checked="LangTrRadio_Checked">
+                                        <Grid MinWidth="150">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Türkçe" VerticalAlignment="Center"
+                                                       FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
+                                            <TextBlock Grid.Column="1" Text="tr-TR" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
+                                                       Foreground="{DynamicResource TextSecondary}"/>
+                                        </Grid>
+                                    </RadioButton>
                                 </StackPanel>
                                 </Grid>
                             </Border>

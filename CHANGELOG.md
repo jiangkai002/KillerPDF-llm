@@ -4,7 +4,7 @@ All notable changes to KillerPDF are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.5.2] - 2026-06-16
+## [1.5.3] - 2026-06-16
 
 ### Added
 - Strikethrough and underline annotation tools. Drag across text to mark it; each has its own color and opacity (shared bar with the highlighter) and flattens into the saved PDF.
@@ -18,7 +18,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - One-click update from the About dialog: when a newer release exists, KillerPDF can download, verify, and reinstall it automatically.
 - Toolbar style picker (Settings -> Toolbar): Small icons, Large icons, Text beside icons, Text under icons, or Text only. Text modes are translated and degrade gracefully as the window narrows. Defaults to Small icons.
 - Recent files: a dropdown arrow next to the Open button lists the last 10 PDFs (with a Clear option), and they're also shown on the start screen; a dropdown next to Save offers Save and Save As.
-- Bengali (bn) and Turkish (tr-TR) translations (contributors akib-h #79, mrantikadev #76).
+- Bengali (bn), Turkish (tr-TR), and Simplified Chinese (zh-CN) translations (contributors akib-h #79, mrantikadev #76, KaneLeung #82).
 
 ### Changed
 - Visual refresh across the app: rounded window corners (squared when maximized or snapped); film grain on app surfaces including dialogs and the floating annotation bars; drop shadows on icons, buttons, menus, and panels; a green "PDF" wordmark; accent-colored radio buttons; per-theme scrollbars; themed size/opacity sliders (no more white control, and the WPF default blue no longer flashes while dragging); quick fade in/out for the Settings, Shortcuts, About, and signature panels; a clearer sidebar drag handle; a bolder Install button; a new chisel-tip highlighter icon and mouse-cursor Select icon; a title-bar filename that truncates instead of overlapping the window buttons; and crisper anti-aliasing for text, menus, and dialogs (which now share one unified background, border, and "KillerPDF" wordmark). Print preview sits on a soft drop shadow with a grained page-counter strip.

@@ -259,4 +259,18 @@ You can uninstall via Add/Remove Programs at any time.</sys:String>
     <sys:String x:Key="Str_Pos_Left">Left</sys:String>
     <sys:String x:Key="Str_Pos_Right">Right</sys:String>
 
+    <!-- ── Save / recent menus + signature dialog ──────────────────── -->
+    <sys:String x:Key="Str_Menu_Save">Save</sys:String>
+    <sys:String x:Key="Str_Menu_SaveAs">Save As...</sys:String>
+    <sys:String x:Key="Str_Menu_SaveNothing">Nothing to save</sys:String>
+    <sys:String x:Key="Str_Menu_RecentNone">No recent files</sys:String>
+    <sys:String x:Key="Str_Menu_ClearList">Clear list</sys:String>
+    <sys:String x:Key="Str_Sig_Title">Signatures</sys:String>
+    <sys:String x:Key="Str_Sig_None">No saved signatures</sys:String>
+    <sys:String x:Key="Str_Sig_Create">Create Signature</sys:String>
+    <sys:String x:Key="Str_Sig_Import">Import Image</sys:String>
+    <sys:String x:Key="Str_Sig_DrawHere">Draw your signature here</sys:String>
+    <sys:String x:Key="Str_Sig_Clear">Clear</sys:String>
+    <sys:String x:Key="Str_Sig_SaveSig">Save Signature</sys:String>
+
 </ResourceDictionary>

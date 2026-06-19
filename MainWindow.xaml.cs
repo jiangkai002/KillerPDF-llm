@@ -316,6 +316,7 @@ namespace KillerPDF
             LangEnRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.EnUS;
             LangEsRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.Es;
             LangZhTWRadio.IsChecked = curLoc == KillerPDF.Services.Locale.ZhTW;
+            LangZhCNRadio.IsChecked = curLoc == KillerPDF.Services.Locale.ZhCN;
             LangBnRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.Bn;
             LangTrRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.TrTR;
             LangCurrentLabel.Text   = LangDisplayName(curLoc);
@@ -473,6 +474,7 @@ namespace KillerPDF
         private void LangEnRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.EnUS);
         private void LangEsRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.Es);
         private void LangZhTWRadio_Checked(object sender, RoutedEventArgs e) => SelectLocale(KillerPDF.Services.Locale.ZhTW);
+        private void LangZhCNRadio_Checked(object sender, RoutedEventArgs e) => SelectLocale(KillerPDF.Services.Locale.ZhCN);
         private void LangBnRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.Bn);
         private void LangTrRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.TrTR);
 
@@ -509,6 +511,7 @@ namespace KillerPDF
         {
             KillerPDF.Services.Locale.Es   => "Español",
             KillerPDF.Services.Locale.ZhTW => "中文 (繁體)",
+            KillerPDF.Services.Locale.ZhCN => "中文 (简体)",
             KillerPDF.Services.Locale.Bn   => "বাংলা",
             KillerPDF.Services.Locale.TrTR => "Türkçe",
             _                              => "English",
@@ -840,6 +843,18 @@ namespace KillerPDF
                 Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
                     (Action)(() =>
                     {
+                        if (_doc is null) return;
+                        if (_viewMode == ViewMode.Grid)
+                        {
+                            // Grid's primary tile (and the page-width basis the column math uses) is
+                            // ALWAYS page 0 - rendering the selected page here would corrupt that basis
+                            // and could collapse the grid to one column. Re-render page 0, then re-fit the
+                            // columns to the new DPI/size so the grid is preserved across the monitor move.
+                            RenderPage(0);
+                            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
+                                (Action)ReapplyGridOrFit);
+                            return;
+                        }
                         int idx = PageList.SelectedIndex;
                         if (idx >= 0) RenderPage(idx);
                     }));
@@ -964,7 +979,7 @@ namespace KillerPDF
         private const int HTBOTTOM         = 15;
         private const int HTBOTTOMLEFT     = 16;
         private const int HTBOTTOMRIGHT    = 17;
-        private const int ResizeBorder     = 4;
+        private const int ResizeBorder     = 8;
 
         [StructLayout(LayoutKind.Sequential)]
         private struct POINT { public int x; public int y; }
@@ -1038,6 +1053,7 @@ namespace KillerPDF
         {
             base.OnStateChanged(e);
             UpdateWindowChrome();
+            RepositionAnnotationBars();
         }
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
@@ -1045,6 +1061,7 @@ namespace KillerPDF
             base.OnRenderSizeChanged(sizeInfo);
             UpdateWindowChrome();
             KeepSettingsPanelInWindow();
+            RepositionAnnotationBars();
         }
 
         // Keeps the (draggable) Settings panel fully inside the window when the window is resized,
@@ -1058,6 +1075,46 @@ namespace KillerPDF
             SettingsPanel.Margin = new Thickness(l, t, 0, 0);
         }
 
+        // Re-applies the saved placement to every visible annotation bar. Called synchronously from the
+        // same window events that keep the Settings panel in-window (resize, maximize/restore, move), so
+        // the bar tracks its anchored edge and stays fully on-screen through all of them.
+        private void RepositionAnnotationBars()
+        {
+            if (PagePreviewPanel?.Parent is not Grid area) return;
+            foreach (var bar in new[] { _drawSettingsBar, _textSettingsBar })
+                if (bar is not null && bar.Visibility == Visibility.Visible)
+                    PositionAnnotationBar(bar, area);
+        }
+
+        // Anchors a bar to whichever edge it sits nearer and clamps it fully inside the document area:
+        // the gap from the anchored edge is honoured when there's room, otherwise reduced so the bar
+        // never crosses the opposite edge. No-op until the bar has a measured width (PlaceAnnotationBar's
+        // deferred pass positions it once laid out).
+        private void PositionAnnotationBar(Border bar, Grid area)
+        {
+            double w = bar.ActualWidth;
+            if (w <= 0) return;
+            double maxLeft = Math.Max(0, area.ActualWidth - w);
+            if (_annotBarCenterFrac is double frac)
+            {
+                // Parked away from both edges: keep the same fraction of the width so it scales smoothly
+                // with the window instead of lurching toward an edge.
+                double left = Math.Max(0, Math.Min(maxLeft, frac * area.ActualWidth - w / 2));
+                bar.HorizontalAlignment = HorizontalAlignment.Left;
+                bar.Margin = new Thickness(left, bar.Margin.Top, 0, 0);
+            }
+            else if (_annotBarAnchorRight)
+            {
+                bar.HorizontalAlignment = HorizontalAlignment.Right;
+                bar.Margin = new Thickness(0, bar.Margin.Top, Math.Min(maxLeft, _annotBarGap ?? 8), 0);
+            }
+            else
+            {
+                bar.HorizontalAlignment = HorizontalAlignment.Left;
+                bar.Margin = new Thickness(Math.Min(maxLeft, _annotBarGap ?? 8), bar.Margin.Top, 0, 0);
+            }
+        }
+
         // Snapping changes the window's position/size but NOT its WindowState (it stays Normal), so
         // re-evaluate the chrome on move too - otherwise a window snapped to a screen half keeps its
         // rounded corners. (Hooked once in the constructor.)
@@ -1065,6 +1122,7 @@ namespace KillerPDF
         {
             UpdateWindowChrome();
             KeepSettingsPanelInWindow();
+            RepositionAnnotationBars();
         }
 
         // Applies corner rounding, the frame border, and the content clip for the current window
@@ -1319,7 +1377,7 @@ namespace KillerPDF
                 // After a rotation the page aspect ratio changes; always fit-to-page so the
                 // full rotated page is visible regardless of the previous zoom level.
                 FitToPage();
-                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)FitToPage);
+                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() => FitToPage()));
                 SetStatus(string.Format(Loc("Str_Rotated"), indices.Count));
             }
             catch (Exception ex)
@@ -2197,7 +2255,10 @@ namespace KillerPDF
             double primaryPageW = _annotationCanvas.Width > 0 ? _annotationCanvas.Width : 595;
             double pageSlotW = primaryPageW + 12;
             double availablePreZoom = (viewportW - 24) / _zoomLevel;
-            int pagesPerRow = _viewMode == ViewMode.TwoPage ? 2 : Math.Max(1, (int)(availablePreZoom / pageSlotW));
+            // +1e-6: same floating-point underflow guard as GridZoomStep, so a zoom set for n columns
+            // actually lays out n (not n-1) when the division lands a hair under the integer.
+            int pagesPerRow = _viewMode == ViewMode.TwoPage ? 2 : Math.Max(1, (int)(availablePreZoom / pageSlotW + 1e-6));
+            if (_viewMode == ViewMode.Grid) _gridColumns = pagesPerRow;   // remember it for resize column-holding
             double panelW = pagesPerRow * pageSlotW;
             if (panelW > 0) _pageContentPanel.Width = panelW;
 
@@ -2397,6 +2458,11 @@ namespace KillerPDF
             // overflows by the vertical scrollbar's width. Disable it for grid, Auto elsewhere.
             PagePreviewPanel.HorizontalScrollBarVisibility =
                 _viewMode == ViewMode.Grid ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto;
+            // Reserve the vertical scrollbar in Grid so its appearing/disappearing can't change the
+            // viewport width mid-resize and feed a width change back into the layout (the loop the grid
+            // used to guard against). A stable width lets the column-holding resize stay stable too.
+            PagePreviewPanel.VerticalScrollBarVisibility =
+                _viewMode == ViewMode.Grid ? ScrollBarVisibility.Visible : ScrollBarVisibility.Auto;
             // Single page is centered; drop the right/bottom tile-gap margin that grid/two-page
             // need for spacing (it would otherwise push the lone page a few px left of center).
             if (_pageContentPanel is not null && _pageContentPanel.Children.Count > 0
@@ -4694,31 +4760,65 @@ namespace KillerPDF
         {
             grip.MouseLeftButtonDown += (s, e) =>
             {
-                bar.Tag = (e.GetPosition(bounds).X, bar.Margin.Left);   // (startX, origLeft)
+                double w = bar.ActualWidth;
+                // Drag uniformly in left-edge coordinates whatever the current anchor; the edge it
+                // anchors to is decided on release from where it ends up.
+                double curLeft = bar.HorizontalAlignment == HorizontalAlignment.Right
+                    ? bounds.ActualWidth - bar.Margin.Right - w
+                    : bar.Margin.Left;
+                bar.HorizontalAlignment = HorizontalAlignment.Left;
+                bar.Margin = new Thickness(curLeft, bar.Margin.Top, 0, 0);
+                bar.Tag = (e.GetPosition(bounds).X, curLeft);   // (startX, origLeft)
                 grip.CaptureMouse();
                 e.Handled = true;
             };
             grip.MouseMove += (s, e) =>
             {
                 if (bar.Tag is not (double startX, double origLeft) || !grip.IsMouseCaptured) return;
-                double nl = origLeft + (e.GetPosition(bounds).X - startX);
-                double maxL = Math.Max(0, bounds.ActualWidth - (bar.ActualWidth > 0 ? bar.ActualWidth : 0));
-                nl = Math.Max(0, Math.Min(maxL, nl));
+                double w = bar.ActualWidth;
+                double maxLeft = Math.Max(0, bounds.ActualWidth - w);
+                double nl = Math.Max(0, Math.Min(maxLeft, origLeft + (e.GetPosition(bounds).X - startX)));
                 bar.Margin = new Thickness(nl, bar.Margin.Top, 0, 0);
             };
             grip.MouseLeftButtonUp += (s, e) =>
             {
                 if (!grip.IsMouseCaptured) return;
                 grip.ReleaseMouseCapture();
-                _annotBarLeft = bar.Margin.Left;
-                App.SetSetting("AnnotBarLeft", ((int)bar.Margin.Left).ToString());
+                double w = bar.ActualWidth;
+                double left = bar.Margin.Left;
+                double rightGap = Math.Max(0, bounds.ActualWidth - (left + w));
+                const double snap = 24;   // within this many px of an edge, cling to that edge exactly
+                if (left <= snap)
+                {
+                    _annotBarCenterFrac = null; _annotBarAnchorRight = false; _annotBarGap = Math.Max(0, left);
+                }
+                else if (rightGap <= snap)
+                {
+                    _annotBarCenterFrac = null; _annotBarAnchorRight = true; _annotBarGap = rightGap;
+                }
+                else
+                {
+                    // Away from both edges: remember it as a fraction of the width so resizing scales it
+                    // smoothly rather than snapping it to an edge.
+                    _annotBarCenterFrac = (left + w / 2) / bounds.ActualWidth;
+                }
+                App.SetSetting("AnnotBarFrac",
+                    _annotBarCenterFrac?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "");
+                App.SetSetting("AnnotBarGap", ((int)(_annotBarGap ?? 8)).ToString());
+                App.SetSetting("AnnotBarRightSide", _annotBarAnchorRight ? "1" : "0");
+                if (PagePreviewPanel?.Parent is Grid area) PositionAnnotationBar(bar, area);
                 e.Handled = true;
             };
         }
 
-        // Remembered slide position so a rebuilt bar (on tool/swatch change) lands instantly in the
-        // same spot - no deferred reposition, so no flash/blink.
-        private double? _annotBarLeft;
+        // Saved horizontal placement for the floating draw/text settings bars (shared by both). The bar
+        // anchors to whichever edge it sits nearer and remembers its gap from that edge, so it clings to
+        // that edge on resize. RepositionAnnotationBars re-applies it - clamped fully inside the document
+        // area - from the same window events that keep the Settings panel in-window, so it can never end
+        // up off-screen regardless of which edge it was parked against.
+        private double? _annotBarGap;
+        private bool _annotBarAnchorRight = true;
+        private double? _annotBarCenterFrac;   // set when parked away from both edges: hold this fraction of the width
 
         // Positions an annotation bar and wires up sliding. If we already know the X (this session or
         // saved), set it synchronously so the bar appears in place; only the very first time do we
@@ -4727,27 +4827,24 @@ namespace KillerPDF
         {
             if (PagePreviewPanel.Parent is not Grid area) return;
 
-            double? known = _annotBarLeft;
-            if (known is null && int.TryParse(App.GetSetting("AnnotBarLeft"), out int sl)) known = sl;
-
-            if (known is double k)
+            if (_annotBarGap is null && _annotBarCenterFrac is null)
             {
-                bar.Margin = new Thickness(Math.Max(0, k), bar.Margin.Top, 0, 0);
-                EnableBarSlide(grip, bar, area);
-                return;
+                if (double.TryParse(App.GetSetting("AnnotBarFrac"), System.Globalization.NumberStyles.Float,
+                                    System.Globalization.CultureInfo.InvariantCulture, out double f))
+                {
+                    _annotBarCenterFrac = f;   // parked away from both edges last time
+                }
+                else
+                {
+                    _annotBarGap = int.TryParse(App.GetSetting("AnnotBarGap"), out int sg) ? sg : 8;
+                    _annotBarAnchorRight = App.GetSetting("AnnotBarRightSide") != "0";   // default: right edge
+                }
             }
-
-            // First placement only: default to the top-right once the width is known.
-            bar.Opacity = 0;
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
-            {
-                double w = bar.ActualWidth;
-                double left = Math.Max(0, area.ActualWidth - w - 8);
-                bar.Margin = new Thickness(left, bar.Margin.Top, 0, 0);
-                bar.Opacity = 1;
-                _annotBarLeft = left;
-                EnableBarSlide(grip, bar, area);
-            }));
+            EnableBarSlide(grip, bar, area);
+            PositionAnnotationBar(bar, area);   // in case the width is already known
+            // First show: the bar has no measured width yet, so anchor it once layout has run.
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
+                (Action)(() => { if (bar.Visibility == Visibility.Visible) PositionAnnotationBar(bar, area); }));
         }
 
         private void ShowDrawSettings(EditTool tool)
@@ -4875,8 +4972,8 @@ namespace KillerPDF
             {
                 Text = $"{(int)(currentOpacity / 255.0 * 100)}%",
                 FontFamily = new FontFamily("Segoe UI"), FontSize = 11,
-                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 0, 0),
-                Width = 34, TextAlignment = TextAlignment.Right
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 6, 0),
+                Width = 40, TextAlignment = TextAlignment.Right
             };
             opacityLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondary");
             opacitySlider.ValueChanged += (s, e) =>
@@ -4903,7 +5000,7 @@ namespace KillerPDF
             _drawSettingsBar = new Border
             {
                 BorderThickness = new Thickness(0, 0, 0, 1),
-                HorizontalAlignment = HorizontalAlignment.Left,   // slid along the top via the grip
+                HorizontalAlignment = HorizontalAlignment.Right,  // right-anchored; slid via the grip
                 VerticalAlignment = VerticalAlignment.Top,
                 CornerRadius = new CornerRadius(0, 0, 4, 4),
                 Padding = new Thickness(4),
@@ -5081,7 +5178,7 @@ namespace KillerPDF
             _textSettingsBar = new Border
             {
                 BorderThickness = new Thickness(0, 0, 0, 1),
-                HorizontalAlignment = HorizontalAlignment.Left,   // slid along the top via the grip
+                HorizontalAlignment = HorizontalAlignment.Right,  // right-anchored; slid via the grip
                 VerticalAlignment = VerticalAlignment.Top,
                 CornerRadius = new CornerRadius(0, 0, 4, 4),
                 Padding = new Thickness(4),
@@ -5246,7 +5343,7 @@ namespace KillerPDF
                 Margin     = new Thickness(0, 0, 0, 4),
                 Child = new TextBlock
                 {
-                    Text = "Signatures",
+                    Text = Loc("Str_Sig_Title"),
                     Foreground = (SolidColorBrush)FindResource("TextPrimary"),
                     FontFamily = new FontFamily("Segoe UI"),
                     FontWeight = FontWeights.SemiBold,
@@ -5363,7 +5460,7 @@ namespace KillerPDF
             {
                 stack.Children.Add(new TextBlock
                 {
-                    Text = "No saved signatures",
+                    Text = Loc("Str_Sig_None"),
                     Foreground = (SolidColorBrush)FindResource("TextSecondary"),
                     FontFamily = new FontFamily("Segoe UI"),
                     FontSize = 11,
@@ -5384,7 +5481,7 @@ namespace KillerPDF
             // Create Signature button
             var createBtn = new Button
             {
-                Content = "Create Signature",
+                Content = Loc("Str_Sig_Create"),
                 Style = (Style)FindResource("DarkButton"),
                 Background = (SolidColorBrush)FindResource("BgPanel"),
                 Foreground = (SolidColorBrush)FindResource("Accent"),
@@ -5408,7 +5505,7 @@ namespace KillerPDF
             // Import image button
             var importBtn = new Button
             {
-                Content = "Import Image",
+                Content = Loc("Str_Sig_Import"),
                 Style = (Style)FindResource("DarkButton"),
                 Background = (SolidColorBrush)FindResource("BgPanel"),
                 Foreground = (SolidColorBrush)FindResource("TextPrimary"),
@@ -5655,7 +5752,7 @@ namespace KillerPDF
                 var sp = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
                 sp.Children.Add(new TextBlock { Text = "Killer", FontFamily = fam, FontWeight = FontWeights.Bold, FontSize = 14, Foreground = primary, VerticalAlignment = VerticalAlignment.Center });
                 sp.Children.Add(new TextBlock { Text = "PDF",    FontFamily = fam, FontWeight = FontWeights.Bold, FontSize = 14, Foreground = logo, VerticalAlignment = VerticalAlignment.Center });
-                sp.Children.Add(new TextBlock { Text = " - Create Signature", FontFamily = fam, FontSize = 13, Foreground = sub, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 1, 0, 0) });
+                sp.Children.Add(new TextBlock { Text = $" - {Loc("Str_Sig_Create")}", FontFamily = fam, FontSize = 13, Foreground = sub, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 1, 0, 0) });
                 return sp;
             }
             var titleText = new Grid { Margin = new Thickness(14, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
@@ -5704,7 +5801,7 @@ namespace KillerPDF
             // than leaving it jammed in the top-left corner. A script face suits a signature prompt.
             var placeholder = new TextBlock
             {
-                Text = "Draw your signature here",
+                Text = Loc("Str_Sig_DrawHere"),
                 Foreground = new SolidColorBrush(Color.FromRgb(0xb0, 0xb0, 0xb0)),
                 FontFamily = new FontFamily("Segoe Script, Segoe UI"),
                 FontSize = 18,
@@ -5772,7 +5869,7 @@ namespace KillerPDF
 
             var clearBtn = new Button
             {
-                Content = "Clear",
+                Content = Loc("Str_Sig_Clear"),
                 Style = (Style)FindResource("DarkButton"),
                 Padding = new Thickness(16, 6, 16, 6),
                 Margin = new Thickness(0, 0, 8, 0),
@@ -5796,7 +5893,7 @@ namespace KillerPDF
             // doesn't read as a solid white block in the white-accent themes; it fills on hover.
             var saveBtn = new Button
             {
-                Content = "Save Signature",
+                Content = Loc("Str_Sig_SaveSig"),
                 Style = (Style)FindResource("DarkButton"),
                 Padding = new Thickness(16, 6, 16, 6),
                 Background = (SolidColorBrush)FindResource("BgPanel"),
@@ -7224,8 +7321,7 @@ namespace KillerPDF
                 tbBorder.SetValue(Border.BorderBrushProperty, new System.Windows.TemplateBindingExtension(Control.BorderBrushProperty));
                 tbBorder.SetValue(Border.BorderThicknessProperty, new System.Windows.TemplateBindingExtension(Control.BorderThicknessProperty));
                 tbBorder.SetValue(Border.CornerRadiusProperty, new CornerRadius(3));
-                var tbHost = new FrameworkElementFactory(typeof(ScrollViewer));
-                tbHost.Name = "PART_ContentHost";
+                var tbHost = new FrameworkElementFactory(typeof(ScrollViewer)) { Name = "PART_ContentHost" };
                 tbHost.SetValue(ScrollViewer.PaddingProperty, new System.Windows.TemplateBindingExtension(Control.PaddingProperty));
                 tbHost.SetValue(ScrollViewer.VerticalAlignmentProperty, VerticalAlignment.Center);
                 tbBorder.AppendChild(tbHost);
@@ -8781,7 +8877,7 @@ namespace KillerPDF
             var recents = App.GetRecentFiles();
             if (recents.Count == 0)
             {
-                menu.Items.Add(new MenuItem { Header = "No recent files", IsEnabled = false });
+                menu.Items.Add(new MenuItem { Header = Loc("Str_Menu_RecentNone"), IsEnabled = false });
             }
             else
             {
@@ -8798,7 +8894,7 @@ namespace KillerPDF
                     menu.Items.Add(item);
                 }
                 menu.Items.Add(new Separator());
-                menu.Items.Add(MakeMenuItem("Clear list", (_, _) => App.ClearRecentFiles()));
+                menu.Items.Add(MakeMenuItem(Loc("Str_Menu_ClearList"), (_, _) => App.ClearRecentFiles()));
             }
 
             menu.PlacementTarget = (UIElement)sender;
@@ -8894,12 +8990,12 @@ namespace KillerPDF
 
             if (_doc is null)
             {
-                menu.Items.Add(new MenuItem { Header = "Nothing to save", IsEnabled = false });
+                menu.Items.Add(new MenuItem { Header = Loc("Str_Menu_SaveNothing"), IsEnabled = false });
             }
             else
             {
-                menu.Items.Add(MakeMenuItem("Save", (_, _) => SaveInPlace(), "Ctrl+S"));
-                menu.Items.Add(MakeMenuItem("Save As...", (s2, e2) => SaveAs_Click(s2, e2), "Ctrl+Shift+S"));
+                menu.Items.Add(MakeMenuItem(Loc("Str_Menu_Save"), (_, _) => SaveInPlace(), "Ctrl+S"));
+                menu.Items.Add(MakeMenuItem(Loc("Str_Menu_SaveAs"), (s2, e2) => SaveAs_Click(s2, e2), "Ctrl+Shift+S"));
             }
 
             menu.PlacementTarget = (UIElement)sender;
@@ -10067,7 +10163,7 @@ namespace KillerPDF
                 PageList.SelectedIndex = cur + 1;
         }
 
-        private void ApplyZoom()
+        private void ApplyZoom(bool lite = false)
         {
             if (_pageContentGrid.LayoutTransform is ScaleTransform st)
             {
@@ -10075,6 +10171,11 @@ namespace KillerPDF
                 st.ScaleY = _zoomLevel;
             }
             SyncZoomBox();   // keep the toolbar box in step (FitToWidth/FitToPage don't call SetZoom)
+            // Live-resize path: the ScaleTransform above already grew/shrank the existing render to
+            // match the new size - smooth and flicker-free. Skip the bitmap re-render and tile rebuild;
+            // PagePreviewPanel_SizeChanged debounces one crisp re-render once the drag settles, instead
+            // of thrashing it on every size tick (which is what made the page blink during a resize).
+            if (lite) return;
             // Recalculate how many pages fit after zoom changes.
             // Use RefreshPageView so link overlays are re-added after RenderAdditionalPages
             // calls ClearSecondaryPages (which wipes them).
@@ -10086,7 +10187,12 @@ namespace KillerPDF
             // If the user has zoomed in past ~10% of the last render, queue a deferred re-render at
             // higher resolution so text re-sharpens quickly (especially on high-DPI displays, where
             // the upscaled bitmap shows blur sooner). The timer debounces rapid Ctrl+scroll.
-            if (applyIdx >= 0 && _zoomLevel > _lastRenderZoom * 1.10 && _doc is not null)
+            // Skipped in Grid: this re-renders via the selected page (not page 0) and, once the render
+            // hits its pixel cap when zoomed in, shifts page 0's render width - which is the basis for
+            // the grid's column math. That desync locks Ctrl+scroll to a 1<->2 column toggle. The grid
+            // is an overview and doesn't need the re-sharpen.
+            if (applyIdx >= 0 && _zoomLevel > _lastRenderZoom * 1.10 && _doc is not null
+                && _viewMode != ViewMode.Grid)
             {
                 if (_rerenderTimer is null)
                 {
@@ -10095,7 +10201,9 @@ namespace KillerPDF
                     _rerenderTimer.Tick += (_, _) =>
                     {
                         _rerenderTimer!.Stop();
-                        if (_doc is not null && PageList.SelectedIndex >= 0)
+                        // Never re-render the primary in Grid (it would shift page 0's width basis and
+                        // desync the column math); guards a timer started just before a switch into grid.
+                        if (_doc is not null && _viewMode != ViewMode.Grid && PageList.SelectedIndex >= 0)
                             RenderPage(PageList.SelectedIndex);
                     };
                 }
@@ -10126,7 +10234,10 @@ namespace KillerPDF
             double vw  = PagePreviewPanel.ActualWidth;
             if (vw <= 0 || rdW <= 0) { SetZoom(zoomOut ? _zoomLevel - ZoomStep : _zoomLevel + ZoomStep); return; }
             // Current columns, computed the SAME way RenderAdditionalPages computes pagesPerRow.
-            int curN = Math.Max(1, (int)Math.Floor((vw - 24.0) / (_zoomLevel * (rdW + 12.0))));
+            // +1e-6 guards against floating-point underflow: when _zoomLevel is exactly GridZoomForN(n),
+            // (vw-24)/(z*(rdW+12)) computes as n minus a tiny epsilon and would floor to n-1, making the
+            // column count read one low - which locked zoom into a 1<->2 column toggle.
+            int curN = Math.Max(1, (int)Math.Floor((vw - 24.0) / (_zoomLevel * (rdW + 12.0)) + 1e-6));
             int newN = Math.Max(1, zoomOut ? curN + 1 : curN - 1);
             // If the column count is already at the limit the clamped zoom is unchanged, so
             // skip the re-render entirely - otherwise every Ctrl+Scroll reloads all tiles
@@ -10234,7 +10345,7 @@ namespace KillerPDF
             }
         }
 
-        private void FitToWidth()
+        private void FitToWidth(bool lite = false)
         {
             double viewW = PagePreviewPanel.ActualWidth - 40;
             if (viewW <= 0) return;
@@ -10247,7 +10358,7 @@ namespace KillerPDF
                 if (_continuousPageW <= 0) return;
                 _fitMode   = FitMode.Width;
                 _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax, viewW / _continuousPageW));
-                ApplyZoom();
+                ApplyZoom(lite);
                 int ci = PageList.SelectedIndex;
                 if (ci >= 0 && _doc != null)
                     SetStatus(string.Format(Loc("Str_FitWidth"), ci + 1, _doc.PageCount, $"{DisplayZoomPct():F0}"));
@@ -10270,12 +10381,12 @@ namespace KillerPDF
             double slotW = _viewMode == ViewMode.TwoPage ? (viewW - 12) / 2 : viewW;
             _fitMode = FitMode.Width;
             _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax, slotW / dipW));
-            ApplyZoom();
+            ApplyZoom(lite);
             if (idx >= 0 && _doc != null)
                 SetStatus(string.Format(Loc("Str_FitWidth"), idx + 1, _doc.PageCount, $"{DisplayZoomPct():F0}"));
         }
 
-        private void FitToPage()
+        private void FitToPage(bool lite = false)
         {
             double viewW = PagePreviewPanel.ActualWidth  - 40;
             double viewH = PagePreviewPanel.ActualHeight - 40;
@@ -10294,7 +10405,7 @@ namespace KillerPDF
                 _fitMode   = FitMode.Page;
                 _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax,
                     Math.Min(viewW / _continuousPageW, viewH / dipH)));
-                ApplyZoom();
+                ApplyZoom(lite);
                 SetStatus(string.Format(Loc("Str_FitPage"), ci + 1, _doc.PageCount, $"{DisplayZoomPct():F0}"));
                 return;
             }
@@ -10313,7 +10424,7 @@ namespace KillerPDF
             _fitMode = FitMode.Page;
             _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax,
                 Math.Min(slotW2 / dipW, viewH / dipH2)));
-            ApplyZoom();
+            ApplyZoom(lite);
             SetStatus(string.Format(Loc("Str_FitPage"), idx + 1, _doc!.PageCount, $"{DisplayZoomPct():F0}"));
         }
 
@@ -10337,14 +10448,63 @@ namespace KillerPDF
             else FitToWidth();
         }
 
+        private System.Windows.Threading.DispatcherTimer? _resizeRefitTimer;
+        private int _gridColumns = 1;   // columns the grid is currently laid out in; held across resizes
+
         private void PagePreviewPanel_SizeChanged(object sender, SizeChangedEventArgs e)
         {
+            RepositionAnnotationBars();   // keep the draw/text bar on its anchored edge as the pane resizes
             if (_cropPreviewRect is not null || _cropConfirmBar is not null) return;
-            // Grid keeps its zoom on resize. Re-zooming here rebuilds the tiles, which can toggle a
-            // scrollbar, change the viewport size again, and feed back into this handler - an
-            // infinite layout loop that freezes the app. The grid already fits on open and on
-            // mode switch, so do nothing here for grid.
-            if (_viewMode == ViewMode.Grid) return;
+
+            if (_viewMode == ViewMode.Grid)
+            {
+                // Grid columns depend only on width, so a height-only resize (e.g. dragging the bottom
+                // edge) changes nothing - skip it so it doesn't needlessly re-render/blink.
+                if (!e.WidthChanged) return;
+                // Hold the column count through the resize: scale the already-laid-out tiles via the
+                // transform so the same number of columns fills the new width. This is lite-only (no
+                // re-render), so it can't toggle tiles/scrollbars into the feedback loop the grid used to
+                // fear - and with the vertical scrollbar reserved (above), the width stays stable too.
+                if (_doc is null || _gridColumns < 1) return;
+                double rdWg = _annotationCanvas.Width > 0 ? _annotationCanvas.Width : 1583;
+                if (PagePreviewPanel.ActualWidth <= 0 || rdWg <= 0) return;
+                _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax, GridZoomForN(_gridColumns)));
+                ApplyZoom(lite: true);
+                StartResizeSettleTimer();   // crisp re-render once the drag settles
+                return;
+            }
+
+            // Live: rescale the page(s) already on screen via the ScaleTransform only (lite). This
+            // tracks the drag smoothly without re-rendering, so there's no flicker mid-resize.
+            if (_fitMode == FitMode.Width) FitToWidth(lite: true);
+            else if (_fitMode == FitMode.Page) FitToPage(lite: true);
+            StartResizeSettleTimer();
+        }
+
+        // Coalesces resize ticks: the crisp re-render runs once, a beat after the last size change.
+        private void StartResizeSettleTimer()
+        {
+            if (_resizeRefitTimer is null)
+            {
+                _resizeRefitTimer = new System.Windows.Threading.DispatcherTimer
+                    { Interval = TimeSpan.FromMilliseconds(110) };
+                _resizeRefitTimer.Tick += (_, _) => { _resizeRefitTimer!.Stop(); OnResizeSettled(); };
+            }
+            _resizeRefitTimer.Stop();
+            _resizeRefitTimer.Start();
+        }
+
+        private void OnResizeSettled()
+        {
+            if (_viewMode == ViewMode.Grid)
+            {
+                // Crisp re-render at the held column count for the final size (the drag only transform-
+                // scaled the tiles). The grid's width is stable (vertical scrollbar reserved), so this
+                // settles in one pass instead of looping.
+                if (_doc is not null && _gridColumns >= 1)
+                    SetZoom(Math.Max(ZoomMin, Math.Min(ZoomMax, GridZoomForN(_gridColumns))));
+                return;
+            }
             if (_fitMode == FitMode.Width) FitToWidth();
             else if (_fitMode == FitMode.Page) FitToPage();
         }
