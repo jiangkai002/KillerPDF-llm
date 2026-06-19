@@ -1174,7 +1174,7 @@
                           Width="6"
                           HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch"
-                          Background="{DynamicResource BorderDim}"
+                          Background="{DynamicResource PaneBorder}"
                           Cursor="SizeWE"
                           IsEnabled="False"
                           ResizeBehavior="PreviousAndNext"
@@ -1191,11 +1191,11 @@
                                         <StackPanel Orientation="Vertical"/>
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
-                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource BgDragHandle}"/>
-                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource BgDragHandle}"/>
-                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource BgDragHandle}"/>
-                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource BgDragHandle}"/>
-                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource BgDragHandle}"/>
+                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource TextSecondary}"/>
+                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource TextSecondary}"/>
+                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource TextSecondary}"/>
+                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource TextSecondary}"/>
+                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource TextSecondary}"/>
                             </ItemsControl>
                         </Border>
                         <ControlTemplate.Triggers>

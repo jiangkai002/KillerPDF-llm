@@ -36,8 +36,22 @@ namespace KillerPDF
         public byte ColorB { get; set; } = 0;
         public byte ColorA { get; set; } = 255;
 
+        // Box geometry. Width is fixed (text wraps to it); Height auto-grows to fit the wrapped text.
+        public double Width { get; set; } = 200;
+        public double Height { get; set; } = 28;
+
+        // Optional background fill (the "whiteout"/highlight behind the text). BgA == 0 means no fill.
+        public byte BgR { get; set; } = 255;
+        public byte BgG { get; set; } = 255;
+        public byte BgB { get; set; } = 255;
+        public byte BgA { get; set; } = 0;
+
         public Color GetColor() => Color.FromArgb(ColorA, ColorR, ColorG, ColorB);
         public void SetColor(Color c) { ColorR = c.R; ColorG = c.G; ColorB = c.B; ColorA = c.A; }
+
+        public Color GetFill() => Color.FromArgb(BgA, BgR, BgG, BgB);
+        public void SetFill(Color c) { BgR = c.R; BgG = c.G; BgB = c.B; BgA = c.A; }
+        public bool HasFill => BgA > 0;
     }
 
     public class InkAnnotation : PageAnnotation
