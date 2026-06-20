@@ -21,6 +21,13 @@
         <!-- Brush keys come from Application.Resources (theme dicts) via DynamicResource.
              Only non-colour styles live here. -->
 
+        <!-- Floors the scrollbar thumb's proportional size so it stays grabbable on long docs. -->
+        <local:ThumbViewportFloorConverter x:Key="ThumbFloor"/>
+
+        <!-- Close button's top-right corner: rounded to match the window when floating, squared
+             when maximized/snapped. Updated in UpdateWindowChrome alongside the frame corners. -->
+        <CornerRadius x:Key="ChromeCloseCorner">0,7,0,0</CornerRadius>
+
         <!-- Shared film-grain brush for popup menus (settings/shortcuts/language/overflow).
              ImageSource is assigned once in ApplyGrainTexture; every reference updates. -->
         <ImageBrush x:Key="GrainBrushShared" TileMode="Tile"
@@ -153,9 +160,9 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentDim}"/>
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Accent}"/>
-                                <Setter Property="Foreground" Value="{DynamicResource Accent}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SelectionBg}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource SelectionFg}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource SelectionFg}"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BgHover}"/>
@@ -198,13 +205,58 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="0,7,0,0">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource ChromeCloseCorner}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource DangerRed}"/>
                                 <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Tab close button: themed so hover is the danger red (not WPF's default blue chrome). -->
+        <Style x:Key="TabCloseButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource DangerRed}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- New-tab "+" button: subtle hover, no default chrome. -->
+        <Style x:Key="TabNewButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BgHover}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -240,18 +292,54 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="ScrollBar">
                         <Grid>
-                            <Track x:Name="PART_Track" IsDirectionReversed="True">
+                            <Track x:Name="PART_Track" IsDirectionReversed="True"
+                                   Minimum="{TemplateBinding Minimum}"
+                                   Maximum="{TemplateBinding Maximum}"
+                                   Value="{TemplateBinding Value}">
+                                <!-- Reactive thumb with a minimum-length floor. ViewportSize is fed through
+                                     ThumbViewportFloorConverter, which raises it just enough that the Track's
+                                     proportional thumb never falls below the floor. Because the Track sizes the
+                                     thumb AND the repeat buttons from this one value, there is no MinHeight
+                                     overflow for the increase button to paint over. The buttons still enable
+                                     click-to-page. -->
+                                <Track.ViewportSize>
+                                    <MultiBinding Converter="{StaticResource ThumbFloor}" ConverterParameter="64">
+                                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="ViewportSize"/>
+                                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="Maximum"/>
+                                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="Minimum"/>
+                                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="ActualWidth"/>
+                                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="ActualHeight"/>
+                                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="Orientation"/>
+                                    </MultiBinding>
+                                </Track.ViewportSize>
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="ScrollBar.PageUpCommand" Focusable="False" IsTabStop="False">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton"><Border Background="Transparent"/></ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="ScrollBar.PageDownCommand" Focusable="False" IsTabStop="False">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton"><Border Background="Transparent"/></ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.IncreaseRepeatButton>
                                 <Track.Thumb>
-                                    <Thumb>
+                                    <!-- No MinHeight/MinWidth here on purpose: the thumb's minimum length is
+                                         enforced upstream via the Track's floored ViewportSize (see above), so
+                                         the thumb's rendered size always equals the slot the Track gives it.
+                                         A MinHeight here would overflow that slot and be covered by the
+                                         increase button - the original tiny-scrollbar bug. -->
+                                    <Thumb x:Name="ScrollThumb">
                                         <Thumb.Style>
                                             <Style TargetType="Thumb">
-                                                <!-- Minimum thumb length so it stays grabbable on very long documents. -->
-                                                <Setter Property="MinHeight" Value="28"/>
                                                 <Setter Property="Template">
                                                     <Setter.Value>
                                                         <ControlTemplate TargetType="Thumb">
                                                             <Border x:Name="thumbBorder"
-                                                                    Background="{DynamicResource BgScrollThumb}"
+                                                                    Background="{DynamicResource ScrollThumbHover}"
                                                                     CornerRadius="3"
                                                                     Margin="4,0"/>
                                                             <ControlTemplate.Triggers>
@@ -270,13 +358,6 @@
                                                         </ControlTemplate>
                                                     </Setter.Value>
                                                 </Setter>
-                                                <Style.Triggers>
-                                                    <!-- Horizontal bar: enforce the minimum along the X axis instead. -->
-                                                    <DataTrigger Binding="{Binding Orientation, RelativeSource={RelativeSource AncestorType={x:Type ScrollBar}}}" Value="Horizontal">
-                                                        <Setter Property="MinHeight" Value="0"/>
-                                                        <Setter Property="MinWidth" Value="28"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
                                             </Style>
                                         </Thumb.Style>
                                     </Thumb>
@@ -485,8 +566,8 @@
                                 <Setter TargetName="ItemBd" Property="Background" Value="{DynamicResource BgHover}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="ItemBd" Property="Background" Value="{DynamicResource AccentDim}"/>
-                                <Setter Property="Foreground" Value="{DynamicResource Accent}"/>
+                                <Setter TargetName="ItemBd" Property="Background" Value="{DynamicResource SelectionBg}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource SelectionFg}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -635,8 +716,8 @@
                                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BgHover}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentDim}"/>
-                                <Setter Property="Foreground" Value="{DynamicResource Accent}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SelectionBg}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource SelectionFg}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -720,19 +801,37 @@
         </Style>
 
         <!-- Settings panel radio button -->
+        <!-- Clickable accent-colour swatch for the Dark theme family (website-style picker).
+             Literal hue colours, identical across themes. The selection ring is set in code. -->
+        <Style x:Key="AccentDot" TargetType="Border">
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="18"/>
+            <Setter Property="CornerRadius" Value="9"/>
+            <Setter Property="Margin" Value="0,0,7,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+        </Style>
+
         <Style x:Key="ThemeRadio" TargetType="RadioButton">
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
                         <Border x:Name="bd" Background="Transparent" CornerRadius="3"
-                                Margin="-8,0,-8,0" Padding="8,4">
-                            <StackPanel Orientation="Horizontal" Background="Transparent">
-                                <Grid Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,8,0">
+                                Margin="-8,0,2,0" Padding="10,4,10,4">
+                            <!-- DockPanel (not a horizontal StackPanel) so the content fills the row
+                                 width, letting a right-aligned column (e.g. language codes) reach the
+                                 right edge. -->
+                            <DockPanel LastChildFill="True" Background="Transparent">
+                                <Grid Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,8,0" DockPanel.Dock="Left">
                                     <Ellipse x:Name="ring" Width="14" Height="14"
                                              Stroke="{DynamicResource TextDim}" StrokeThickness="1.5"
                                              Fill="Transparent"/>
@@ -740,7 +839,7 @@
                                              Fill="{DynamicResource RadioAccent}" Visibility="Collapsed"/>
                                 </Grid>
                                 <ContentPresenter VerticalAlignment="Center"/>
-                            </StackPanel>
+                            </DockPanel>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
@@ -781,10 +880,11 @@
     <Border x:Name="RootBorder" BorderBrush="{DynamicResource AccentBorder}" BorderThickness="1" Background="{DynamicResource BgDark}" CornerRadius="7">
     <Grid x:Name="RootClipGrid">
         <Grid.RowDefinitions>
-            <RowDefinition Height="36"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="28"/>
+            <RowDefinition Height="36"/>     <!-- 0: title bar -->
+            <RowDefinition Height="Auto"/>   <!-- 1: toolbar -->
+            <RowDefinition Height="Auto"/>   <!-- 2: document tab strip (collapses when no PDF is open) -->
+            <RowDefinition Height="*"/>      <!-- 3: document content -->
+            <RowDefinition Height="28"/>     <!-- 4: footer / status bar -->
         </Grid.RowDefinitions>
 
         <!-- Title bar -->
@@ -975,20 +1075,25 @@
         </Border>
 
         <!-- Main content -->
-        <Grid Grid.Row="2" x:Name="MainContentGrid">
+        <Grid Grid.Row="3" x:Name="MainContentGrid">
             <Grid.ColumnDefinitions>
-                <!-- SidebarCol never collapses to 0 — it shrinks to 24px (the toggle strip width). -->
+                <!-- The sidebar lives in column 0 (left, default) or column 2 (right). ApplySidebarSide
+                     swaps which column is the sized sidebar (24-260px) and which is the star document
+                     area, and repoints _sidebarCol accordingly. SidebarCol never collapses to 0 - it
+                     shrinks to 24px (the toggle strip width). -->
                 <ColumnDefinition x:Name="SidebarCol" Width="180" MinWidth="24" MaxWidth="260"/>
                 <!-- Dedicated drag handle column — keeps the splitter independent of the sidebar content -->
                 <ColumnDefinition Width="6"/>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition x:Name="DocCol" Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Sidebar column: inner grid splits content from permanent toggle strip -->
-            <Grid Grid.Column="0">
+            <!-- Sidebar column: inner grid splits content from permanent toggle strip. The toggle
+                 strip is kept on the side facing the document (right when the sidebar is on the
+                 left, left when the sidebar is on the right) by ApplySidebarSide. -->
+            <Grid x:Name="SidebarOuterGrid" Grid.Column="0">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>        <!-- page list content -->
-                    <ColumnDefinition Width="24"/>       <!-- toggle strip — always visible -->
+                    <ColumnDefinition x:Name="SbContentCol" Width="*"/>   <!-- page list content -->
+                    <ColumnDefinition x:Name="SbToggleCol" Width="24"/>   <!-- toggle strip — always visible -->
                 </Grid.ColumnDefinitions>
 
                 <!-- Page list content (hidden when collapsed) -->
@@ -1096,11 +1201,22 @@
                                                    Stretch="Uniform"/>
                                         </Border>
                                         <TextBlock Text="{Binding Label}"
-                                                   Foreground="{DynamicResource TextSecondary}"
                                                    FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"
                                                    FontSize="10"
                                                    HorizontalAlignment="Center"
-                                                   Margin="0,2,0,0"/>
+                                                   Margin="0,2,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                                                    <Style.Triggers>
+                                                        <!-- Selected page label uses the theme's selection foreground. -->
+                                                        <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                                            <Setter Property="Foreground" Value="{DynamicResource SelectionFg}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
                                     </StackPanel>
                                     <DataTemplate.Triggers>
                                         <DataTrigger Binding="{Binding Thumbnail}" Value="{x:Null}">
@@ -1128,7 +1244,7 @@
                 </Border>
 
                 <!-- Toggle strip — 24px wide vertical icon bar -->
-                <Border Grid.Column="1"
+                <Border x:Name="SidebarToggleStrip" Grid.Column="1"
                         Background="{DynamicResource BgSidebar}"
                         BorderThickness="0">
                     <Grid>
@@ -1225,12 +1341,13 @@
                           Background="{DynamicResource PaneBorder}"
                           Cursor="SizeWE"
                           IsEnabled="False"
+                          BorderThickness="0,0,1,0"
                           ResizeBehavior="PreviousAndNext"
                           ResizeDirection="Columns">
                 <GridSplitter.Template>
                     <ControlTemplate TargetType="GridSplitter">
                         <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{DynamicResource DragLine}" BorderThickness="0,0,1,0">
+                                BorderBrush="{DynamicResource DragLine}" BorderThickness="{TemplateBinding BorderThickness}">
                             <!-- grip dots, centred vertically -->
                             <ItemsControl VerticalAlignment="Center" HorizontalAlignment="Center"
                                           IsHitTestVisible="False">
@@ -1239,11 +1356,11 @@
                                         <StackPanel Orientation="Vertical"/>
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
-                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource TextSecondary}"/>
-                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource TextSecondary}"/>
-                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource TextSecondary}"/>
-                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource TextSecondary}"/>
-                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource TextSecondary}"/>
+                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource BgDragHandle}"/>
+                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource BgDragHandle}"/>
+                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource BgDragHandle}"/>
+                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource BgDragHandle}"/>
+                                <Ellipse Width="3" Height="3" Margin="0,2" Fill="{DynamicResource BgDragHandle}"/>
                             </ItemsControl>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -1259,7 +1376,7 @@
             </GridSplitter>
 
             <!-- Preview area: 1px frame around the document pane -->
-            <Border Grid.Column="2" Background="{DynamicResource BgCanvas}"
+            <Border x:Name="DocPaneBorder" Grid.Column="2" Background="{DynamicResource BgCanvas}"
                     BorderBrush="{DynamicResource PaneBorder}" BorderThickness="1">
                 <Grid>
                     <!-- Film grain - sits on the canvas background, behind the document -->
@@ -1365,9 +1482,37 @@
         </Grid>
 
         <!-- Status bar -->
-        <Border Grid.Row="3" x:Name="FooterBorder" Background="{DynamicResource BgSidebar}" CornerRadius="0,0,7,7">
+        <!-- Document tab strip: one tab per open PDF, directly below the toolbar. Built in
+             code-behind (RebuildTabStrip) so it tracks theme changes; hidden when nothing is open.
+             The floating annotation bar sits at the top of the document pane (row 3), so it now
+             emerges just below this strip. -->
+        <Border Grid.Row="2" x:Name="TabStripBorder" Background="{DynamicResource BgSidebar}"
+                Visibility="Collapsed">
+            <Grid>
+                <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}" Background="{StaticResource GrainBrushShared}"/>
+                <!-- Shadow gradient over the empty strip area: transparent at top, darkening toward the
+                     document below. Per-theme brush (lighter in Light). Sits behind the (opaque) tabs,
+                     and UpdateTabStripFade clips its width to the document column so it never falls over
+                     the sidebar. -->
+                <Border x:Name="TabStripFade" IsHitTestVisible="False" Background="{DynamicResource TabStripFadeBrush}"/>
+                <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Hidden">
+                    <StackPanel x:Name="TabStrip" Orientation="Horizontal" Margin="6,0,6,0"/>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="4" x:Name="FooterBorder" Background="{DynamicResource BgSidebar}" CornerRadius="0,0,7,7">
             <Grid>
             <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}" Background="{StaticResource GrainBrushShared}"/>
+            <!-- Mirror of the tab-strip shadow gradient, flipped so it darkens at the TOP (toward the
+                 document) and fades down. UpdateTabStripFade clips it to the document column too. -->
+            <Border x:Name="FooterFade" IsHitTestVisible="False" Background="{DynamicResource TabStripFadeBrush}"
+                    VerticalAlignment="Top" Height="14"
+                    RenderTransformOrigin="0.5,0.5">
+                <Border.RenderTransform>
+                    <ScaleTransform ScaleY="-1"/>
+                </Border.RenderTransform>
+            </Border>
             <Grid Margin="16,0">
                 <TextBlock x:Name="StatusText" Text="{DynamicResource Str_Ready}"
                            Foreground="{DynamicResource TextSecondary}"
@@ -1411,7 +1556,7 @@
                     </Button>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <TextBlock x:Name="VersionLabel" Text="v1.5.3"
+                    <TextBlock x:Name="VersionLabel" Text="v1.5.5"
                                Foreground="{DynamicResource TextFooter}" FontFamily="Consolas"
                                FontSize="10" VerticalAlignment="Center" Margin="0,0,12,0"
                                Cursor="Hand" ToolTip="{DynamicResource Str_TT_About}"
@@ -1434,36 +1579,43 @@
              window stays interactive while it's open (a click elsewhere is dismissed by a window-level
              handler that lets the click through). -->
         <Grid x:Name="SettingsOverlay"
-              Grid.RowSpan="4"
+              Grid.RowSpan="5"
               Panel.ZIndex="9999"
               Visibility="Collapsed">
-            <Grid x:Name="SettingsPanel" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="186,0,0,36" Width="210">
+            <Grid x:Name="SettingsPanel" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="186,0,0,36" Width="228">
                 <!-- Left edge stays flush against the sidebar's right edge; the panel expands rightward
                      out of the sidebar (its Width animates) and shrinks back into it on close. The inner
                      borders keep a fixed width so the content doesn't reflow while the Grid is clipped. -->
                 <!-- Opaque body + shadow, using the same BgPanel + film grain as the annotate bar. No
                      left border / left corners - that edge sits against the sidebar. -->
-                <Border Background="{DynamicResource BgFlyout}" CornerRadius="0,6,6,0" IsHitTestVisible="False"
-                        Width="210" HorizontalAlignment="Left">
+                <Border x:Name="SettingsCardShadow" Background="{DynamicResource BgFlyout}" CornerRadius="0,6,6,0" IsHitTestVisible="False"
+                        Width="228" HorizontalAlignment="Left">
                     <Border.Effect>
                         <!-- Offset right (Direction 0) with depth >= blur so the shadow falls to the
-                             right/below and never bleeds left over the sidebar. -->
+                             right/below and never bleeds left over the sidebar. ApplySidebarSide flips
+                             Direction to 180 when the sidebar (and panel) move to the right. -->
                         <DropShadowEffect Color="Black" BlurRadius="14" ShadowDepth="14" Direction="0" Opacity="0.5"/>
                     </Border.Effect>
                 </Border>
-                <Border Background="{DynamicResource GrainBrushShared}" Opacity="0.035"
-                        CornerRadius="0,6,6,0" Width="210" HorizontalAlignment="Left" IsHitTestVisible="False"/>
-                <Border Background="Transparent"
+                <Border x:Name="SettingsCardGrain" Background="{DynamicResource GrainBrushShared}" Opacity="0.035"
+                        CornerRadius="0,6,6,0" Width="228" HorizontalAlignment="Left" IsHitTestVisible="False"/>
+                <Border x:Name="SettingsCardBorder" Background="Transparent"
                         BorderBrush="{DynamicResource AccentBorder}"
                         BorderThickness="0,1,1,1"
                         CornerRadius="0,6,6,0"
-                        Width="210" HorizontalAlignment="Left"
-                        Padding="20,16,20,20"
+                        Width="228" HorizontalAlignment="Left"
+                        Padding="20,16,6,20"
                         MouseLeftButtonDown="SettingsOverlayCard_MouseLeftButtonDown"
                         MouseRightButtonDown="SettingsOverlayCard_MouseLeftButtonDown">
                 <Grid>
-                <Border CornerRadius="6" Margin="-20,-16,-20,-20" IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}" Background="{StaticResource GrainBrushShared}"/>
-                <StackPanel>
+                <Border CornerRadius="6" Margin="-20,-16,-6,-20" IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}" Background="{StaticResource GrainBrushShared}"/>
+                <!-- Bleed the scroll viewer's left edge outward (negative margin) so its clip region
+                     starts ~12px left of the content. The content is indented with a StackPanel margin
+                     instead of ScrollViewer padding (ScrollViewer padding clips its content), so the row
+                     highlights can extend left of the words with their rounded corner intact. -->
+                <ScrollViewer x:Name="SettingsScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              Margin="-12,0,0,0">
+                <StackPanel Margin="12,0,0,0">
                     <Grid x:Name="SettingsHeader" Background="Transparent" Margin="0,0,0,12">
                         <TextBlock Text="{DynamicResource Str_Settings}"
                                    FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI" FontSize="14" FontWeight="SemiBold"
@@ -1507,7 +1659,7 @@
                                       HorizontalContentAlignment="Stretch">
                             <ToggleButton.Template>
                                 <ControlTemplate TargetType="ToggleButton">
-                                    <Border x:Name="RowBd" Background="Transparent" Margin="-12,0,-12,0" Padding="12,4" CornerRadius="3">
+                                    <Border x:Name="RowBd" Background="Transparent" Margin="-10,0,2,0" Padding="10,4,10,4" CornerRadius="3">
                                         <ContentPresenter/>
                                     </Border>
                                     <ControlTemplate.Triggers>
@@ -1559,6 +1711,19 @@
                                                        Foreground="{DynamicResource TextSecondary}"/>
                                         </Grid>
                                     </RadioButton>
+                                    <RadioButton x:Name="LangBnRadio" GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
+                                                 Checked="LangBnRadio_Checked">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="বাংলা" VerticalAlignment="Center"
+                                                       FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
+                                            <TextBlock Grid.Column="1" Text="bn" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
+                                                       Foreground="{DynamicResource TextSecondary}"/>
+                                        </Grid>
+                                    </RadioButton>
                                     <RadioButton x:Name="LangEsRadio" GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
                                                  Checked="LangEsRadio_Checked">
                                         <Grid>
@@ -1572,16 +1737,16 @@
                                                        Foreground="{DynamicResource TextSecondary}"/>
                                         </Grid>
                                     </RadioButton>
-                                    <RadioButton x:Name="LangZhTWRadio" GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
-                                                 Checked="LangZhTWRadio_Checked">
+                                    <RadioButton x:Name="LangTrRadio" GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
+                                                 Checked="LangTrRadio_Checked">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="中文 (繁體)" VerticalAlignment="Center"
+                                            <TextBlock Grid.Column="0" Text="Türkçe" VerticalAlignment="Center"
                                                        FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
-                                            <TextBlock Grid.Column="1" Text="zh-TW" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
+                                            <TextBlock Grid.Column="1" Text="tr-TR" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
                                                        Foreground="{DynamicResource TextSecondary}"/>
                                         </Grid>
                                     </RadioButton>
@@ -1598,29 +1763,16 @@
                                                        Foreground="{DynamicResource TextSecondary}"/>
                                         </Grid>
                                     </RadioButton>
-                                    <RadioButton x:Name="LangBnRadio" GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
-                                                 Checked="LangBnRadio_Checked">
+                                    <RadioButton x:Name="LangZhTWRadio" GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
+                                                 Checked="LangZhTWRadio_Checked">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="বাংলা" VerticalAlignment="Center"
+                                            <TextBlock Grid.Column="0" Text="中文 (繁體)" VerticalAlignment="Center"
                                                        FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
-                                            <TextBlock Grid.Column="1" Text="bn" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
-                                                       Foreground="{DynamicResource TextSecondary}"/>
-                                        </Grid>
-                                    </RadioButton>
-                                    <RadioButton x:Name="LangTrRadio" GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
-                                                 Checked="LangTrRadio_Checked">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="Türkçe" VerticalAlignment="Center"
-                                                       FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
-                                            <TextBlock Grid.Column="1" Text="tr-TR" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
+                                            <TextBlock Grid.Column="1" Text="zh-TW" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
                                                        Foreground="{DynamicResource TextSecondary}"/>
                                         </Grid>
                                     </RadioButton>
@@ -1638,7 +1790,7 @@
                                       HorizontalContentAlignment="Stretch">
                             <ToggleButton.Template>
                                 <ControlTemplate TargetType="ToggleButton">
-                                    <Border x:Name="RowBd" Background="Transparent" Margin="-12,0,-12,0" Padding="12,4" CornerRadius="3">
+                                    <Border x:Name="RowBd" Background="Transparent" Margin="-10,0,2,0" Padding="10,4,10,4" CornerRadius="3">
                                         <ContentPresenter/>
                                     </Border>
                                     <ControlTemplate.Triggers>
@@ -1681,16 +1833,44 @@
                                                  GroupName="ThemeGroup"
                                                  Style="{StaticResource ThemeRadio}"
                                                  Checked="ThemeDarkRadio_Checked"/>
+                                    <!-- Each family's picker sits under its own theme. The rows animate their HEIGHT
+                                         (clipped), so when you switch, the old row shrinks while the new one grows by
+                                         the same amount: the picker slides to the selected theme and the total menu
+                                         height never changes. ROYGBIV order. -->
+                                    <StackPanel x:Name="DarkAccentRow" Orientation="Horizontal" Margin="10,0,0,0" Height="0" ClipToBounds="True" Visibility="Collapsed">
+                                        <Border x:Name="AccentDotRed"    Style="{StaticResource AccentDot}" Background="#DD504B" Tag="Red"    MouseLeftButtonUp="AccentDot_Click"/>
+                                        <Border x:Name="AccentDotOrange" Style="{StaticResource AccentDot}" Background="#E8962C" Tag="Orange" MouseLeftButtonUp="AccentDot_Click"/>
+                                        <Border x:Name="AccentDotGreen"  Style="{StaticResource AccentDot}" Background="#1EA54C" Tag="Green"  MouseLeftButtonUp="AccentDot_Click"/>
+                                        <Border x:Name="AccentDotTeal"   Style="{StaticResource AccentDot}" Background="#1FB8A8" Tag="Teal"   MouseLeftButtonUp="AccentDot_Click"/>
+                                        <Border x:Name="AccentDotBlue"   Style="{StaticResource AccentDot}" Background="#4580D9" Tag="Blue"   MouseLeftButtonUp="AccentDot_Click"/>
+                                        <Border x:Name="AccentDotPurple" Style="{StaticResource AccentDot}" Background="#B982E3" Tag="Purple" MouseLeftButtonUp="AccentDot_Click"/>
+                                    </StackPanel>
                                     <RadioButton x:Name="ThemeLightRadio"
                                                  Content="{DynamicResource Str_Theme_Light}"
                                                  GroupName="ThemeGroup"
                                                  Style="{StaticResource ThemeRadio}"
                                                  Checked="ThemeLightRadio_Checked"/>
+                                    <StackPanel x:Name="LightAccentRow" Orientation="Horizontal" Margin="10,0,0,0" Height="0" ClipToBounds="True" Visibility="Collapsed">
+                                        <Border x:Name="AccentDotLightRed"    Style="{StaticResource AccentDot}" Background="#931A1A" Tag="Red"    MouseLeftButtonUp="AccentDotLight_Click"/>
+                                        <Border x:Name="AccentDotLightOrange" Style="{StaticResource AccentDot}" Background="#C7710F" Tag="Orange" MouseLeftButtonUp="AccentDotLight_Click"/>
+                                        <Border x:Name="AccentDotLightGreen"  Style="{StaticResource AccentDot}" Background="#18843D" Tag="Green"  MouseLeftButtonUp="AccentDotLight_Click"/>
+                                        <Border x:Name="AccentDotLightTeal"   Style="{StaticResource AccentDot}" Background="#0D827E" Tag="Teal"   MouseLeftButtonUp="AccentDotLight_Click"/>
+                                        <Border x:Name="AccentDotLightBlue"   Style="{StaticResource AccentDot}" Background="#1D6CA5" Tag="Blue"   MouseLeftButtonUp="AccentDotLight_Click"/>
+                                        <Border x:Name="AccentDotLightPurple" Style="{StaticResource AccentDot}" Background="#6A1DA5" Tag="Purple" MouseLeftButtonUp="AccentDotLight_Click"/>
+                                    </StackPanel>
                                     <RadioButton x:Name="ThemeHCRadio"
                                                  Content="{DynamicResource Str_Theme_HighContrast}"
                                                  GroupName="ThemeGroup"
                                                  Style="{StaticResource ThemeRadio}"
                                                  Checked="ThemeHCRadio_Checked"/>
+                                    <StackPanel x:Name="BlackAccentRow" Orientation="Horizontal" Margin="10,0,0,0" Height="0" ClipToBounds="True" Visibility="Collapsed">
+                                        <Border x:Name="AccentDotBlackRed"    Style="{StaticResource AccentDot}" Background="#FF2929" Tag="Red"    MouseLeftButtonUp="AccentDotBlack_Click"/>
+                                        <Border x:Name="AccentDotBlackOrange" Style="{StaticResource AccentDot}" Background="#FF910A" Tag="Orange" MouseLeftButtonUp="AccentDotBlack_Click"/>
+                                        <Border x:Name="AccentDotBlackGreen"  Style="{StaticResource AccentDot}" Background="#00FF66" Tag="Green"  MouseLeftButtonUp="AccentDotBlack_Click"/>
+                                        <Border x:Name="AccentDotBlackTeal"   Style="{StaticResource AccentDot}" Background="#0AFFE7" Tag="Teal"   MouseLeftButtonUp="AccentDotBlack_Click"/>
+                                        <Border x:Name="AccentDotBlackBlue"   Style="{StaticResource AccentDot}" Background="#298DFF" Tag="Blue"   MouseLeftButtonUp="AccentDotBlack_Click"/>
+                                        <Border x:Name="AccentDotBlackPurple" Style="{StaticResource AccentDot}" Background="#B829FF" Tag="Purple" MouseLeftButtonUp="AccentDotBlack_Click"/>
+                                    </StackPanel>
                                     <RadioButton x:Name="ThemeBloodRadio"
                                                  Content="{DynamicResource Str_Theme_Blood}"
                                                  GroupName="ThemeGroup"
@@ -1719,7 +1899,7 @@
                                       HorizontalContentAlignment="Stretch">
                             <ToggleButton.Template>
                                 <ControlTemplate TargetType="ToggleButton">
-                                    <Border x:Name="RowBd" Background="Transparent" Margin="-12,0,-12,0" Padding="12,4" CornerRadius="3">
+                                    <Border x:Name="RowBd" Background="Transparent" Margin="-10,0,2,0" Padding="10,4,10,4" CornerRadius="3">
                                         <ContentPresenter/>
                                     </Border>
                                     <ControlTemplate.Triggers>
@@ -1783,6 +1963,63 @@
                                                  Style="{StaticResource ThemeRadio}"
                                                  Checked="ToolbarOnlyRadio_Checked"/>
                         </StackPanel>
+                    <!-- Sidebar position picker (Left / Right) -->
+                    <TextBlock Text="SIDEBAR" Foreground="{DynamicResource HeaderAccent}"
+                               FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI" FontSize="11" FontWeight="SemiBold"
+                               Margin="0,12,0,8"/>
+                    <Grid Margin="0,0,0,4">
+                        <ToggleButton x:Name="SidebarMenuButton"
+                                      Checked="SettingsMenu_Toggled" Unchecked="SettingsMenu_Toggled"
+                                      Cursor="Hand" FocusVisualStyle="{x:Null}"
+                                      HorizontalAlignment="Stretch"
+                                      HorizontalContentAlignment="Stretch">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border x:Name="RowBd" Background="Transparent" Margin="-10,0,2,0" Padding="10,4,10,4" CornerRadius="3">
+                                        <ContentPresenter/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="RowBd" Property="Background" Value="{DynamicResource BgHover}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="RowBd" Property="Background" Value="{DynamicResource BgHover}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                            <DockPanel LastChildFill="True">
+                                <TextBlock DockPanel.Dock="Right"
+                                           FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           VerticalAlignment="Center" Margin="6,0,0,0"
+                                           Foreground="{DynamicResource TextSecondary}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="&#xE70E;"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}}" Value="True">
+                                                    <Setter Property="Text" Value="&#xE70D;"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock x:Name="SidebarCurrentLabel" Text="Left"
+                                           FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI" FontSize="12"
+                                           Foreground="{DynamicResource TextPrimary}"
+                                           VerticalAlignment="Center"/>
+                            </DockPanel>
+                        </ToggleButton>
+                    </Grid>
+                    <StackPanel x:Name="SidebarSubmenu" Visibility="Collapsed" Margin="10,2,0,6">
+                        <RadioButton x:Name="SidebarLeftRadio" Content="Left"
+                                     GroupName="SidebarGroup" Style="{StaticResource ThemeRadio}"
+                                     Checked="SidebarLeftRadio_Checked"/>
+                        <RadioButton x:Name="SidebarRightRadio" Content="Right"
+                                     GroupName="SidebarGroup" Style="{StaticResource ThemeRadio}"
+                                     Checked="SidebarRightRadio_Checked"/>
+                    </StackPanel>
+
                     <TextBlock Text="{DynamicResource Str_ViewMode}" Foreground="{DynamicResource HeaderAccent}"
                                FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI" FontSize="11" FontWeight="SemiBold"
                                Margin="0,12,0,8"/>
@@ -1796,7 +2033,7 @@
                                       HorizontalContentAlignment="Stretch">
                             <ToggleButton.Template>
                                 <ControlTemplate TargetType="ToggleButton">
-                                    <Border x:Name="RowBd" Background="Transparent" Margin="-12,0,-12,0" Padding="12,4" CornerRadius="3">
+                                    <Border x:Name="RowBd" Background="Transparent" Margin="-10,0,2,0" Padding="10,4,10,4" CornerRadius="3">
                                         <ContentPresenter/>
                                     </Border>
                                     <ControlTemplate.Triggers>
@@ -1856,6 +2093,7 @@
                                                  Checked="ViewGridRadio_Checked"/>
                         </StackPanel>
                 </StackPanel>
+                </ScrollViewer>
                 </Grid>
                 </Border>
             </Grid>
@@ -1863,7 +2101,7 @@
 
         <!-- Keyboard shortcut overlay — neutral dark dim regardless of theme -->
         <Grid x:Name="ShortcutOverlay"
-              Grid.RowSpan="4"
+              Grid.RowSpan="5"
               Panel.ZIndex="10000"
               Visibility="Collapsed"
               Background="#88000000"
@@ -1987,7 +2225,7 @@
         </Grid>
         <!-- About overlay -->
         <Grid x:Name="AboutOverlay"
-              Grid.RowSpan="4"
+              Grid.RowSpan="5"
               Panel.ZIndex="10001"
               Visibility="Collapsed"
               Background="#88000000"

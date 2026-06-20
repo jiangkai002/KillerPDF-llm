@@ -147,7 +147,7 @@
     <!-- ── Theme names ────────────────────────────────────────────────── -->
     <sys:String x:Key="Str_Theme_Dark">深色</sys:String>
     <sys:String x:Key="Str_Theme_Light">淺色</sys:String>
-    <sys:String x:Key="Str_Theme_HighContrast">高對比</sys:String>
+    <sys:String x:Key="Str_Theme_HighContrast">黑色</sys:String>
     <sys:String x:Key="Str_Theme_Blood">血色</sys:String>
     <sys:String x:Key="Str_Theme_Greed">貪婪</sys:String>
     <sys:String x:Key="Str_Theme_Cyanotic">青色</sys:String>
@@ -275,5 +275,12 @@
     <sys:String x:Key="Str_Sig_DrawHere">在此繪製您的簽名</sys:String>
     <sys:String x:Key="Str_Sig_Clear">清除</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">儲存簽名</sys:String>
+
+    <!-- Crop confirm bar tooltips -->
+    <sys:String x:Key="Str_TT_CropThisPage">裁切此頁 (Enter)</sys:String>
+    <sys:String x:Key="Str_TT_CropRange">裁切指定範圍內的頁面</sys:String>
+    <sys:String x:Key="Str_TT_CropRemove">從此頁移除 CropBox（和 TrimBox）</sys:String>
+    <sys:String x:Key="Str_TT_CropRemoveAll">從所有頁面移除 CropBox</sys:String>
+    <sys:String x:Key="Str_TT_CropCancel">取消 (Escape)</sys:String>
 
 </ResourceDictionary>

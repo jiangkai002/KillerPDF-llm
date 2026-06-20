@@ -10,6 +10,10 @@ namespace KillerPDF.Services
 {
     internal enum Theme { Dark, Light, HighContrast, Blood, Greed, Cyanotic }
 
+    // Accent-hue variants of the Dark theme. Green is the base Dark.xaml (no overlay); the
+    // others apply a small overlay dictionary that recolours only the accent-family keys.
+    internal enum DarkAccent { Green, Red, Blue, Purple, Orange, Teal }
+
     internal static class ThemeManager
     {
         // ── P/Invoke ──────────────────────────────────────────────────────
@@ -23,8 +27,22 @@ namespace KillerPDF.Services
         // ── State ─────────────────────────────────────────────────────────
 
         private static Theme _current = Theme.Dark;
+        // Dark, Light, and Black (HighContrast) each remember their own accent independently.
+        private static DarkAccent _darkAccent  = DarkAccent.Green;
+        private static DarkAccent _lightAccent = DarkAccent.Green;
+        private static DarkAccent _blackAccent = DarkAccent.Green;
 
         public static Theme Current => _current;
+        public static DarkAccent DarkAccentChoice  => _darkAccent;
+        public static DarkAccent LightAccentChoice => _lightAccent;
+        public static DarkAccent BlackAccentChoice => _blackAccent;
+        private static DarkAccent AccentFor(Theme t) =>
+            t == Theme.Light ? _lightAccent : t == Theme.HighContrast ? _blackAccent : _darkAccent;
+        public static DarkAccent AccentChoiceFor(Theme t) => AccentFor(t);
+
+        // True for the theme families that support accent variants.
+        private static bool HasAccents(Theme t) =>
+            t == Theme.Dark || t == Theme.Light || t == Theme.HighContrast;
 
         /// <summary>Fired after the theme dictionary has been updated.</summary>
         public static event Action? ThemeChanged;
@@ -39,7 +57,27 @@ namespace KillerPDF.Services
         {
             var saved = App.GetSetting("Theme");
             _current = Enum.TryParse<Theme>(saved, out var t) ? t : Theme.Dark;
+            _darkAccent  = Enum.TryParse<DarkAccent>(App.GetSetting("DarkAccent"),  out var da) ? da : DarkAccent.Green;
+            _lightAccent = Enum.TryParse<DarkAccent>(App.GetSetting("LightAccent"), out var la) ? la : DarkAccent.Green;
+            _blackAccent = Enum.TryParse<DarkAccent>(App.GetSetting("BlackAccent"), out var ba) ? ba : DarkAccent.Green;
             ApplyInternal(_current, applyDwm: false);
+        }
+
+        /// <summary>
+        /// Change a theme family's accent hue, persist it, and reapply if that family is active.
+        /// Dark and Light keep independent accents, so changing one never disturbs the other.
+        /// </summary>
+        public static void ApplyAccent(Theme family, DarkAccent accent)
+        {
+            if      (family == Theme.Light)        { _lightAccent = accent; App.SetSetting("LightAccent", accent.ToString()); }
+            else if (family == Theme.HighContrast) { _blackAccent = accent; App.SetSetting("BlackAccent", accent.ToString()); }
+            else                                   { _darkAccent  = accent; App.SetSetting("DarkAccent",  accent.ToString()); }
+
+            if (_current == family)
+            {
+                LoadDict(_current);
+                ThemeChanged?.Invoke();
+            }
         }
 
         /// <summary>
@@ -107,6 +145,26 @@ namespace KillerPDF.Services
             else
             {
                 merged.Add(newDict);
+            }
+
+            // Dark and Light families: overlay the chosen accent hue on top of the base green keys.
+            // Green is the base itself, so it needs no overlay (and re-applying the base above
+            // already restored green, so switching back from a coloured accent works automatically).
+            // Each theme has its own tuned overlay (Dark = bright text on dark; Light = dark text
+            // on white), loaded from Accents/<Theme>/<Accent>.xaml.
+            var accent = AccentFor(theme);
+            if (HasAccents(theme) && accent != DarkAccent.Green)
+            {
+                // Dark overlays live flat in Accents/; Light in Accents/Light/; Black (HighContrast)
+                // in Accents/Black/.
+                string sub = theme == Theme.Light ? "Light/" : theme == Theme.HighContrast ? "Black/" : "";
+                var accentDict = new ResourceDictionary
+                {
+                    Source = new Uri($"pack://application:,,,/Themes/Accents/{sub}{accent}.xaml")
+                };
+                var target = merged[0];
+                foreach (object key in accentDict.Keys)
+                    target[key] = accentDict[key];
             }
 
             // One SystemIdle pass to nudge any elements whose effective value didn't auto-update

@@ -10,6 +10,11 @@
     <SolidColorBrush x:Key="BgSidebar"      Color="#240c0d" po:Freeze="True"/>
     <SolidColorBrush x:Key="BgRecentPanel"  Color="#3e191b" po:Freeze="True"/>
     <SolidColorBrush x:Key="BgFlyout"       Color="#2e1214" po:Freeze="True"/>
+    <LinearGradientBrush x:Key="TabStripFadeBrush" StartPoint="0,0" EndPoint="0,1" po:Freeze="True">
+        <GradientStop Offset="0.0" Color="#00000000"/>
+        <GradientStop Offset="0.55" Color="#1f000000"/>
+        <GradientStop Offset="1.0" Color="#82000000"/>
+    </LinearGradientBrush>
     <SolidColorBrush x:Key="BgModal"        Color="#1e0a0b" po:Freeze="True"/>
     <SolidColorBrush x:Key="BorderDim"      Color="#401d1d" po:Freeze="True"/>
     <SolidColorBrush x:Key="Accent"         Color="#ffffff" po:Freeze="True"/>
@@ -21,6 +26,8 @@
     <SolidColorBrush x:Key="DropBorder"     Color="#39191c" po:Freeze="True"/>
     <SolidColorBrush x:Key="PaneBorder"     Color="#3a1a1d" po:Freeze="True"/>
     <SolidColorBrush x:Key="AccentDim"      Color="#44ffffff" po:Freeze="True"/>
+    <SolidColorBrush x:Key="SelectionBg" Color="#44ffffff" po:Freeze="True"/>
+    <SolidColorBrush x:Key="SelectionFg" Color="#ffffff" po:Freeze="True"/>
     <SolidColorBrush x:Key="TextPrimary"    Color="#fffde8" po:Freeze="True"/>
     <SolidColorBrush x:Key="TextSecondary"  Color="#f8c99e" po:Freeze="True"/>
     <SolidColorBrush x:Key="TextDim"        Color="#e2b58a" po:Freeze="True"/>

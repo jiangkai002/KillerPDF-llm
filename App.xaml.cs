@@ -2,6 +2,8 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.IO.Pipes;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -69,11 +71,88 @@ namespace KillerPDF
                 return;
             }
 
+            // Single instance: a second launch (e.g. double-clicking another PDF in Explorer)
+            // forwards its file path to the already-running instance, which opens it as a new
+            // tab, then this process exits. Without this, every launch spawned its own window.
+            bool isPrimary;
+            try { _instanceMutex = new Mutex(true, MutexName, out isPrimary); }
+            catch { isPrimary = true; }
+            if (!isPrimary)
+            {
+                var fwd = e.Args.FirstOrDefault(a => !a.StartsWith("/", StringComparison.Ordinal));
+                ForwardToPrimary(fwd);
+                Shutdown(0);
+                return;
+            }
+            StartPipeServer();
+
             ShutdownMode = ShutdownMode.OnLastWindowClose;
             CleanupStaleTemps();
             ThemeManager.Initialize();
             LocaleManager.Initialize();
             new MainWindow().Show();
+        }
+
+        // ============================================================
+        // Single-instance IPC (mutex + named pipe)
+        // ============================================================
+
+        private const string MutexName = @"Local\KillerPDF.SingleInstance";
+        private const string PipeName  = "KillerPDF.OpenPipe";
+        private Mutex? _instanceMutex;
+
+        private void StartPipeServer()
+        {
+            var t = new System.Threading.Thread(RunPipeServer)
+            {
+                IsBackground = true,
+                Name = "KillerPDF-IPC",
+            };
+            t.Start();
+        }
+
+        // Accepts forwarded file paths from secondary launches and hands them to the UI thread.
+        private void RunPipeServer()
+        {
+            while (true)
+            {
+                try
+                {
+                    using var server = new NamedPipeServerStream(
+                        PipeName, PipeDirection.In, 1,
+                        PipeTransmissionMode.Byte, PipeOptions.None);
+                    server.WaitForConnection();
+                    using var reader = new StreamReader(server, Encoding.UTF8);
+                    string? path = reader.ReadLine();
+                    Dispatcher.BeginInvoke(new Action(() => DeliverExternalOpen(path)));
+                }
+                catch
+                {
+                    System.Threading.Thread.Sleep(150);   // pipe error - back off, keep serving
+                }
+            }
+        }
+
+        private void DeliverExternalOpen(string? path)
+        {
+            if (Current?.MainWindow is MainWindow mw)
+            {
+                mw.RestoreAndActivate();
+                if (!string.IsNullOrEmpty(path)) mw.OpenFromExternal(path);
+            }
+        }
+
+        // Secondary instance: send our file path to the primary instance over the pipe.
+        private static void ForwardToPrimary(string? path)
+        {
+            try
+            {
+                using var client = new NamedPipeClientStream(".", PipeName, PipeDirection.Out);
+                client.Connect(3000);
+                using var w = new StreamWriter(client, new UTF8Encoding(false)) { AutoFlush = true };
+                w.WriteLine(path ?? "");
+            }
+            catch { /* primary not accepting yet; nothing more we can do */ }
         }
 
         // ============================================================
@@ -399,13 +478,12 @@ namespace KillerPDF
         private static Button MakeCrashButton(string label,
             SolidColorBrush normal, SolidColorBrush hover, SolidColorBrush fg,
             double width = 88)
-            => new()
-            {
-                Content = label,
-                Width   = width,
-                Height  = 28,
-                Style   = MakeLauncherButtonStyle(normal, hover, fg)
-            };
+        {
+            var btn = UiButtons.Make(label, normal, hover, fg, fg);
+            btn.Width  = width;
+            btn.Height = 28;
+            return btn;
+        }
 
         private static string FormatExceptionChain(Exception ex)
         {
@@ -627,43 +705,6 @@ namespace KillerPDF
         // ============================================================
 
         /// <summary>
-        /// Builds a button Style with a custom ControlTemplate so hover colours
-        /// actually render (WPF's default template ignores Background changes on hover).
-        /// </summary>
-        private static Style MakeLauncherButtonStyle(
-            SolidColorBrush normal, SolidColorBrush hover, SolidColorBrush fg)
-        {
-            var template = new ControlTemplate(typeof(Button));
-            var border   = new FrameworkElementFactory(typeof(Border));
-            border.SetValue(Border.CornerRadiusProperty, new CornerRadius(3));
-            border.SetBinding(Border.BackgroundProperty,
-                new System.Windows.Data.Binding("Background")
-                {
-                    RelativeSource = new System.Windows.Data.RelativeSource(
-                        System.Windows.Data.RelativeSourceMode.TemplatedParent)
-                });
-            var cp = new FrameworkElementFactory(typeof(ContentPresenter));
-            cp.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-            cp.SetValue(ContentPresenter.VerticalAlignmentProperty,   VerticalAlignment.Center);
-            cp.SetValue(ContentPresenter.MarginProperty,              new Thickness(0, 6, 0, 6));
-            border.AppendChild(cp);
-            template.VisualTree = border;
-
-            var style = new Style(typeof(Button));
-            style.Setters.Add(new Setter(Button.BackgroundProperty,  normal));
-            style.Setters.Add(new Setter(Button.ForegroundProperty,  fg));
-            style.Setters.Add(new Setter(Button.BorderThicknessProperty, new Thickness(0)));
-            style.Setters.Add(new Setter(Button.TemplateProperty,    template));
-            style.Setters.Add(new Setter(Button.CursorProperty,      Cursors.Hand));
-
-            var hoverTrigger = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-            hoverTrigger.Setters.Add(new Setter(Button.BackgroundProperty, hover));
-            style.Triggers.Add(hoverTrigger);
-
-            return style;
-        }
-
-        /// <summary>
         /// Shows the Install / Run dialog.
         /// Returns (cancelled, install, wantDesktopShortcut).
         /// </summary>
@@ -802,26 +843,20 @@ namespace KillerPDF
                 HorizontalAlignment = HorizontalAlignment.Right
             };
 
-            var runBtn = new Button
-            {
-                Content = "Run",
-                Width   = 88,
-                Margin  = new Thickness(0, 0, 8, 0),
-                Style   = MakeLauncherButtonStyle(
-                    normal: new SolidColorBrush(Color.FromRgb(0x30, 0x30, 0x30)),
-                    hover:  new SolidColorBrush(Color.FromRgb(0x16, 0x63, 0x34)),
-                    fg:     Brushes.White)
-            };
-            var installBtn = new Button
-            {
-                Content    = alreadyInstalled ? "Update" : "Install",
-                Width      = 110,
-                Style      = MakeLauncherButtonStyle(
-                    normal: accent,
-                    hover:  new SolidColorBrush(Color.FromRgb(0x4a, 0xf0, 0x90)),
-                    fg:     new SolidColorBrush(Color.FromRgb(0x0a, 0x0a, 0x0a))),
-                FontWeight = FontWeights.SemiBold
-            };
+            var runBtn = UiButtons.Make("Run",
+                new SolidColorBrush(Color.FromRgb(0x30, 0x30, 0x30)),
+                new SolidColorBrush(Color.FromRgb(0x16, 0x63, 0x34)),
+                Brushes.White, Brushes.White);
+            runBtn.Width  = 88;
+            runBtn.Margin = new Thickness(0, 0, 8, 0);
+
+            var installBtn = UiButtons.Make(alreadyInstalled ? "Update" : "Install",
+                accent,
+                new SolidColorBrush(Color.FromRgb(0x4a, 0xf0, 0x90)),
+                new SolidColorBrush(Color.FromRgb(0x0a, 0x0a, 0x0a)),
+                new SolidColorBrush(Color.FromRgb(0x0a, 0x0a, 0x0a)));
+            installBtn.Width      = 110;
+            installBtn.FontWeight = FontWeights.SemiBold;
 
             runBtn.Click += (_, _) =>
             {
@@ -1083,16 +1118,15 @@ namespace KillerPDF
             card.Child = cardContent;
 
             // Close button
-            var okBtn = new Button
-            {
-                Content = "Close", Width = 80, Height = 28,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                Margin = new Thickness(0, 12, 0, 0),
-                Style = MakeLauncherButtonStyle(
-                    new SolidColorBrush(Color.FromRgb(0x1e, 0xa5, 0x4c)),
-                    new SolidColorBrush(Color.FromRgb(0x17, 0x7a, 0x38)),
-                    new SolidColorBrush(Colors.White))
-            };
+            var okBtn = UiButtons.Make("Close",
+                new SolidColorBrush(Color.FromRgb(0x1e, 0xa5, 0x4c)),
+                new SolidColorBrush(Color.FromRgb(0x17, 0x7a, 0x38)),
+                new SolidColorBrush(Colors.White),
+                new SolidColorBrush(Colors.White));
+            okBtn.Width  = 80;
+            okBtn.Height = 28;
+            okBtn.HorizontalAlignment = HorizontalAlignment.Right;
+            okBtn.Margin = new Thickness(0, 12, 0, 0);
             okBtn.Click += (_, __) => dlg!.Close();
 
             // KillerPDF logo — clickable link to product site

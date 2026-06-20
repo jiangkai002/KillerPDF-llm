@@ -28,7 +28,7 @@ KillerPDF is what I wanted: local-only, portable, no account, no telemetry. The 
 - Clickable PDF links and internal cross-references, including TOC back-links
 - Four view modes selectable in Settings: Single Page, Continuous scroll (all pages in one vertical strip), Two-Page (side-by-side), and Grid. Choice persists across sessions.
 - Localized UI: English, Spanish, and Traditional Chinese included. Contribute a translation via `Strings/TRANSLATING.md`.
-- Six color themes: Dark, Light, High Contrast, Blood, Greed, and Cyanotic. Switch live in Settings.
+- Six color themes: Dark, Light, Black, Blood, Greed, and Cyanotic. Switch live in Settings.
 - Zoom preset dropdown with scroll-wheel sync; Fit to Width and Fit Page re-apply on window resize
 - Page number jump box in the toolbar; type a page number and press Enter to navigate directly
 - Keyboard-driven navigation with arrow keys and middle-mouse panning, plus a full shortcut overlay (Ctrl+?)
@@ -54,8 +54,8 @@ Six themes to choose from:
 **Cyanotic**
 ![KillerPDF - Cyanotic theme](screenshots/3_Cyanotic.png)
 
-**High Contrast**
-![KillerPDF - High Contrast theme](screenshots/4_High_Contrast.png)
+**Black**
+![KillerPDF - Black theme](screenshots/4_High_Contrast.png)
 
 **Light**
 ![KillerPDF - Light theme](screenshots/5_Light.png)

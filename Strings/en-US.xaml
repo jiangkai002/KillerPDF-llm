@@ -145,7 +145,7 @@ You can uninstall via Add/Remove Programs at any time.</sys:String>
     <!-- ── Theme names ────────────────────────────────────────────────── -->
     <sys:String x:Key="Str_Theme_Dark">Dark</sys:String>
     <sys:String x:Key="Str_Theme_Light">Light</sys:String>
-    <sys:String x:Key="Str_Theme_HighContrast">High Contrast</sys:String>
+    <sys:String x:Key="Str_Theme_HighContrast">Black</sys:String>
     <sys:String x:Key="Str_Theme_Blood">Blood</sys:String>
     <sys:String x:Key="Str_Theme_Greed">Greed</sys:String>
     <sys:String x:Key="Str_Theme_Cyanotic">Cyanotic</sys:String>
@@ -273,5 +273,12 @@ You can uninstall via Add/Remove Programs at any time.</sys:String>
     <sys:String x:Key="Str_Sig_DrawHere">Draw your signature here</sys:String>
     <sys:String x:Key="Str_Sig_Clear">Clear</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Save Signature</sys:String>
+
+    <!-- Crop confirm bar tooltips -->
+    <sys:String x:Key="Str_TT_CropThisPage">Crop this page (Enter)</sys:String>
+    <sys:String x:Key="Str_TT_CropRange">Crop pages in the specified range</sys:String>
+    <sys:String x:Key="Str_TT_CropRemove">Remove CropBox (and TrimBox) from this page</sys:String>
+    <sys:String x:Key="Str_TT_CropRemoveAll">Remove CropBox from all pages</sys:String>
+    <sys:String x:Key="Str_TT_CropCancel">Cancel (Escape)</sys:String>
 
 </ResourceDictionary>

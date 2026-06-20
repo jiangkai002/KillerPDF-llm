@@ -312,6 +312,10 @@ namespace KillerPDF
                     int idx = idxs[0];
                     double s = ScaleFor(idx, aw - 2 * m, ah - 2 * m);
                     double iw = _rasterW[idx] * s, ih = _rasterH[idx] * s;
+                    // Snap to the printable area when the page is within a pixel of filling it, so the
+                    // white sheet doesn't peek through as a 1px hairline at the page edge (float seam).
+                    if (iw >= (aw - 2 * m) - 1.5) iw = aw - 2 * m;
+                    if (ih >= (ah - 2 * m) - 1.5) ih = ah - 2 * m;
                     var img = new Image { Source = _pages[idx]!, Width = iw, Height = ih };
                     RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
                     Canvas.SetLeft(img, m + OffsetH(aw - 2 * m, iw));
@@ -1050,47 +1054,7 @@ namespace KillerPDF
             return set.Count == 0 ? [.. Enumerable.Range(0, count)] : [.. set];
         }
 
-        // ---- Button factory (matches KillerDialog styling, no blue hover chrome) ----
-
-        private static ControlTemplate MakeBtnTemplate()
-        {
-            var bf = new FrameworkElementFactory(typeof(Border));
-            bf.SetBinding(Border.BackgroundProperty,
-                new Binding("Background") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            bf.SetBinding(Border.BorderBrushProperty,
-                new Binding("BorderBrush") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            bf.SetBinding(Border.BorderThicknessProperty,
-                new Binding("BorderThickness") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            bf.SetBinding(Border.PaddingProperty,
-                new Binding("Padding") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            bf.SetValue(Border.CornerRadiusProperty, new CornerRadius(3));
-            var cp = new FrameworkElementFactory(typeof(ContentPresenter));
-            cp.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-            cp.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
-            bf.AppendChild(cp);
-            return new ControlTemplate(typeof(Button)) { VisualTree = bf };
-        }
-
-        private static Button MakeButton(string label, bool accent)
-        {
-            var normalBg = accent ? R("AccentDim") : R("BgPanel");
-            var hoverBg  = accent ? R("Accent")    : R("BgHover");
-            var normalFg = accent ? R("Accent")    : R("TextPrimary");
-            var hoverFg  = accent ? R("BgModal")   : R("TextPrimary");   // accent fills on hover -> dark text
-            var btn = new Button
-            {
-                Content         = label,
-                Padding         = new Thickness(18, 6, 18, 6),
-                Background      = normalBg,
-                Foreground      = normalFg,
-                BorderBrush     = accent ? R("Accent") : R("BorderDim"),
-                BorderThickness = new Thickness(1),
-                Cursor          = Cursors.Hand,
-                Template        = MakeBtnTemplate()
-            };
-            btn.MouseEnter += (_, _) => { btn.Background = hoverBg; btn.Foreground = hoverFg; };
-            btn.MouseLeave += (_, _) => { btn.Background = normalBg; btn.Foreground = normalFg; };
-            return btn;
-        }
+        // Shared themed button (see UiButtons) so the print dialog matches every other dialog.
+        private static Button MakeButton(string label, bool accent) => UiButtons.Make(label, accent);
     }
 }

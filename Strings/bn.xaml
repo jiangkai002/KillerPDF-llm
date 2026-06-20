@@ -145,7 +145,7 @@
     <!-- ── Theme names ────────────────────────────────────────────────── -->
     <sys:String x:Key="Str_Theme_Dark">অন্ধকার</sys:String>
     <sys:String x:Key="Str_Theme_Light">হালকা</sys:String>
-    <sys:String x:Key="Str_Theme_HighContrast">উচ্চ কন্ট্রাস্ট</sys:String>
+    <sys:String x:Key="Str_Theme_HighContrast">কালো</sys:String>
     <sys:String x:Key="Str_Theme_Blood">রক্ত</sys:String>
     <sys:String x:Key="Str_Theme_Greed">লোভ</sys:String>
     <sys:String x:Key="Str_Theme_Cyanotic">সায়ানোটিক</sys:String>
@@ -273,5 +273,12 @@
     <sys:String x:Key="Str_Sig_DrawHere">এখানে আপনার স্বাক্ষর আঁকুন</sys:String>
     <sys:String x:Key="Str_Sig_Clear">সাফ করুন</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">স্বাক্ষর সংরক্ষণ করুন</sys:String>
+
+    <!-- Crop confirm bar tooltips -->
+    <sys:String x:Key="Str_TT_CropThisPage">এই পৃষ্ঠা ক্রপ করুন (Enter)</sys:String>
+    <sys:String x:Key="Str_TT_CropRange">নির্দিষ্ট পরিসরের পৃষ্ঠাগুলি ক্রপ করুন</sys:String>
+    <sys:String x:Key="Str_TT_CropRemove">এই পৃষ্ঠা থেকে CropBox (এবং TrimBox) সরান</sys:String>
+    <sys:String x:Key="Str_TT_CropRemoveAll">সব পৃষ্ঠা থেকে CropBox সরান</sys:String>
+    <sys:String x:Key="Str_TT_CropCancel">বাতিল করুন (Escape)</sys:String>
 
 </ResourceDictionary>

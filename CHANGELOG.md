@@ -4,7 +4,7 @@ All notable changes to KillerPDF are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.5.4] - 2026-06-18
+## [1.5.5] - 2026-06-19
 
 ### Added
 - Strikethrough and underline annotation tools. Drag across text to mark it; each has its own color and opacity (shared bar with the highlighter) and flattens into the saved PDF.
@@ -19,12 +19,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - One-click update from the About dialog: when a newer release exists, KillerPDF can download, verify, and reinstall it automatically.
 - Toolbar style picker (Settings -> Toolbar): Small icons, Large icons, Text beside icons, Text under icons, or Text only. Text modes are translated and degrade gracefully as the window narrows. Defaults to Small icons.
 - Recent files: a dropdown arrow next to the Open button lists the last 10 PDFs (with a Clear option), and they're also shown on the start screen; a dropdown next to Save offers Save and Save As.
+- Tabbed documents. Open several PDFs at once, each in its own tab along a tab strip; switching tabs restores that document's page, zoom, and view mode. Opening a file (from the toolbar, Recent files, the command line, or the start screen) adds a tab instead of replacing what's open.
+- Sidebar placement (Settings -> Sidebar): put the page/outline sidebar on the left or right. The collapse toggle, the drag-to-resize splitter's divider line, and the Settings flyout all mirror to face the document, and the side is remembered between sessions.
+- Accent color variants for the Dark, Light, and Black (renamed from High Contrast) themes. Each base theme offers six accent hues - red, orange, green, teal, blue, purple - picked from colored circles in the Settings theme menu, matching the killertools.net swatches. Each theme remembers its own accent independently, and the choice persists between sessions.
 - Bengali (bn), Turkish (tr-TR), and Simplified Chinese (zh-CN) translations (contributors akib-h #79, mrantikadev #76, KaneLeung #82).
 
 ### Changed
 - Visual refresh across the app: rounded window corners (squared when maximized or snapped); film grain on app surfaces including dialogs and the floating annotation bars; drop shadows on icons, buttons, menus, and panels; a green "PDF" wordmark; accent-colored radio buttons; per-theme scrollbars; themed size/opacity sliders (no more white control, and the WPF default blue no longer flashes while dragging); quick fade in/out for the Shortcuts, About, and signature panels (the Settings panel slides out of the sidebar's edge, and the floating annotation bars fade, crossfade between tools, and minimize to a dotted strip); a clearer sidebar drag handle; a bolder Install button; a new chisel-tip highlighter icon and mouse-cursor Select icon; a title-bar filename that truncates instead of overlapping the window buttons; and crisper anti-aliasing for text, menus, and dialogs (which now share one unified background, border, and "KillerPDF" wordmark). Print preview sits on a soft drop shadow with a grained page-counter strip.
 - Theme polish: Blood/Greed/Cyanotic use darker chrome with a lighter document pane and lighter accent borders so the document frame and the Settings/signature/dialog outlines read clearly; Dark chrome is a touch darker to offset the grain; the signature and Create Signature windows are fully themed and reload live on theme change.
-- Settings panel reorganized into compact flyout submenus (Language, Theme, Toolbar, View Mode) that stay open after a pick so you can try options back to back.
+- Settings reorganized into a slide-out accordion menu: it slides out from the sidebar's edge, and each section (Language, Theme, Toolbar, View Mode, Sidebar) expands in place and stays open after a pick so you can try options back to back.
 - Editing tool order is now Select, Text, Underline, Strikethrough, Highlight, Draw, Add Image, Signature, Crop across the toolbar, the overflow menu, and the shortcuts overlay.
 - Grid and Two-Page pages render sharper on high-DPI displays.
 

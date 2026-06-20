@@ -51,7 +51,12 @@ namespace KillerPDF
         /// <summary>Called by RefreshPageList's bulk background loader.</summary>
         internal void SetThumbnail(BitmapSource src)
         {
-            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            // A background load can finish after the app has begun shutting down (or between
+            // tab switches), when Application.Current is briefly null. The UI is going away in
+            // that case, so just drop the update instead of throwing.
+            var app = Application.Current;
+            if (app == null) return;
+            app.Dispatcher.BeginInvoke(new Action(() =>
             {
                 _thumb = src;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Thumbnail)));
