@@ -16,7 +16,7 @@ namespace KillerPDF
     {
         private static SolidColorBrush R(string key) => (SolidColorBrush)Application.Current.Resources[key];
 
-        // Themed entry point for in-app dialogs/popups: resolves colours from the active theme.
+        // Themed entry point for in-app dialogs/popups: resolves colors from the active theme.
         public static Button Make(object content, bool accent)
         {
             return accent
@@ -32,7 +32,7 @@ namespace KillerPDF
                 ? System.Windows.Media.Brushes.White
                 : R("BgModal");
 
-        // Explicit-colour entry point for self-contained windows that run before the theme is
+        // Explicit-color entry point for self-contained windows that run before the theme is
         // loaded or on the failure path (the startup launcher, the crash dialog, the About box).
         // Same rounded template and hover-swap as the themed buttons, so the look can't drift.
         // Pass border = null for a borderless button.
@@ -58,7 +58,7 @@ namespace KillerPDF
         }
 
         // Rounded border that binds to the button's own Background/Border/Padding (so the hover
-        // handlers' colour swaps show), with a centred content presenter.
+        // handlers' color swaps show), with a centred content presenter.
         private static ControlTemplate Template()
         {
             var bf = new FrameworkElementFactory(typeof(Border));

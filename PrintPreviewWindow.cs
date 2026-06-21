@@ -49,7 +49,7 @@ namespace KillerPDF
         private int _nUp = 1;                // pages per sheet (1, 2, 4, 6, 9)
         private bool _duplex;                // two-sided printing (when the printer supports it)
         private CheckBox _duplexCheck = null!;
-        private bool _grayscale;             // send the job as grayscale/B&W rather than colour
+        private bool _grayscale;             // send the job as grayscale/B&W rather than color
 
         // Printable area in DIPs for the currently selected printer + orientation.
         private double _areaW = 816;   // Letter portrait fallback (8.5in * 96)
@@ -509,8 +509,8 @@ namespace KillerPDF
             };
             panel.Children.Add(orient);
 
-            // Colour vs black & white. Sent on the print ticket so colour-restricted print policies
-            // (e.g. "B&W needs no password") see the job correctly instead of treating it as colour.
+            // Color vs black & white. Sent on the print ticket so color-restricted print policies
+            // (e.g. "B&W needs no password") see the job correctly instead of treating it as color.
             panel.Children.Add(Label(S("Str_Print_Color")));
             var colorMode = new ComboBox { Margin = new Thickness(0, 4, 0, 12), Height = 26 };
             ApplyComboStyle(colorMode);

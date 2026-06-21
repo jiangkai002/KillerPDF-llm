@@ -152,7 +152,7 @@ namespace KillerPDF
 
             FileNameLabel.Text = System.IO.Path.GetFileName(_active.OriginalFile ?? "");
             _annotationCanvas.Children.Clear();
-            MarkDirty(_isDirty);   // sync the Save button colour to this tab's dirty state
+            MarkDirty(_isDirty);   // sync the Save button color to this tab's dirty state
             BootstrapDocumentView(_active.PageIndex, autoFit: false);
             SetTool(_active.Tool); // restore this document's active editing tool (and its tool bar)
 
@@ -534,7 +534,7 @@ namespace KillerPDF
             return bd;
         }
 
-        // Tab divider: the document-pane border colour (PaneBorder) at the bottom, fading to fully
+        // Tab divider: the document-pane border color (PaneBorder) at the bottom, fading to fully
         // transparent at the top - a subtle separator that matches the doc-pane line on every theme.
         // Rebuilt on theme change (OnThemeChanged).
         private Brush MakeTabDividerBrush()

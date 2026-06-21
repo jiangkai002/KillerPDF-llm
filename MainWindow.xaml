@@ -19,7 +19,7 @@
 
     <Window.Resources>
         <!-- Brush keys come from Application.Resources (theme dicts) via DynamicResource.
-             Only non-colour styles live here. -->
+             Only non-color styles live here. -->
 
         <!-- Floors the scrollbar thumb's proportional size so it stays grabbable on long docs. -->
         <local:ThumbViewportFloorConverter x:Key="ThumbFloor"/>
@@ -444,7 +444,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Thumb">
-                        <!-- Solid at rest (the scrollbar's active colour) so it's always visible,
+                        <!-- Solid at rest (the scrollbar's active color) so it's always visible,
                              brightening to the accent while hovered/dragged. -->
                         <Border x:Name="tb" Background="{DynamicResource ScrollThumbHover}" CornerRadius="3"/>
                         <ControlTemplate.Triggers>
@@ -847,8 +847,8 @@
         </Style>
 
         <!-- Settings panel radio button -->
-        <!-- Clickable accent-colour swatch for the Dark theme family (website-style picker).
-             Literal hue colours, identical across themes. The selection ring is set in code. -->
+        <!-- Clickable accent-color swatch for the Dark theme family (website-style picker).
+             Literal hue colors, identical across themes. The selection ring is set in code. -->
         <Style x:Key="AccentDot" TargetType="Border">
             <Setter Property="Width" Value="18"/>
             <Setter Property="Height" Value="18"/>
@@ -1537,7 +1537,7 @@
                                   AllowDrop="True" Drop="DropZone_Drop" DragOver="DropZone_DragOver">
                         <Border VerticalAlignment="Top" HorizontalAlignment="Center" Padding="12">
                             <!-- Override the window's Display/ClearType text mode for the zoomed
-                                 document surface. Display + ClearType pixel-snaps and colour-fringes
+                                 document surface. Display + ClearType pixel-snaps and color-fringes
                                  when scaled, giving hard-edged text on annotations and form fields;
                                  Ideal + Grayscale stays smoothly anti-aliased at any zoom, matching
                                  how other PDF editors render. -->
@@ -1574,7 +1574,7 @@
             <!-- Border lines bridging the slider handle to the toolbar/footer (the doc-pane border
                  doesn't cover the splitter column). They span the splitter + document columns;
                  ApplySidebarSide sets the start column for the sidebar side. Top = doc-pane border
-                 colour; bottom = slider accent, which continues into the sidebar-facing stripe. -->
+                 color; bottom = slider accent, which continues into the sidebar-facing stripe. -->
             <Border x:Name="DocTopAccent" Grid.Column="1" Grid.ColumnSpan="2" Grid.Row="1"
                     Height="1" VerticalAlignment="Top" IsHitTestVisible="False" Panel.ZIndex="60"
                     Background="{DynamicResource PaneBorder}"/>

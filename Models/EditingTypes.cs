@@ -12,6 +12,10 @@ namespace KillerPDF
     public abstract class PageAnnotation
     {
         public int PageIndex { get; set; }
+        // Links a text-edit cover to its replacement text (same non-empty id on both). A cover with a
+        // PairId renders dashed (it's "paired"); when the partner text is deleted the cover's PairId is
+        // cleared and it renders as a solid box. Empty for everything else.
+        public string PairId { get; set; } = "";
     }
 
     /// <summary>
@@ -82,7 +86,7 @@ namespace KillerPDF
         public byte ColorA { get; set; } = 80;
 
         public Color GetColor() => Color.FromArgb(ColorA, ColorR, ColorG, ColorB);
-        public void SetColor(Color c) { ColorR = c.R; ColorG = c.G; ColorB = c.B; ColorA = c.A; }
+        public virtual void SetColor(Color c) { ColorR = c.R; ColorG = c.G; ColorB = c.B; ColorA = c.A; }
 
         /// <summary>
         /// The actual rectangle painted for this annotation. Fill uses the whole bounds;
@@ -104,16 +108,23 @@ namespace KillerPDF
     }
 
     /// <summary>
-    /// Represents an edit to existing PDF text: whites out original bounds, draws replacement.
+    /// An opaque filled rectangle that covers ("erases") existing PDF content - the background half
+    /// of a text edit. Subclasses HighlightAnnotation so it inherits all rect plumbing (render, drag,
+    /// corner-resize, hit-test, export) for free; the only differences are an opaque default fill and
+    /// a SetColor that can never go translucent (a see-through cover would let the old text ghost
+    /// through, the exact bug this feature exists to avoid). The paired replacement text is a normal
+    /// TextAnnotation placed on top, so it is independently editable, movable, and recolorable.
     /// </summary>
-    public class TextEditAnnotation : PageAnnotation
+    public class CoverAnnotation : HighlightAnnotation
     {
-        public Rect OriginalBounds { get; set; }
-        public Point Position { get; set; }
-        public string NewContent { get; set; } = "";
-        public string OriginalContent { get; set; } = "";
-        public double FontSize { get; set; } = 14;
-        public string FontName { get; set; } = "Segoe UI";
+        public CoverAnnotation()
+        {
+            ColorR = 255; ColorG = 255; ColorB = 255; ColorA = 255;   // opaque white by default
+            Style = HighlightStyle.Fill;
+        }
+
+        /// <summary>Recolor the cover but keep it fully opaque - drop any alpha the caller passed.</summary>
+        public override void SetColor(Color c) => base.SetColor(Color.FromArgb(255, c.R, c.G, c.B));
     }
 
     /// <summary>

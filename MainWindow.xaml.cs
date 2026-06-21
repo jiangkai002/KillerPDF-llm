@@ -72,8 +72,9 @@ namespace KillerPDF
         private const string FormOverlayTag = "FormFieldOverlay";
 
         // Undo stack — each entry is either an annotation removal or a full document snapshot.
-        private enum UndoKind { Annotation, Document, StampBatch, ClearAnnotations }
-        private readonly record struct UndoEntry(UndoKind Kind, int PageIdx = -1, byte[]? DocBytes = null, bool WasDirty = false, int[]? Pages = null, PageAnnotation? Annot = null, Dictionary<int, List<PageAnnotation>>? AnnotSnapshot = null);
+        // AnnotationGroup removes a specific set of annotations in one step (a text edit = cover + text).
+        private enum UndoKind { Annotation, Document, StampBatch, ClearAnnotations, AnnotationGroup }
+        private readonly record struct UndoEntry(UndoKind Kind, int PageIdx = -1, byte[]? DocBytes = null, bool WasDirty = false, int[]? Pages = null, PageAnnotation? Annot = null, Dictionary<int, List<PageAnnotation>>? AnnotSnapshot = null, List<PageAnnotation>? AnnotGroup = null);
         private Stack<UndoEntry> _undoStack = new();
         private bool _isDrawing;
         private Point _drawStart;
@@ -98,7 +99,16 @@ namespace KillerPDF
 
         // Text (typewriter) tool settings
         private double _textFontSize = 24;
+        // WPF renders a given point size visually ~25% larger than the source PDF text, so scale the
+        // detected size down when seeding an existing-text edit. The user can still fine-tune after.
+        private const double EditTextSizeCorrection = 0.8;
+        private bool _suppressSizeSync;   // guards the slider<->size-box two-way binding from feedback loops
         private TextAnnotation? _reeditOriginal;  // placed-text annotation currently being re-edited
+        // The opaque cover dropped when starting an existing-text edit, awaiting its paired text commit.
+        // Held so the text commit can group both into one undo, and so cancel/empty removes the cover.
+        private CoverAnnotation? _pendingCover;
+        // Dirty state captured before the cover was dropped, so undoing the grouped edit restores it.
+        private bool _pendingEditWasDirty;
         private Color _textColor = Colors.Black;
         private byte _textOpacity = 255;          // alpha applied to placed text, like the draw tool
         private Color _textFillColor = Color.FromArgb(0, 255, 255, 255);  // text box background fill; A==0 = no fill
@@ -177,6 +187,7 @@ namespace KillerPDF
         private bool _isSelecting;
         private Point _selectStart;
         private Rectangle? _selectRect;
+        private Rectangle? _pairedCoverOutline;   // dashed hint over a cover while its paired text is selected
         private string? _selectedText;
 
         // Search
@@ -196,7 +207,7 @@ namespace KillerPDF
         private SavedSignature? _activeInitialsChoice;
         private (bool Initials, int ObjNum, int Page, double X, double Y, double W, double H)? _pendingSignField;
         // Form fields already signed, so re-clicking one offers change/remove instead of re-stamping.
-        private readonly Dictionary<int, SignatureAnnotation> _signedFields = new();
+        private readonly Dictionary<int, SignatureAnnotation> _signedFields = [];
 
         // Manual element refs (XAML codegen doesn't resolve these)
         private readonly Canvas _annotationCanvas = null!;
@@ -356,9 +367,9 @@ namespace KillerPDF
                     // Reopen every tab from the last session (falls back to the single LastFile for
                     // settings written before multi-tab restore existed).
                     var saved = App.GetSetting("OpenTabs");
-                    var paths = !string.IsNullOrEmpty(saved)
+                    string[] paths = !string.IsNullOrEmpty(saved)
                         ? saved!.Split('|')
-                        : (App.GetSetting("LastFile") is { Length: > 0 } lf ? new[] { lf } : System.Array.Empty<string>());
+                        : (App.GetSetting("LastFile") is { Length: > 0 } lf ? [lf] : []);
                     // Lazy restore: create a placeholder tab for each saved file but load only the
                     // focused one. The rest materialize (load + render) the first time they're clicked,
                     // so startup cost no longer scales with how many tabs were open last session.
@@ -1707,10 +1718,52 @@ namespace KillerPDF
             menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_StampNumbers"), (s, e) => StampPageNumbers()));
             menu.Items.Add(new Separator());
             menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_DeleteSel"), (s, e) => DeleteSelected(), "Delete"));
+            // Unpair a selected text/cover pair (shown only when a paired item is selected).
+            _ctxUnpairItem = MakeMenuItem("Unpair text + cover", (s, e) => UnpairSelected());
+            menu.Items.Add(_ctxUnpairItem);
             menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_UndoLast"), (s, e) => Undo_Click(s!, e), "Ctrl+Z"));
             menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_ClearPage"), (s, e) => ClearAnnotations_Click(s!, e)));
 
+            // Toggle context-dependent items each time the menu opens (works for both the auto right-click
+            // on the primary canvas and the per-tile overlays that open this same menu programmatically).
+            menu.Opened += (s, e) =>
+            {
+                if (_ctxUnpairItem is not null)
+                    _ctxUnpairItem.Visibility = SelectedPaired() is not null ? Visibility.Visible : Visibility.Collapsed;
+            };
+
             _annotationCanvas.ContextMenu = menu;
+        }
+
+        private MenuItem? _ctxUnpairItem;
+
+        // The selected annotation (primary or multi-select) that belongs to a text/cover pair, if any.
+        private PageAnnotation? SelectedPaired()
+        {
+            if (_selectedAnnotation is not null && _selectedAnnotation.PairId.Length > 0) return _selectedAnnotation;
+            foreach (var a in _selectedSet) if (a.PairId.Length > 0) return a;
+            return null;
+        }
+
+        // Break a text/cover pairing: clear the shared id on both halves so they become independent (the
+        // cover stops rendering dashed and no longer shows when its former partner is selected).
+        private void UnpairSelected()
+        {
+            var a = SelectedPaired();
+            if (a is null) return;
+            string pid = a.PairId;
+            int pg = a.PageIndex;
+            if (_annotations.TryGetValue(pg, out var list))
+                foreach (var x in list) if (x.PairId == pid) x.PairId = "";
+            if (_pairedCoverOutline is not null)
+            {
+                (_pairedCoverOutline.Parent as Canvas)?.Children.Remove(_pairedCoverOutline);
+                _pairedCoverOutline = null;
+            }
+            RenderAllAnnotations(pg);
+            ReattachSelectionVisuals();   // keep the current box's selection chrome after the repaint
+            MarkDirty();
+            SetStatus("Unpaired - the text and cover are now separate");
         }
 
         private void PageList_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
@@ -2839,7 +2892,12 @@ namespace KillerPDF
                     bool onAnnot = (_annotations.TryGetValue(capturedPi, out var list)
                                     && list.Any(a => HitTestAnnotation(a, hit, out _)))
                                    || _selectedAnnotation?.PageIndex == capturedPi;
-                    if (onAnnot) Canvas_MouseLeftButtonDown(s, ev);
+                    // Forward to the canvas handler when the click is on an annotation, OR on any
+                    // double-click: double-click starts text editing on raw PDF text, which is not an
+                    // annotation yet, so it must reach Canvas_MouseLeftButtonDown (EditTextAtPosition)
+                    // even on an "empty" tile. Without the ClickCount check, editing fresh text was
+                    // impossible on secondary tiles (all grid pages, the 2nd two-page page).
+                    if (onAnnot || ev.ClickCount == 2) Canvas_MouseLeftButtonDown(s, ev);
                     // Selecting the page reflows the Two-Page pair (looks like the doc "advances"),
                     // so don't change the selection on an empty click of a secondary tile there.
                     else if (_viewMode != ViewMode.TwoPage) PageList.SelectedIndex = capturedPi;
@@ -5305,12 +5363,29 @@ namespace KillerPDF
         // Draw/Highlight settings bar
         // ============================================================
 
-        private static readonly Color[] SwatchColors =
+        // The quick-colors shown in the annotate bars. User-configurable via the color picker's swatch
+        // row (shared "UserSwatches" setting); seeded with these 8 defaults, restorable via the picker's
+        // Reset. SwatchColors reads the live set each time a bar is built, so edits show up immediately.
+        private static readonly Color[] DefaultSwatchColors =
         [
-            Colors.Red, Colors.SaddleBrown, Colors.Orange, Colors.Gold,
-            Colors.LimeGreen, Colors.DodgerBlue, Colors.MediumPurple,
-            Colors.DeepPink, Colors.White, Colors.Black
+            Color.FromRgb(0xE0, 0x3C, 0x3C), Color.FromRgb(0xE8, 0x7A, 0x1E), Color.FromRgb(0xF2, 0xC0, 0x1E),
+            Color.FromRgb(0x2E, 0xA5, 0x4C), Color.FromRgb(0x2E, 0x86, 0xDE), Color.FromRgb(0x8E, 0x5B, 0xD6),
+            Color.FromRgb(0xE0, 0x4A, 0x9A), Colors.Black, Colors.White
         ];
+        private static Color[] SwatchColors => LoadUserSwatches();
+        private static Color[] LoadUserSwatches()
+        {
+            var raw = App.GetSetting("UserSwatches");
+            if (string.IsNullOrWhiteSpace(raw)) return [.. DefaultSwatchColors];
+            List<Color> list = [];
+            foreach (var part in raw!.Split(','))
+            {
+                var t = part.Trim().TrimStart('#');
+                if (t.Length == 6 && int.TryParse(t, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out int v))
+                    list.Add(Color.FromRgb((byte)((v >> 16) & 0xFF), (byte)((v >> 8) & 0xFF), (byte)(v & 0xFF)));
+            }
+            return list.Count > 0 ? [.. list] : [.. DefaultSwatchColors];
+        }
 
         // Frozen cached brushes for hot-path UI construction
         private static readonly SolidColorBrush _swatchDimBorder   = Freeze(new SolidColorBrush(Color.FromRgb(0x44, 0x44, 0x44)));
@@ -5343,20 +5418,21 @@ namespace KillerPDF
 
         // A grab handle (vertical dots) placed at the left of an annotation bar so it can be slid
         // left/right along the top of the document. Returns the handle for EnableBarSlide.
-        private Border MakeBarGrip()
+        private Border MakeBarGrip(int dotCount = 3)
         {
             // Real ellipse dots (not a braille glyph, which didn't render on some fonts/themes - the
             // grip looked empty on the Light bars). Matches the sidebar splitter / minimized-bar dots.
+            // dotCount scales with bar height: 3 for single-row bars, 4 for the double-height text bar.
             var dots = new StackPanel { Orientation = Orientation.Vertical, VerticalAlignment = VerticalAlignment.Center };
             var fill = (Brush)FindResource("TextSecondary");
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < dotCount; i++)
                 dots.Children.Add(new System.Windows.Shapes.Ellipse
                 { Width = 3, Height = 3, Margin = new Thickness(0, 1.5, 0, 1.5), Fill = fill });
             return new Border
             {
                 Background        = Brushes.Transparent,
                 Cursor            = Cursors.Hand,
-                Padding           = new Thickness(2, 0, 6, 0),
+                Padding           = new Thickness(1, 0, 10, 0),   // hard to the left edge, more gap before the labels
                 VerticalAlignment = VerticalAlignment.Stretch,
                 Child             = dots
             };
@@ -5537,17 +5613,31 @@ namespace KillerPDF
                 Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
                     (Action)(() => PositionAnnotationBar(bar, area)));
             }
-            else
+            else if (_annotBarCenterFrac is not null)
             {
-                // Same-tool refresh (e.g. swatch click): stay hidden until positioned so it can't jump.
+                // Centre-parked needs a measured width to place, so stay hidden one layout frame so it
+                // can't render at the default edge first and then jump.
                 Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
                     (Action)(() => { PositionAnnotationBar(bar, area); bar.Opacity = 1; }));
+            }
+            else
+            {
+                // Edge-anchored: already placed correctly above (no width needed), so reveal it right away
+                // instead of hiding for a frame - that one hidden frame was the "blink" on a same-tool
+                // refresh / same-family tool switch.
+                bar.Opacity = 1;
             }
         }
 
         private void ShowDrawSettings(EditTool tool)
         {
-            bool appearing = _annotBarTool != tool;   // real appear/switch vs same-tool refresh (swatch click)
+            // Fade the bar in only when it's genuinely appearing (no bar yet, or coming from the text
+            // bar). Switching between tools that share this same draw bar (Highlight / Underline /
+            // Strikethrough / Draw) swaps it in place instantly - otherwise the two near-identical bars
+            // crossfade through ~50% opacity and read as a blink even though nothing visually changed.
+            bool prevWasDrawBar = _annotBarTool is EditTool.Draw or EditTool.Highlight
+                                                or EditTool.Underline or EditTool.Strikethrough;
+            bool appearing = _annotBarTool != tool && !prevWasDrawBar;
             if (_drawSettingsBar is not null)
             {
                 // On a switch, fade the old bar out (crossfades with the new one); on a refresh, swap it
@@ -5610,6 +5700,33 @@ namespace KillerPDF
                 panel.Children.Add(swatch);
             }
 
+            // "More colors..." -> full RGB picker, applied to whichever draw color this bar drives.
+            var moreDraw = new Border
+            {
+                Width = 18, Height = 18, CornerRadius = new CornerRadius(3), Margin = new Thickness(1),
+                Cursor = Cursors.Hand, BorderThickness = new Thickness(1), ToolTip = "More colors...",
+                BorderBrush = _swatchDimBorder,
+                Background = new LinearGradientBrush
+                {
+                    StartPoint = new Point(0, 0), EndPoint = new Point(1, 1),
+                    GradientStops =
+                    {
+                        new GradientStop(Colors.Red, 0), new GradientStop(Colors.Yellow, 0.25),
+                        new GradientStop(Colors.Lime, 0.5), new GradientStop(Colors.Cyan, 0.7),
+                        new GradientStop(Colors.Blue, 1)
+                    }
+                }
+            };
+            moreDraw.MouseLeftButtonDown += (_, _) => OpenColorPicker(activeColor, c =>
+            {
+                if (tool == EditTool.Draw)      _drawColor      = Color.FromArgb(_drawOpacity, c.R, c.G, c.B);
+                else if (isLineTool)            _lineAnnotColor = Color.FromArgb(_lineAnnotColor.A, c.R, c.G, c.B);
+                else                            _highlightColor = Color.FromArgb(_highlightColor.A, c.R, c.G, c.B);
+                ApplyDrawStyleToSelection();
+                ShowDrawSettings(tool);
+            }, () => ShowDrawSettings(tool));
+            panel.Children.Add(moreDraw);
+
             // Separator
             var sep1 = new Rectangle { Width = 1, Margin = new Thickness(8, 2, 8, 2) };
             sep1.SetResourceReference(Rectangle.FillProperty, "BorderDim");
@@ -5630,7 +5747,7 @@ namespace KillerPDF
                 var sizeSlider = new Slider
                 {
                     Minimum = 1, Maximum = 20, Value = _drawWidth,
-                    Width = 80, VerticalAlignment = VerticalAlignment.Center,
+                    Width = 90, VerticalAlignment = VerticalAlignment.Center,
                     TickFrequency = 1, IsSnapToTickEnabled = true,
                     Style = (Style)FindResource("DarkSlider")
                 };
@@ -5667,7 +5784,7 @@ namespace KillerPDF
             var opacitySlider = new Slider
             {
                 Minimum = 10, Maximum = 255, Value = currentOpacity,
-                Width = 80, VerticalAlignment = VerticalAlignment.Center,
+                Width = 90, VerticalAlignment = VerticalAlignment.Center,
                 Style = (Style)FindResource("DarkSlider")
             };
             var opacityLabel = new TextBlock
@@ -5740,7 +5857,7 @@ namespace KillerPDF
 
         private void ApplyTextStyleToActiveBox()
         {
-            if (_activeTextBox is null || _activeTextBox.Tag is TextEditContext) return;
+            if (_activeTextBox is null) return;
             _activeTextBox.Foreground = new SolidColorBrush(_textColor);
             _activeTextBox.Background = TextEditBackground();   // reflect the chosen fill live
             int pg = _activeTextBox.Tag is int tp ? tp : PageList.SelectedIndex;
@@ -5754,10 +5871,31 @@ namespace KillerPDF
         }
 
         // Applies the current text style to whatever is active: the live edit box if one is open,
-        // otherwise the selected text box (so its colour / fill / size can be changed after placing it).
+        // otherwise the selected text box (so its color / fill / size can be changed after placing it).
+        // Opens the full RGB color picker seeded with the current color; applies the result on OK.
+        private void OpenColorPicker(Color current, Action<Color> apply, Action? refreshBar = null)
+        {
+            var dlg = new ColorPickerDialog(this, Color.FromRgb(current.R, current.G, current.B));
+            // Live-update the annotate bar behind the (modal) dialog whenever the shared palette is edited.
+            if (refreshBar is not null) dlg.SwatchesChanged += refreshBar;
+            if (dlg.ShowDialog() == true) apply(dlg.SelectedColor);
+        }
+
+        // Diagonal rainbow fill for the "more colors" swatches that open the picker.
+        private static LinearGradientBrush RainbowBrush() => new()
+        {
+            StartPoint = new Point(0, 0), EndPoint = new Point(1, 1),
+            GradientStops =
+            {
+                new GradientStop(Colors.Red, 0), new GradientStop(Colors.Yellow, 0.25),
+                new GradientStop(Colors.Lime, 0.5), new GradientStop(Colors.Cyan, 0.7),
+                new GradientStop(Colors.Blue, 1)
+            }
+        };
+
         private void ApplyTextStyleToSelection()
         {
-            if (_activeTextBox is not null && _activeTextBox.Tag is not TextEditContext)
+            if (_activeTextBox is not null)
             {
                 ApplyTextStyleToActiveBox();
                 return;
@@ -5778,7 +5916,7 @@ namespace KillerPDF
         }
 
         // Draw-bar counterpart to ApplyTextStyleToSelection: when a highlight / line / ink annotation
-        // is selected (not just being freshly drawn), push the bar's current colour, opacity and width
+        // is selected (not just being freshly drawn), push the bar's current color, opacity and width
         // onto it and repaint - so editing an existing annotation works the same as setting up a new one.
         private void ApplyDrawStyleToSelection()
         {
@@ -5804,6 +5942,7 @@ namespace KillerPDF
         private void ReattachSelectionVisuals()
         {
             if (_selectionBorder is not null) _activeCanvas.Children.Add(_selectionBorder);
+            if (_pairedCoverOutline is not null) _activeCanvas.Children.Add(_pairedCoverOutline);   // stays put during resize
             foreach (var hd in _resizeHandles) _activeCanvas.Children.Add(hd);
         }
 
@@ -5817,7 +5956,7 @@ namespace KillerPDF
                 _textSettingsBar = null;
             }
 
-            // Two aligned rows in a Grid: text row (Colour | Size | Opacity) over fill row
+            // Two aligned rows in a Grid: text row (Color | Size | Opacity) over fill row
             // (Fill | gap | Fill Opacity). Shared Auto columns line the swatches up under each other and
             // the Fill Opacity slider directly under the Opacity slider; the empty middle of the fill
             // row (under Size) is left as a grabbable strip.
@@ -5868,17 +6007,43 @@ namespace KillerPDF
                 s.SetResourceReference(Rectangle.FillProperty, "BorderDim");
                 return s;
             }
+            // Opens the full RGB picker. When the current color isn't one of the presets it shows that
+            // color with an accent ring (and a small rainbow corner), so the bar reflects a custom pick.
+            Grid MoreColorsSwatch(Color current, bool customActive, MouseButtonEventHandler onClick)
+            {
+                var grid = new Grid { Width = 18, Height = 18, Margin = new Thickness(1), Cursor = Cursors.Hand, ToolTip = "More colors..." };
+                var bg = new Border
+                {
+                    CornerRadius = new CornerRadius(3), BorderThickness = new Thickness(customActive ? 2 : 1),
+                    Background = customActive
+                        ? (Brush)new SolidColorBrush(Color.FromRgb(current.R, current.G, current.B))
+                        : RainbowBrush()
+                };
+                if (customActive) bg.SetResourceReference(Border.BorderBrushProperty, "Accent"); else bg.BorderBrush = _swatchDimBorder;
+                grid.Children.Add(bg);
+                if (customActive)
+                    grid.Children.Add(new System.Windows.Shapes.Polygon
+                    {
+                        Points = [new Point(18, 7), new Point(18, 18), new Point(7, 18)],
+                        Fill = RainbowBrush(), IsHitTestVisible = false
+                    });
+                grid.MouseLeftButtonDown += onClick;
+                return grid;
+            }
 
-            // Drag grip (row 0, col 0).
-            var textGrip = MakeBarGrip();
+            // Drag grip (col 0), spanning both rows and centred vertically (not pinned to the top row).
+            // 4 dots since this bar is double height.
+            var textGrip = MakeBarGrip(4);
+            textGrip.VerticalAlignment = VerticalAlignment.Center;
             Place(textGrip, 0, 0);
+            Grid.SetRowSpan(textGrip, 2);
 
             // Labels, col 1.
             Place(DimLabel("Color:", 0), 0, 1);
             Place(DimLabel("Fill:", 4), 1, 1);
 
             // Swatch rows, col 2. Row 0 gets a leading spacer the size of the "None" tile so the
-            // colour swatches sit directly above the fill swatches.
+            // color swatches sit directly above the fill swatches.
             var swatchRow1 = new StackPanel { Orientation = Orientation.Horizontal };
             swatchRow1.Children.Add(new Border { Width = 18, Height = 18, Margin = new Thickness(1), Background = Brushes.Transparent });
             foreach (var color in SwatchColors)
@@ -5892,6 +6057,13 @@ namespace KillerPDF
                     ShowTextSettings();
                 }));
             }
+            bool textCustom = !SwatchColors.Any(sc => sc.R == _textColor.R && sc.G == _textColor.G && sc.B == _textColor.B);
+            swatchRow1.Children.Add(MoreColorsSwatch(_textColor, textCustom, (_, _) => OpenColorPicker(_textColor, c =>
+            {
+                _textColor = Color.FromArgb(_textOpacity, c.R, c.G, c.B);
+                ApplyTextStyleToSelection();
+                ShowTextSettings();
+            }, () => ShowTextSettings())));
             Place(swatchRow1, 0, 2);
 
             var swatchRow2 = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 0) };
@@ -5920,7 +6092,23 @@ namespace KillerPDF
                     ShowTextSettings();
                 }));
             }
-            Place(swatchRow2, 1, 2);
+            bool fillCustom = _textFillColor.A > 0 && !SwatchColors.Any(sc => sc.R == _textFillColor.R && sc.G == _textFillColor.G && sc.B == _textFillColor.B);
+            swatchRow2.Children.Add(MoreColorsSwatch(_textFillColor.A == 0 ? Colors.White : _textFillColor, fillCustom, (_, _) => OpenColorPicker(_textFillColor.A == 0 ? Colors.White : _textFillColor, c =>
+            {
+                byte a = _textFillColor.A == 0 ? (byte)255 : _textFillColor.A;
+                _textFillColor = Color.FromArgb(a, c.R, c.G, c.B);
+                ApplyTextStyleToSelection();
+                ShowTextSettings();
+            }, () => ShowTextSettings())));
+            // Faint divider + a little breathing room between the Color row and the Fill row.
+            var fillWrap = new Border
+            {
+                BorderThickness = new Thickness(0, 1, 0, 0),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(38, 255, 255, 255)),
+                Margin = new Thickness(2, 5, 8, 0), Padding = new Thickness(0, 5, 0, 0),
+                Child = swatchRow2
+            };
+            Place(fillWrap, 1, 2);
 
             // Size group (row 0 only): sep | label + slider + value | sep. Cols 3-5.
             Place(Sep(), 0, 3);
@@ -5929,26 +6117,64 @@ namespace KillerPDF
             var sizeSlider = new Slider
             {
                 Minimum = 8, Maximum = 72, Value = Math.Max(8, Math.Min(72, _textFontSize)),
-                Width = 80, VerticalAlignment = VerticalAlignment.Center,
+                Width = 90, VerticalAlignment = VerticalAlignment.Center,
                 TickFrequency = 1, IsSnapToTickEnabled = true,
                 Style = (Style)FindResource("DarkSlider")
             };
-            var sizeLabel = new TextBlock
+            // Editable size box (type an exact value; the slider stays for quick coarse adjustment).
+            var sizeBox = new TextBox
             {
-                Text = $"{_textFontSize:F0}pt",
+                Text = $"{_textFontSize:F0}",
                 FontFamily = new FontFamily("Segoe UI"), FontSize = 11,
-                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 0, 0),
-                Width = 40, TextAlignment = TextAlignment.Right
+                Width = 32, MaxLength = 4,
+                VerticalAlignment = VerticalAlignment.Center,
+                VerticalContentAlignment = VerticalAlignment.Center,
+                TextAlignment = TextAlignment.Center,
+                Margin = new Thickness(4, 0, 0, 0),
+                BorderThickness = new Thickness(1),
+                Template = FlatTextBoxTemplate()
             };
-            sizeLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondary");
+            sizeBox.SetResourceReference(TextBox.BackgroundProperty, "BgPanel");
+            sizeBox.SetResourceReference(TextBox.ForegroundProperty, "TextPrimary");
+            sizeBox.SetResourceReference(TextBox.BorderBrushProperty, "BorderDim");
+            sizeBox.SetResourceReference(TextBox.CaretBrushProperty,  "Accent");
+            sizeBox.SetResourceReference(TextBox.SelectionBrushProperty, "AccentDim");   // no WPF-default blue
+            var ptLabel = new TextBlock
+            {
+                Text = "pt", FontFamily = new FontFamily("Segoe UI"), FontSize = 11,
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, 0, 0)
+            };
+            ptLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondary");
+            // Slider drives the box; the box drives the slider. _suppressSizeSync breaks the feedback loop.
             sizeSlider.ValueChanged += (s, e) =>
             {
+                if (_suppressSizeSync) return;
                 _textFontSize = e.NewValue;
-                sizeLabel.Text = $"{e.NewValue:F0}pt";
+                sizeBox.Text = $"{e.NewValue:F0}";
                 ApplyTextStyleToSelection();
             };
+            void CommitSizeBox()
+            {
+                if (double.TryParse(sizeBox.Text, out double v))
+                {
+                    _textFontSize = Math.Max(1, Math.Min(400, Math.Round(v)));
+                    _suppressSizeSync = true;
+                    sizeSlider.Value = Math.Max(8, Math.Min(72, _textFontSize));   // thumb clamps; box keeps exact
+                    _suppressSizeSync = false;
+                    ApplyTextStyleToSelection();
+                }
+                sizeBox.Text = $"{_textFontSize:F0}";   // normalise / revert invalid input
+            }
+            sizeBox.PreviewKeyDown += (s, e) =>
+            {
+                if (e.Key == Key.Enter)  { CommitSizeBox(); e.Handled = true; }
+                else if (e.Key == Key.Escape) { sizeBox.Text = $"{_textFontSize:F0}"; e.Handled = true; }
+            };
+            sizeBox.LostFocus += (s, e) => CommitSizeBox();
+            sizeBox.GotFocus  += (s, e) => sizeBox.SelectAll();
             sizeStack.Children.Add(sizeSlider);
-            sizeStack.Children.Add(sizeLabel);
+            sizeStack.Children.Add(sizeBox);
+            sizeStack.Children.Add(ptLabel);
             Place(sizeStack, 0, 4);
             Place(Sep(), 0, 5);
 
@@ -5961,7 +6187,7 @@ namespace KillerPDF
             var opacitySlider = new Slider
             {
                 Minimum = 10, Maximum = 255, Value = _textOpacity,
-                Width = 80, VerticalAlignment = VerticalAlignment.Center,
+                Width = 90, VerticalAlignment = VerticalAlignment.Center,
                 Style = (Style)FindResource("DarkSlider")
             };
             Place(opacitySlider, 0, 7);
@@ -5983,12 +6209,12 @@ namespace KillerPDF
                 ApplyTextStyleToSelection();
             };
 
-            Place(DimLabel("Fill Opacity:", 4, rightAlign: true), 1, 6);
+            Place(DimLabel("Fill Opacity:", 10, rightAlign: true), 1, 6);
             byte curFillA = _textFillColor.A == 0 ? (byte)255 : _textFillColor.A;
             var fillOpSlider = new Slider
             {
                 Minimum = 10, Maximum = 255, Value = curFillA,
-                Width = 80, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 4, 0, 0),
+                Width = 90, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 10, 0, 0),
                 Style = (Style)FindResource("DarkSlider")
             };
             Place(fillOpSlider, 1, 7);
@@ -5996,7 +6222,7 @@ namespace KillerPDF
             {
                 Text = $"{(int)(curFillA / 255.0 * 100)}%",
                 FontFamily = new FontFamily("Segoe UI"), FontSize = 11,
-                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 4, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 10, 0, 0),
                 Width = 40, TextAlignment = TextAlignment.Right
             };
             fillOpLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondary");
@@ -6005,10 +6231,19 @@ namespace KillerPDF
             {
                 byte a = (byte)e.NewValue;
                 fillOpLabel.Text = $"{(int)(a / 255.0 * 100)}%";
-                // Dragging opacity turns the fill on (defaults to the current colour, white for whiteout).
+                // Dragging opacity turns the fill on (defaults to the current color, white for whiteout).
                 _textFillColor = Color.FromArgb(a, _textFillColor.R, _textFillColor.G, _textFillColor.B);
                 ApplyTextStyleToSelection();
             };
+
+            // Faint divider between the Opacity and Fill Opacity rows, matching the color/fill one.
+            var opDivider = new Border
+            {
+                Height = 1, VerticalAlignment = VerticalAlignment.Top,
+                Background = new SolidColorBrush(Color.FromArgb(38, 255, 255, 255)),
+                Margin = new Thickness(0, 5, 8, 0)
+            };
+            Place(opDivider, 1, 7, 2);
 
             _textSettingsBar = new Border
             {
@@ -6179,12 +6414,13 @@ namespace KillerPDF
             var sigTitleText = new TextBlock
             {
                 Text = Loc("Str_Sig_Title"),
-                Foreground = (SolidColorBrush)FindResource("TextPrimary"),
+                Foreground = (SolidColorBrush)FindResource("Accent"),   // accent heading, shared secondary-window style
                 FontFamily = new FontFamily("Segoe UI"),
                 FontWeight = FontWeights.SemiBold,
                 FontSize = 13,
                 Margin = new Thickness(4, 2, 4, 2),
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center,
+                Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Colors.Black, BlurRadius = 2, ShadowDepth = 1, Direction = 270, Opacity = 0.7 }
             };
             Grid.SetColumn(sigTitleText, 0);
             // Close X, matching the Settings panel's close glyph (Segoe MDL2). A TextBlock (not Button)
@@ -7417,8 +7653,8 @@ namespace KillerPDF
                             _selectStart = pos;
                             _selectRect = new Rectangle
                             {
-                                Fill = new SolidColorBrush(Color.FromArgb(40, 74, 130, 255)),
-                                Stroke = new SolidColorBrush(Color.FromArgb(120, 74, 130, 255)),
+                                Fill = AccentBrush(40),
+                                Stroke = AccentBrush(150),
                                 StrokeThickness = 1,
                                 Width = 0, Height = 0,
                                 IsHitTestVisible = false
@@ -7804,6 +8040,15 @@ namespace KillerPDF
         }
         private Rect AnnotBounds(PageAnnotation a)
         {
+            // Ink isn't a simple rect in HitTestAnnotation (it's a proximity test), so derive its bounds
+            // from the stroke points; everything else reuses HitTestAnnotation's out-bounds via a far probe.
+            if (a is InkAnnotation ia)
+            {
+                if (ia.Points.Count == 0) return Rect.Empty;
+                double minX = ia.Points.Min(p => p.X), minY = ia.Points.Min(p => p.Y);
+                double maxX = ia.Points.Max(p => p.X), maxY = ia.Points.Max(p => p.Y);
+                return new Rect(minX, minY, Math.Max(1, maxX - minX), Math.Max(1, maxY - minY));
+            }
             HitTestAnnotation(a, new Point(double.MinValue, double.MinValue), out Rect b);
             return b;
         }
@@ -8026,11 +8271,31 @@ namespace KillerPDF
                 }
                 else
                 {
-                    // Real drag -> extract text from rectangle
                     var selectBounds = new Rect(
                         Math.Min(pos.X, _selectStart.X), Math.Min(pos.Y, _selectStart.Y),
                         dragW, dragH);
-                    ExtractTextFromRegion(pageIdx, selectBounds);
+                    // Box-select: if any annotations fall inside the rectangle, multi-select them all (so
+                    // stacked annotations become individually visible and editable). Only when none are
+                    // caught do we fall back to selecting page text in the region (copy/extract).
+                    var hits = new List<(PageAnnotation a, Rect b)>();
+                    if (pageIdx >= 0 && _annotations.TryGetValue(pageIdx, out var apg))
+                        foreach (var a in apg)
+                        {
+                            if (!IsDraggable(a)) continue;
+                            var ab = AnnotBounds(a);
+                            if (!ab.IsEmpty && selectBounds.IntersectsWith(ab)) hits.Add((a, ab));
+                        }
+                    if (hits.Count > 0)
+                    {
+                        ClearSelection();
+                        var cv = _gestureCanvas ?? CanvasForPage(pageIdx);
+                        foreach (var (a, b) in hits) ToggleMultiSelect(a, b, cv);
+                        SetStatus($"Selected {hits.Count} annotation{(hits.Count == 1 ? "" : "s")}");
+                    }
+                    else
+                    {
+                        ExtractTextFromRegion(pageIdx, selectBounds);
+                    }
                 }
                 return;
             }
@@ -8109,6 +8374,13 @@ namespace KillerPDF
         {
             switch (annot)
             {
+                case CoverAnnotation cov:
+                    // A text cover gets a forgiving grab margin (and sits below its text, which is checked
+                    // first), so you can click the colored background to select/move it without hunting.
+                    bounds = cov.Bounds;
+                    var coverHit = bounds; coverHit.Inflate(6, 6);
+                    return coverHit.Contains(pos);
+
                 case HighlightAnnotation ha:
                     bounds = ha.Bounds;
                     return bounds.Contains(pos);
@@ -8116,7 +8388,12 @@ namespace KillerPDF
                 case TextAnnotation ta:
                     bounds = new Rect(ta.Position.X, ta.Position.Y,
                                       Math.Max(8, ta.Width), Math.Max(8, ta.Height));
-                    return bounds.Contains(pos);
+                    // Forgiving grab area: clicking anywhere in the box - plus a small margin around it,
+                    // since a one-line box is a thin band - selects and drags the text, so you don't have
+                    // to land on a glyph. The selection loop still checks topmost-first, so any annotation
+                    // stacked above the text takes the click before this does (no conflict).
+                    var textHit = bounds; textHit.Inflate(8, 10);
+                    return textHit.Contains(pos);
 
                 case InkAnnotation ia when ia.Points.Count > 0:
                     bool near = ia.Points.Any(p =>
@@ -8132,10 +8409,6 @@ namespace KillerPDF
                     }
                     bounds = Rect.Empty;
                     return false;
-
-                case TextEditAnnotation tea:
-                    bounds = tea.OriginalBounds;
-                    return bounds.Contains(pos);
 
                 case SignatureAnnotation sa:
                     double sigW = sa.SourceWidth * sa.Scale;
@@ -8164,6 +8437,13 @@ namespace KillerPDF
         {
             var c = AccentColor();
             return new SolidColorBrush(Color.FromArgb(alpha, c.R, c.G, c.B));
+        }
+        // A darker shade of the accent, used for a cover's selection chrome and its in-edit outline so a
+        // cover reads as distinct from the lighter accent on the text box stacked over it.
+        private SolidColorBrush DarkerAccentBrush(byte alpha = 255)
+        {
+            var c = AccentColor();
+            return new SolidColorBrush(Color.FromArgb(alpha, (byte)(c.R * 0.6), (byte)(c.G * 0.6), (byte)(c.B * 0.6)));
         }
 
         // Recolor any live selection / crop visuals to the current theme's SelectionAccent.
@@ -8223,11 +8503,14 @@ namespace KillerPDF
             double inv = 1.0;
             if (_activeCanvas.LayoutTransform is ScaleTransform _selScale && _selScale.ScaleX > 0.0001)
                 inv = 1.0 / _selScale.ScaleX;
+            // A cover gets a darker accent so its handles/border stand apart from the text box over it.
+            bool isCover = annot is CoverAnnotation;
+            var selBrush = isCover ? DarkerAccentBrush() : AccentBrush();
             _selectionBorder = new Border
             {
-                BorderBrush = AccentBrush(),
+                BorderBrush = selBrush,
                 BorderThickness = new Thickness(2 * inv),
-                Background = AccentBrush(40),
+                Background = isCover ? DarkerAccentBrush(40) : AccentBrush(40),
                 Width = bounds.Width + 8,
                 Height = bounds.Height + 8,
                 IsHitTestVisible = false
@@ -8235,6 +8518,28 @@ namespace KillerPDF
             Canvas.SetLeft(_selectionBorder, bounds.X - 4);
             Canvas.SetTop(_selectionBorder, bounds.Y - 4);
             _activeCanvas.Children.Add(_selectionBorder);
+
+            // Selecting EITHER paired box dash-outlines its partner so both boxes stay visible: clicking
+            // the cover keeps the text box shown, and vice versa. Cleared in ClearSelection.
+            PageAnnotation? partner = null;
+            if (annot.PairId.Length > 0 && _annotations.TryGetValue(annot.PageIndex, out var ppl))
+                partner = annot is CoverAnnotation
+                    ? ppl.OfType<TextAnnotation>().FirstOrDefault(t => t.PairId == annot.PairId)
+                    : ppl.OfType<CoverAnnotation>().FirstOrDefault(c => c.PairId == annot.PairId);
+            if (partner is not null)
+            {
+                var pb = AnnotBounds(partner);
+                _pairedCoverOutline = new Rectangle
+                {
+                    Width = pb.Width + 4, Height = pb.Height + 4,
+                    Stroke = DarkerAccentBrush(), StrokeThickness = 1.5 * inv,
+                    StrokeDashArray = new DoubleCollection { 4, 3 },
+                    Fill = Brushes.Transparent, IsHitTestVisible = false
+                };
+                Canvas.SetLeft(_pairedCoverOutline, pb.X - 2);
+                Canvas.SetTop(_pairedCoverOutline, pb.Y - 2);
+                _activeCanvas.Children.Add(_pairedCoverOutline);
+            }
 
             // Add four corner resize handles for resizable annotations (signature, image, text box,
             // highlight/strikethrough/underline, and ink).
@@ -8247,7 +8552,7 @@ namespace KillerPDF
                     var hd = new Rectangle
                     {
                         Width = hSize, Height = hSize,
-                        Fill = AccentBrush(),
+                        Fill = selBrush,
                         Stroke = Brushes.White, StrokeThickness = 1 * inv,
                         Cursor = (tag is "NW" or "SE") ? Cursors.SizeNWSE : Cursors.SizeNESW,
                         IsHitTestVisible = true,
@@ -8262,6 +8567,7 @@ namespace KillerPDF
                     SignatureAnnotation => "Signature",
                     ImageAnnotation     => "Image",
                     TextAnnotation      => "Text box",
+                    CoverAnnotation     => "Text cover",
                     HighlightAnnotation { Style: HighlightStyle.Strikethrough } => "Strikethrough",
                     HighlightAnnotation { Style: HighlightStyle.Underline }     => "Underline",
                     HighlightAnnotation => "Highlight",
@@ -8278,7 +8584,7 @@ namespace KillerPDF
                 SetStatus($"Selected {annot.GetType().Name.Replace("Annotation", "").ToLower()} annotation - press Delete to remove");
             }
 
-            // Selecting a text box opens the text bar (synced to that box) so its colour, fill and size
+            // Selecting a text box opens the text bar (synced to that box) so its color, fill and size
             // can be changed without re-typing. The bar's swatches/sliders then apply to the selection.
             if (annot is TextAnnotation tsel)
             {
@@ -8293,7 +8599,7 @@ namespace KillerPDF
                 ShowTextSettings();
             }
             // Selecting a highlight / strikethrough / underline opens the draw bar synced to it, so its
-            // colour and opacity can be edited in place. The annotation's style picks the matching tool.
+            // color and opacity can be edited in place. The annotation's style picks the matching tool.
             else if (annot is HighlightAnnotation hsel)
             {
                 if (hsel.Style == HighlightStyle.Fill) _highlightColor = hsel.GetColor();
@@ -8305,7 +8611,7 @@ namespace KillerPDF
                     _                            => EditTool.Highlight
                 });
             }
-            // Selecting a freehand stroke opens the draw bar synced to it (colour, opacity and width).
+            // Selecting a freehand stroke opens the draw bar synced to it (color, opacity and width).
             else if (annot is InkAnnotation isel)
             {
                 _drawColor   = isel.GetColor();
@@ -8363,6 +8669,11 @@ namespace KillerPDF
             foreach (var hd in _resizeHandles)
                 (hd.Parent as Canvas)?.Children.Remove(hd);
             _resizeHandles.Clear();
+            if (_pairedCoverOutline is not null)
+            {
+                (_pairedCoverOutline.Parent as Canvas)?.Children.Remove(_pairedCoverOutline);
+                _pairedCoverOutline = null;
+            }
             ClearMultiSelection();
             _isResizingSig = false;
             _resizeSigAnnot = null;
@@ -8485,11 +8796,45 @@ namespace KillerPDF
                 if (_annotations.TryGetValue(a.PageIndex, out var list) && list.Remove(a))
                     pages.Add(a.PageIndex);
 
+            // If a paired replacement text was deleted, unpair its cover so it stops rendering dashed and
+            // becomes a plain solid box (the original "two fields" hint is gone, just the cover remains).
+            foreach (var a in toDelete)
+                if (a is TextAnnotation t && t.PairId.Length > 0 && _annotations.TryGetValue(t.PageIndex, out var pl))
+                    foreach (var cov in pl.OfType<CoverAnnotation>())
+                        if (cov.PairId == t.PairId) cov.PairId = "";
+
             ClearSelection();
             foreach (var p in pages) RenderAllAnnotations(p);
             SetStatus(toDelete.Count == 1
                 ? "Deleted selected annotation"
                 : $"Deleted {toDelete.Count} annotations");
+        }
+
+        // Ctrl+A: multi-select every annotation on the pages currently on screen (single selected page,
+        // or all continuous/grid tiles), so the user can see where everything is and grab stacked items.
+        // Returns false when there are no annotations to select (caller falls back to text select).
+        private bool SelectAllAnnotations()
+        {
+            List<int> pages = _continuousCanvases.Count > 0
+                ? [.. _continuousCanvases.Keys]
+                : [PageList.SelectedIndex];
+            ClearSelection();
+            int n = 0;
+            foreach (int p in pages)
+            {
+                if (p < 0 || !_annotations.TryGetValue(p, out var list)) continue;
+                var cv = CanvasForPage(p);
+                foreach (var a in list)
+                {
+                    if (!IsDraggable(a)) continue;
+                    var b = AnnotBounds(a);
+                    if (b.IsEmpty) continue;
+                    ToggleMultiSelect(a, b, cv);
+                    n++;
+                }
+            }
+            if (n > 0) SetStatus($"Selected {n} annotation{(n == 1 ? "" : "s")}");
+            return n > 0;
         }
 
         private void SelectAllText()
@@ -9000,63 +9345,6 @@ namespace KillerPDF
                 return;
             }
 
-            // Re-edit an already-committed TextEditAnnotation without re-reading the PDF.
-            // Without this check, a second double-click would read the original file, produce
-            // a duplicate whiteout+text layer, and cause the "overlapping quasi-duplicates" bug.
-            if (_annotations.TryGetValue(pageIdx, out var existingPage))
-            {
-                var existingEdit = existingPage.OfType<TextEditAnnotation>()
-                    .FirstOrDefault(a => a.OriginalBounds.Contains(canvasPos));
-                if (existingEdit is not null)
-                {
-                    var reb = existingEdit.OriginalBounds;
-                    var retb = new TextBox
-                    {
-                        Text = existingEdit.NewContent,
-                        Background = new SolidColorBrush(Color.FromArgb(240, 255, 255, 255)),
-                        Foreground = Brushes.Black,
-                        BorderBrush = (SolidColorBrush)FindResource("Accent"), SelectionBrush = AccentBrush(),
-                        BorderThickness = new Thickness(2),
-                        FontFamily = new FontFamily(existingEdit.FontName),
-                        FontSize = Math.Max(existingEdit.FontSize, 10),
-                        MinWidth = Math.Max(reb.Width + 20, 100),
-                        Height = Math.Max(reb.Height + 12, 24),
-                        Padding = new Thickness(2, 0, 2, 0),
-                        VerticalContentAlignment = VerticalAlignment.Center,
-                        AcceptsReturn = false,
-                        Tag = new TextEditContext
-                        {
-                            PageIndex = pageIdx,
-                            OriginalText = existingEdit.OriginalContent,
-                            CanvasBounds = reb,
-                            Position = existingEdit.Position,
-                            FontSize = existingEdit.FontSize,
-                            FontName = existingEdit.FontName,
-                            ExistingAnnotation = existingEdit
-                        }
-                    };
-                    Canvas.SetLeft(retb, reb.X);
-                    Canvas.SetTop(retb, reb.Y);
-                    _activeCanvas.Children.Add(retb);
-                    _activeTextBox = retb;
-                    var rewo = new Rectangle
-                    {
-                        Fill = Brushes.White,
-                        Width = reb.Width + 4,
-                        Height = reb.Height + 4,
-                        IsHitTestVisible = false,
-                        Tag = "EditWhiteout"
-                    };
-                    Canvas.SetLeft(rewo, reb.X - 2);
-                    Canvas.SetTop(rewo, reb.Y - 2);
-                    _activeCanvas.Children.Insert(_activeCanvas.Children.IndexOf(retb), rewo);
-                    retb.KeyDown += EditTextBox_KeyDown;
-                    retb.Loaded += (s, ev) => { retb.Focus(); Keyboard.Focus(retb); retb.SelectAll(); retb.LostFocus += EditTextBox_LostFocus; };
-                    SetStatus("Re-editing text — Enter to save, Escape to cancel");
-                    return;
-                }
-            }
-
             // Re-edit a user-placed text annotation: lift it into an editable box
             // pre-filled with its content, size (shown in points), and color.
             if (_annotations.TryGetValue(pageIdx, out var placedPage))
@@ -9100,12 +9388,22 @@ namespace KillerPDF
                     Canvas.SetTop(ptb, placed.Position.Y);
                     _activeCanvas.Children.Add(ptb);
                     _activeTextBox = ptb;
-                    ptb.KeyDown += TextBox_KeyDown;
+                    ptb.PreviewKeyDown += TextBox_PreviewKeyDown;
                     ptb.Loaded += (s, ev) => { ptb.Focus(); Keyboard.Focus(ptb); ptb.SelectAll(); ptb.LostFocus += TextBox_LostFocus; AttachTextEditResizeHandles(ptb); };
                     ShowTextSettings();
                     SetStatus("Editing text — change size/color above, Enter to save");
                     return;
                 }
+            }
+
+            // The click landed on an existing text cover but not its replacement text (handled above).
+            // Don't start a fresh detection over an edit that already exists - that would stack a second
+            // cover+text. Bail so the user grabs the existing text/cover instead of duplicating it.
+            if (_annotations.TryGetValue(pageIdx, out var coverPage)
+                && coverPage.OfType<CoverAnnotation>().Any(c => { var b = c.Bounds; b.Inflate(6, 6); return b.Contains(canvasPos); }))
+            {
+                SetStatus("Already an edit here - click its text to re-edit, or drag the cover");
+                return;
             }
 
             try
@@ -9131,7 +9429,15 @@ namespace KillerPDF
                     return new { Word = w, Rect = new Rect(cx, cy, cw, ch) };
                 }).ToList();
 
-                if (canvasWords.Count == 0) { SetStatus("No selectable text — this page may be a scanned image"); return; }
+                if (canvasWords.Count == 0)
+                {
+                    // Scanned / image-only page: no text layer to detect. Fall back to a manual edit -
+                    // drop a cover + empty text box at the click so the user can white out the scanned
+                    // text and type over it by hand (resize the cover to fit).
+                    double mf = Math.Max(_textFontSize * syInv, 8);   // current text size in canvas units
+                    StartCoverTextEdit(pageIdx, new Rect(canvasPos.X, canvasPos.Y, 200, mf * 1.35), "", mf, "Segoe UI", syInv);
+                    return;
+                }
 
                 // Find words on the same line as the click (Y overlap with tolerance)
                 var clickY = canvasPos.Y;
@@ -9158,6 +9464,26 @@ namespace KillerPDF
                     return;
                 }
 
+                // Narrow to the contiguous run of words around the click. Words at the same Y in a
+                // second column are separated by a large horizontal gap, so stop there instead of
+                // merging both columns into one edit (the "weird text" / page-spanning edit).
+                if (lineWords.Count > 1)
+                {
+                    int ci = 0; double bestDx = double.MaxValue;
+                    for (int i = 0; i < lineWords.Count; i++)
+                    {
+                        var r = lineWords[i].Rect;
+                        double dx = canvasPos.X < r.Left ? r.Left - canvasPos.X
+                                  : canvasPos.X > r.Right ? canvasPos.X - r.Right : 0;
+                        if (dx < bestDx) { bestDx = dx; ci = i; }
+                    }
+                    double gapMax = Math.Max(lineWords[ci].Rect.Height * 1.5, 24);   // word spacing is small; a column gap is large
+                    int lo = ci, hi = ci;
+                    while (lo > 0 && lineWords[lo].Rect.Left - lineWords[lo - 1].Rect.Right <= gapMax) lo--;
+                    while (hi < lineWords.Count - 1 && lineWords[hi + 1].Rect.Left - lineWords[hi].Rect.Right <= gapMax) hi++;
+                    lineWords = lineWords.GetRange(lo, hi - lo + 1);
+                }
+
                 // Compute bounding box in canvas space
                 double cLeft = lineWords.Min(w => w.Rect.Left);
                 double cTop = lineWords.Min(w => w.Rect.Top);
@@ -9167,6 +9493,17 @@ namespace KillerPDF
                 double cHeight = cBottom - cTop;
 
                 string lineText = string.Join(" ", lineWords.Select(w => w.Word.Text));
+
+                // If this line is already covered by an edit, don't detect it again - that just stacks a
+                // duplicate cover+text on top of the existing one. The original PDF text under a cover is
+                // "consumed": re-edit by clicking the replacement text instead.
+                var lineRect = new Rect(cLeft, cTop, Math.Max(1, cWidth), Math.Max(1, cHeight));
+                if (_annotations.TryGetValue(pageIdx, out var coveredPage)
+                    && coveredPage.OfType<CoverAnnotation>().Any(c => c.Bounds.IntersectsWith(lineRect)))
+                {
+                    SetStatus("This line is already edited - click its text to change it");
+                    return;
+                }
 
                 // Get actual font info from PdfPig letter data
                 double canvasFontSize = cHeight * 0.75; // fallback
@@ -9205,60 +9542,10 @@ namespace KillerPDF
                 }
                 catch { /* use fallbacks */ }
 
-                // Show editable TextBox over the line
-                var tb = new TextBox
-                {
-                    Text = lineText,
-                    Background = new SolidColorBrush(Color.FromArgb(240, 255, 255, 255)),
-                    Foreground = Brushes.Black,
-                    BorderBrush = (SolidColorBrush)FindResource("Accent"), SelectionBrush = AccentBrush(),
-                    BorderThickness = new Thickness(2),
-                    FontFamily = new FontFamily(fontName),
-                    FontSize = Math.Max(canvasFontSize, 10),
-                    MinWidth = Math.Max(cWidth + 20, 100),
-                    Height = Math.Max(cHeight + 12, 24),
-                    Padding = new Thickness(2, 0, 2, 0),
-                    VerticalContentAlignment = VerticalAlignment.Center,
-                    AcceptsReturn = false,
-                    Tag = new TextEditContext
-                    {
-                        PageIndex = pageIdx,
-                        OriginalText = lineText,
-                        CanvasBounds = new Rect(cLeft, cTop, cWidth, cHeight),
-                        Position = new Point(cLeft, cTop),
-                        FontSize = Math.Max(canvasFontSize, 10),
-                        FontName = fontName
-                    }
-                };
-                Canvas.SetLeft(tb, cLeft);
-                Canvas.SetTop(tb, cTop);
-                _activeCanvas.Children.Add(tb);
-                _activeTextBox = tb;
-
-                // Show white-out behind the edit box so original text is hidden
-                var whiteout = new Rectangle
-                {
-                    Fill = Brushes.White,
-                    Width = cWidth + 4,
-                    Height = cHeight + 4,
-                    IsHitTestVisible = false,
-                    Tag = "EditWhiteout"
-                };
-                Canvas.SetLeft(whiteout, cLeft - 2);
-                Canvas.SetTop(whiteout, cTop - 2);
-                int tbIdx = _activeCanvas.Children.IndexOf(tb);
-                _activeCanvas.Children.Insert(tbIdx, whiteout);
-
-                tb.KeyDown += EditTextBox_KeyDown;
-                tb.Loaded += (s, ev) =>
-                {
-                    tb.Focus();
-                    Keyboard.Focus(tb);
-                    tb.SelectAll();
-                    tb.LostFocus += EditTextBox_LostFocus;
-                };
-
-                SetStatus("Editing text - Enter to save, Escape to cancel");
+                // Drop the cover + editable text box for the detected line. Detected size carries the
+                // EditTextSizeCorrection (WPF renders the source point size ~25% large); manual edits don't.
+                StartCoverTextEdit(pageIdx, new Rect(cLeft, cTop, cWidth, cHeight), lineText,
+                    Math.Max(canvasFontSize * EditTextSizeCorrection, 8), fontName, syInv);
             }
             catch (Exception ex)
             {
@@ -9266,97 +9553,57 @@ namespace KillerPDF
             }
         }
 
-        /// <summary>Context data attached to an inline text edit TextBox via Tag.</summary>
-        private class TextEditContext
+        // Drops an opaque cover at the given line and opens an editable text box on top of it - the two
+        // halves of an in-place edit. Used for a detected PDF-text line and, on a scanned page with no
+        // text layer, for a manual edit at the click point. boxFontCanvas is the on-canvas font size;
+        // the cover fill and text ink are sampled from the page so the edit blends in.
+        private void StartCoverTextEdit(int pageIdx, Rect lineRect, string text, double boxFontCanvas, string fontName, double syInv)
         {
-            public int PageIndex { get; set; }
-            public string OriginalText { get; set; } = "";
-            public Rect CanvasBounds { get; set; }
-            public Point Position { get; set; }
-            public double FontSize { get; set; }
-            public string FontName { get; set; } = "Segoe UI";
-            /// <summary>Non-null when re-editing an already-committed annotation; update in place instead of adding a new one.</summary>
-            public TextEditAnnotation? ExistingAnnotation { get; set; }
-        }
+            double cLeft = lineRect.X, cTop = lineRect.Y, cWidth = lineRect.Width, cHeight = lineRect.Height;
+            // Pair id shared with the replacement text - the cover renders dashed while paired.
+            var cover = new CoverAnnotation { PageIndex = pageIdx, PairId = Guid.NewGuid().ToString("N"),
+                Bounds = new Rect(cLeft - 3, cTop - 3, cWidth + 6, cHeight + 6) };
+            var sampleRect = new Rect(cLeft, cTop, cWidth, cHeight);
+            Color coverBg  = SampleCoverColor(pageIdx, sampleRect);
+            Color inkColor = SampleTextColor(pageIdx, sampleRect, coverBg);
+            cover.SetColor(coverBg);
+            _textColor = inkColor; _textOpacity = inkColor.A;
+            _textFontSize = Math.Max(1, Math.Round(boxFontCanvas / syInv));   // canvas units -> points
+            _pendingEditWasDirty = _isDirty;   // capture before the cover dirties the doc
+            if (!_annotations.ContainsKey(pageIdx)) _annotations[pageIdx] = [];
+            _annotations[pageIdx].Add(cover);
+            _pendingCover = cover;
+            MarkDirty();
+            RenderAllAnnotations(pageIdx);
 
-        private void EditTextBox_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Escape)
+            var tb = new TextBox
             {
-                CancelTextEdit();
-                e.Handled = true;
-            }
-            else if (e.Key == Key.Enter)
-            {
-                CommitTextEdit();
-                e.Handled = true;
-            }
-        }
-
-        private void EditTextBox_LostFocus(object sender, RoutedEventArgs e)
-        {
-            if (_activeTextBox is not null && _activeTextBox.Tag is TextEditContext)
-            {
-                Dispatcher.BeginInvoke(new Action(CommitTextEdit),
-                    System.Windows.Threading.DispatcherPriority.Background);
-            }
-        }
-
-        private void CancelTextEdit()
-        {
-            if (_activeTextBox is null) return;
-            var tb = _activeTextBox;
-            _activeTextBox = null;
-            _activeCanvas.Children.Remove(tb);
-            // Remove the whiteout rectangle
-            var whiteout = _activeCanvas.Children.OfType<Rectangle>()
-                .FirstOrDefault(r => r.Tag is string s && s == "EditWhiteout");
-            if (whiteout is not null)
-                _activeCanvas.Children.Remove(whiteout);
-            SetStatus("Text edit cancelled");
-        }
-
-        private void CommitTextEdit()
-        {
-            if (_activeTextBox is null || _activeTextBox.Tag is not TextEditContext ctx) return;
-            var tb = _activeTextBox;
-            _activeTextBox = null;
-            string newText = tb.Text.Trim();
-            _activeCanvas.Children.Remove(tb);
-
-            // Remove the whiteout rectangle
-            var whiteout = _activeCanvas.Children.OfType<Rectangle>()
-                .FirstOrDefault(r => r.Tag is string s && s == "EditWhiteout");
-            if (whiteout is not null)
-                _activeCanvas.Children.Remove(whiteout);
-
-            if (string.IsNullOrEmpty(newText) || newText == ctx.OriginalText)
-            {
-                SetStatus(newText == ctx.OriginalText ? "No changes made" : "Text edit cancelled (empty)");
-                return;
-            }
-
-            if (ctx.ExistingAnnotation is not null)
-            {
-                // Update the existing annotation in place — avoids duplicate whiteout layers
-                ctx.ExistingAnnotation.NewContent = newText;
-            }
-            else
-            {
-                var edit = new TextEditAnnotation
-                {
-                    PageIndex = ctx.PageIndex,
-                    OriginalBounds = ctx.CanvasBounds,
-                    Position = ctx.Position,
-                    NewContent = newText,
-                    OriginalContent = ctx.OriginalText,
-                    FontSize = ctx.FontSize,
-                    FontName = ctx.FontName
-                };
-                AddAnnotation(edit);
-            }
-            RenderAllAnnotations(ctx.PageIndex);
-            SetStatus($"Text edited: \"{ctx.OriginalText}\" -> \"{newText}\"");
+                Text = text,
+                Background = Brushes.Transparent,   // the opaque cover behind supplies the backdrop
+                Foreground = new SolidColorBrush(inkColor),
+                BorderBrush = (SolidColorBrush)FindResource("Accent"), SelectionBrush = AccentBrush(),
+                CaretBrush = new SolidColorBrush(inkColor),
+                Template = FlatTextBoxTemplate(),
+                BorderThickness = new Thickness(1),
+                FontFamily = new FontFamily(fontName),
+                FontSize = boxFontCanvas,
+                Width = Math.Max(cWidth + 20, 80),
+                MinHeight = 24,
+                Padding = new Thickness(2, 0, 2, 0),
+                AcceptsReturn = true,
+                TextWrapping = TextWrapping.Wrap,
+                Tag = pageIdx
+            };
+            Canvas.SetLeft(tb, cLeft);
+            Canvas.SetTop(tb, cTop);
+            _activeCanvas.Children.Add(tb);
+            _activeTextBox = tb;
+            tb.PreviewKeyDown += TextBox_PreviewKeyDown;
+            tb.Loaded += (s, ev) => { tb.Focus(); Keyboard.Focus(tb); tb.SelectAll(); tb.LostFocus += TextBox_LostFocus; AttachTextEditResizeHandles(tb); };
+            ShowTextSettings();
+            SetStatus(string.IsNullOrEmpty(text)
+                ? "Type your text, then drag the cover over the original — Enter to save, Escape to cancel"
+                : "Editing text — change size/color above, Enter to save, Escape to cancel");
         }
 
         // ============================================================
@@ -9434,7 +9681,7 @@ namespace KillerPDF
             Canvas.SetTop(tb, pos.Y);
             _activeCanvas.Children.Add(tb);
             _activeTextBox = tb;
-            tb.KeyDown += TextBox_KeyDown;
+            tb.PreviewKeyDown += TextBox_PreviewKeyDown;
             tb.LostFocus += TextBox_LostFocus;
             // Focus the box and attach its live resize handles once laid out. Loaded fires on first
             // placement; a dispatcher fallback covers re-entry (Text tool -> Select -> Text again),
@@ -9509,10 +9756,21 @@ namespace KillerPDF
         private void RemoveTextEditHandles()
         {
             if (_tehBox is not null) _tehBox.SizeChanged -= TextEditBox_SizeChanged;
-            foreach (var hd in _textEditHandles) _activeCanvas.Children.Remove(hd);
+            foreach (var hd in _textEditHandles) RemoveFromParent(hd);
             _textEditHandles.Clear();
             _tehBox = null;
             _draggingTextEditHandle = false;
+        }
+
+        // Remove a canvas child from whatever Panel actually parents it, instead of assuming it lives
+        // on _activeCanvas. In continuous/grid view _activeCanvas follows the mouse to whichever page
+        // was last clicked, so a text-edit box, its whiteout, or its handles - placed earlier on a
+        // different page's canvas - would otherwise survive removal and become orphaned: still painted,
+        // but unreachable by Delete, Clear All, or resize. Its live Parent is always the correct host.
+        private static void RemoveFromParent(UIElement? el)
+        {
+            if (el is FrameworkElement fe && fe.Parent is Panel p)
+                p.Children.Remove(el);
         }
 
         // Hit-test a live text-edit handle at the given canvas point; returns its corner tag or null.
@@ -9528,16 +9786,20 @@ namespace KillerPDF
             return null;
         }
 
-        private void TextBox_KeyDown(object sender, KeyEventArgs e)
+        // Attached as PreviewKeyDown (tunneling) so Enter is caught before the TextBox inserts a line
+        // break: Enter commits, Shift+Enter falls through to make a newline (the box is AcceptsReturn).
+        private void TextBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Escape)
             {
                 RemoveTextEditHandles();
                 if (_activeTextBox is not null)
                 {
-                    _activeCanvas.Children.Remove(_activeTextBox);
+                    RemoveFromParent(_activeTextBox);
                     _activeTextBox = null;
                 }
+                // Escaping an existing-text edit drops the cover too (it was placed un-undone).
+                if (_pendingCover is not null) DiscardPendingCover();
                 if (_reeditOriginal is not null)
                 {
                     int rp = _reeditOriginal.PageIndex;
@@ -9560,8 +9822,9 @@ namespace KillerPDF
         {
             // Don't commit while a resize handle is being dragged (the box temporarily loses focus).
             if (_draggingTextEditHandle) return;
-            // Only commit if the TextBox actually has content
-            if (_activeTextBox is not null && !string.IsNullOrWhiteSpace(_activeTextBox.Text))
+            // Commit if the box has content, or (for an existing-text edit) even when emptied, so the
+            // pending cover is resolved instead of lingering when the user clicks away from a blank edit.
+            if (_activeTextBox is not null && (!string.IsNullOrWhiteSpace(_activeTextBox.Text) || _pendingCover is not null))
             {
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
@@ -9579,15 +9842,10 @@ namespace KillerPDF
         private void CommitActiveTextBox()
         {
             if (_activeTextBox is null) return;
-            // If it's an inline text edit, use the dedicated commit path
-            if (_activeTextBox.Tag is TextEditContext)
-            {
-                CommitTextEdit();
-                return;
-            }
             var tb = _activeTextBox;
             _activeTextBox = null;
             RemoveTextEditHandles();
+            string reeditPair = _reeditOriginal?.PairId ?? "";   // preserve a re-edited text's cover pairing
             _reeditOriginal = null;   // committing replaces any annotation being re-edited
 
             string content = tb.Text.Trim();
@@ -9595,11 +9853,12 @@ namespace KillerPDF
             double x = Canvas.GetLeft(tb);
             double y = Canvas.GetTop(tb);
 
-            // Resolve the canvas of the text box's OWN page. _activeCanvas may have moved to a
-            // different page when the user clicked away to commit (continuous/grid mode), which
-            // would otherwise render the text on the wrong page and leave undo unable to clear it.
-            var pageCanvas = _continuousCanvases.TryGetValue(pageIdx, out var pc) ? pc : _annotationCanvas;
-            pageCanvas.Children.Remove(tb);
+            // Remove the editing box from whatever canvas actually parents it. _activeCanvas may have
+            // moved to another page when the user clicked away to commit (continuous/grid), and a
+            // re-looked-up page canvas can be a different instance than the one the box was placed on,
+            // either of which leaves the box orphaned (visible, but immune to Delete/Clear All). Its
+            // live Parent is the correct host.
+            RemoveFromParent(tb);
 
             if (!string.IsNullOrEmpty(content))
             {
@@ -9614,17 +9873,150 @@ namespace KillerPDF
                     Width = boxW
                 };
                 ta.SetColor(tb.Foreground is SolidColorBrush scb ? scb.Color : Colors.Black);
-                ta.SetFill(_textFillColor);
+                // A cover-paired edit gets no fill of its own - the opaque cover behind it is the backdrop.
+                ta.SetFill(_pendingCover is not null ? Colors.Transparent : _textFillColor);
                 // Free-form height if the box was manually resized; otherwise fit to the wrapped text.
                 ta.Height = (!double.IsNaN(tb.Height) && tb.Height > 0)
                     ? tb.Height
                     : MeasureTextBoxHeight(content, boxW, tb.FontSize);
                 // Keep the placed box fully on-page so its corners (and resize handles) stay reachable.
                 ta.Position = ClampRectToPage(pageIdx, new Rect(ta.Position, new Size(ta.Width, ta.Height))).Location;
-                AddAnnotation(ta);
+                // Carry the pairing so the cover knows its partner text exists (renders dashed).
+                ta.PairId = _pendingCover is not null ? _pendingCover.PairId : reeditPair;
+                if (_pendingCover is not null)
+                {
+                    // Existing-text edit: the cover is already in _annotations. Add the text beside it and
+                    // push ONE grouped undo so a single Ctrl+Z right after cancels the whole edit. After
+                    // this, cover and text are independent annotations (move/resize/recolor separately).
+                    _annotations[pageIdx].Add(ta);
+                    _undoStack.Push(new UndoEntry(UndoKind.AnnotationGroup, pageIdx,
+                        WasDirty: _pendingEditWasDirty, AnnotGroup: [_pendingCover, ta]));
+                    _pendingCover = null;
+                    MarkDirty();
+                }
+                else
+                {
+                    AddAnnotation(ta);
+                }
                 RenderAllAnnotations(pageIdx);   // redraw on the correct page's canvas
             }
+            else if (_pendingCover is not null)
+            {
+                // Edit left empty - abandon it and drop the cover (added without its own undo entry).
+                DiscardPendingCover();
+            }
             if (_currentTool != EditTool.Text) HideTextSettings();
+        }
+
+        // Remove the not-yet-committed cover when an existing-text edit is cancelled or left empty. The
+        // cover was added straight to _annotations without an undo entry, so just drop it and repaint.
+        private void DiscardPendingCover()
+        {
+            if (_pendingCover is null) return;
+            int pg = _pendingCover.PageIndex;
+            if (_annotations.TryGetValue(pg, out var list)) list.Remove(_pendingCover);
+            _pendingCover = null;
+            MarkDirty(_pendingEditWasDirty);
+            RenderAllAnnotations(pg);
+        }
+
+        // ── Cover background sampling ───────────────────────────────────────────────
+        // Reads the page background color around an existing-text line so a cover blends into colored
+        // headers/panels instead of showing a white box. Best-effort: returns white on any failure.
+
+        // The page's rendered bitmap: the Image sibling of its overlay canvas (continuous/grid/two-page),
+        // or the single-view PageImage. View-mode independent so sampling works everywhere.
+        private System.Windows.Media.Imaging.BitmapSource? PageBitmapFor(int pageIdx)
+        {
+            if (_continuousCanvases.TryGetValue(pageIdx, out var overlay) && overlay.Parent is Panel mp)
+                foreach (var ch in mp.Children)
+                    if (ch is Image im && im.Source is System.Windows.Media.Imaging.BitmapSource bs) return bs;
+            if (pageIdx == PageList.SelectedIndex && FindName("PageImage") is Image pgi
+                && pgi.Source is System.Windows.Media.Imaging.BitmapSource pbs) return pbs;
+            return null;
+        }
+
+        private static Color ReadBgraPixel(System.Windows.Media.Imaging.BitmapSource bmp, int x, int y)
+        {
+            x = Math.Max(0, Math.Min(x, bmp.PixelWidth - 1));
+            y = Math.Max(0, Math.Min(y, bmp.PixelHeight - 1));
+            var px = new byte[4];
+            bmp.CopyPixels(new Int32Rect(x, y, 1, 1), px, 4, 0);   // Bgra32: B,G,R,A
+            // Composite over white (the PDF page background) so transparent pixels - common on repaired
+            // or scanned renders - read as white, not black. Returns an opaque color for sampling.
+            double a = px[3] / 255.0;
+            byte r = (byte)(px[2] * a + 255 * (1 - a));
+            byte g = (byte)(px[1] * a + 255 * (1 - a));
+            byte b = (byte)(px[0] * a + 255 * (1 - a));
+            return Color.FromRgb(r, g, b);
+        }
+
+        /// <summary>Background color around a text line, in canvas (render-dim) coordinates. White on failure.</summary>
+        private Color SampleCoverColor(int pageIdx, Rect textBounds)
+        {
+            try
+            {
+                var bmp = PageBitmapFor(pageIdx);
+                if (bmp is null || !_renderDims.TryGetValue(pageIdx, out var rd) || rd.w <= 0 || rd.h <= 0)
+                    return Colors.White;
+                double sx = bmp.PixelWidth  / (double)rd.w;   // render-dim -> bitmap pixels
+                double sy = bmp.PixelHeight / (double)rd.h;
+                // Sample the whitespace just above and below the line (usually pure background) at a few
+                // x offsets; take the median by luminance to shrug off a stray glyph or anti-aliased edge.
+                double gap = Math.Max(3.0, textBounds.Height * 0.4);
+                var cols = new List<Color>();
+                foreach (double f in new[] { 0.2, 0.5, 0.8 })
+                {
+                    double x = textBounds.Left + textBounds.Width * f;
+                    cols.Add(ReadBgraPixel(bmp, (int)Math.Round(x * sx), (int)Math.Round((textBounds.Top - gap) * sy)));
+                    cols.Add(ReadBgraPixel(bmp, (int)Math.Round(x * sx), (int)Math.Round((textBounds.Bottom + gap) * sy)));
+                }
+                if (cols.Count == 0) return Colors.White;
+                cols.Sort((a, b) => (0.299 * a.R + 0.587 * a.G + 0.114 * a.B)
+                                    .CompareTo(0.299 * b.R + 0.587 * b.G + 0.114 * b.B));
+                return cols[cols.Count / 2];
+            }
+            catch { return Colors.White; }
+        }
+
+        private static double ColorDist(Color a, Color b)
+        {
+            double dr = a.R - b.R, dg = a.G - b.G, db = a.B - b.B;
+            return Math.Sqrt(dr * dr + dg * dg + db * db);
+        }
+
+        /// <summary>The text "ink" color of a line: the color inside the glyph box farthest from the
+        /// page background. Averages the purest-ink samples so anti-aliased edges don't desaturate it.
+        /// Black on failure or when no real contrast is found.</summary>
+        private Color SampleTextColor(int pageIdx, Rect textBounds, Color bg)
+        {
+            try
+            {
+                var bmp = PageBitmapFor(pageIdx);
+                if (bmp is null || !_renderDims.TryGetValue(pageIdx, out var rd) || rd.w <= 0 || rd.h <= 0)
+                    return Colors.Black;
+                double sx = bmp.PixelWidth  / (double)rd.w;
+                double sy = bmp.PixelHeight / (double)rd.h;
+                int cols = 16, rows = Math.Max(3, (int)Math.Min(8, textBounds.Height / 3));
+                var scored = new List<(double dist, Color c)>();
+                for (int ix = 0; ix < cols; ix++)
+                    for (int iy = 0; iy < rows; iy++)
+                    {
+                        double x = textBounds.Left + textBounds.Width  * (ix + 0.5) / cols;
+                        double y = textBounds.Top  + textBounds.Height * (iy + 0.5) / rows;
+                        var c = ReadBgraPixel(bmp, (int)Math.Round(x * sx), (int)Math.Round(y * sy));
+                        scored.Add((ColorDist(c, bg), c));
+                    }
+                if (scored.Count == 0) return Colors.Black;
+                scored.Sort((a, b) => b.dist.CompareTo(a.dist));   // most ink-like first
+                double maxDist = scored[0].dist;
+                if (maxDist < 24) return Colors.Black;             // no real contrast -> default
+                double thresh = maxDist * 0.7;                     // purest-ink cluster only
+                double r = 0, g = 0, bl = 0; int n = 0;
+                foreach (var (dist, c) in scored) { if (dist < thresh) break; r += c.R; g += c.G; bl += c.B; n++; }
+                return n == 0 ? Colors.Black : Color.FromRgb((byte)(r / n), (byte)(g / n), (byte)(bl / n));
+            }
+            catch { return Colors.Black; }
         }
 
         // ============================================================
@@ -9651,7 +10043,9 @@ namespace KillerPDF
             }
             else if (e.Key == Key.A && Keyboard.Modifiers == ModifierKeys.Control)
             {
-                SelectAllText();
+                // Prefer selecting all annotations (shows where everything is, makes stacked annotations
+                // editable); fall back to selecting page text when there are none on screen.
+                if (!SelectAllAnnotations()) SelectAllText();
                 e.Handled = true;
             }
             else if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control)
@@ -9933,6 +10327,10 @@ namespace KillerPDF
                 TextWrapping = TextWrapping.Wrap,
                 VerticalAlignment = VerticalAlignment.Top
             };
+            // Crisp glyphs: pixel-snapped layout + grayscale AA (ClearType can't subpixel on the
+            // transparent overlay, and the default left the placed text looking aliased).
+            TextOptions.SetTextFormattingMode(tb, TextFormattingMode.Display);
+            TextOptions.SetTextRenderingMode(tb, TextRenderingMode.Grayscale);
             var box = new Border
             {
                 Width = Math.Max(1, ta.Width),
@@ -9964,6 +10362,26 @@ namespace KillerPDF
                     case TextAnnotation ta:
                         RenderTextAnnotation(ta);
                         break;
+                    case CoverAnnotation cov:
+                        var covRect = new Rectangle
+                        {
+                            Fill = new SolidColorBrush(cov.GetColor()),
+                            Width = cov.Bounds.Width, Height = cov.Bounds.Height
+                        };
+                        // While being typed into, dash-outline the cover so it's visible behind the live
+                        // text box. Otherwise just the opaque fill - its outline only appears on selection
+                        // (drawn as selection chrome), so a deselected cover stays clean. Screen-only; the
+                        // flattened/saved PDF draws just the fill.
+                        if (ReferenceEquals(cov, _pendingCover))
+                        {
+                            covRect.Stroke = DarkerAccentBrush();
+                            covRect.StrokeThickness = 1;
+                            covRect.StrokeDashArray = new DoubleCollection { 4, 3 };
+                        }
+                        Canvas.SetLeft(covRect, cov.Bounds.X);
+                        Canvas.SetTop(covRect, cov.Bounds.Y);
+                        _activeCanvas.Children.Add(covRect);
+                        break;
                     case HighlightAnnotation ha:
                         var hr = ha.DrawRect();
                         var rect = new Rectangle
@@ -9989,32 +10407,6 @@ namespace KillerPDF
                         foreach (var pt in ia.Points) poly.Points.Add(pt);
                         _activeCanvas.Children.Add(poly);
                         break;
-                    case TextEditAnnotation tea:
-                        // White-out original text
-                        var wo = new Rectangle
-                        {
-                            Fill = Brushes.White,
-                            Width = tea.OriginalBounds.Width + 4,
-                            Height = tea.OriginalBounds.Height + 4,
-                            IsHitTestVisible = false
-                        };
-                        Canvas.SetLeft(wo, tea.OriginalBounds.X - 2);
-                        Canvas.SetTop(wo, tea.OriginalBounds.Y - 2);
-                        _activeCanvas.Children.Add(wo);
-                        // Draw replacement text
-                        var etb = new TextBlock
-                        {
-                            Text = tea.NewContent,
-                            Foreground = Brushes.Black,
-                            FontFamily = new FontFamily(tea.FontName),
-                            FontSize = tea.FontSize,
-                            Padding = new Thickness(0)
-                        };
-                        Canvas.SetLeft(etb, tea.Position.X);
-                        Canvas.SetTop(etb, tea.Position.Y);
-                        _activeCanvas.Children.Add(etb);
-                        break;
-
                     case SignatureAnnotation sa:
                         if (sa.ImageData is not null)
                         {
@@ -10135,6 +10527,18 @@ namespace KillerPDF
                 RenderAllAnnotations(pageIdx);
                 MarkDirty(entry.WasDirty);
                 SetStatus("Undid last annotation");
+            }
+            else if (entry.Kind == UndoKind.AnnotationGroup && entry.AnnotGroup is not null)
+            {
+                // A grouped edit (text cover + replacement text). Remove the exact annotations recorded,
+                // so one Ctrl+Z cancels the whole edit.
+                int pageIdx = entry.PageIdx;
+                if (_annotations.TryGetValue(pageIdx, out var pageList))
+                    foreach (var a in entry.AnnotGroup) pageList.Remove(a);
+                ClearSelection();
+                RenderAllAnnotations(pageIdx);
+                MarkDirty(entry.WasDirty);
+                SetStatus("Undid text edit");
             }
             else if (entry.Kind == UndoKind.StampBatch && entry.Pages is not null)
             {
@@ -11600,18 +12004,6 @@ namespace KillerPDF
                             }
                             break;
 
-                        case TextEditAnnotation tea:
-                            // White-out original text area
-                            var whiteRect = new XSolidBrush(XColors.White);
-                            gfx.DrawRectangle(whiteRect,
-                                (tea.OriginalBounds.X - 2) * sx, (tea.OriginalBounds.Y - 2) * sy,
-                                (tea.OriginalBounds.Width + 4) * sx, (tea.OriginalBounds.Height + 4) * sy);
-                            // Draw replacement text
-                            var editFont = new XFont(tea.FontName, tea.FontSize * sy);
-                            double ety = tea.Position.Y * sy + tea.FontSize * sy;
-                            gfx.DrawString(tea.NewContent, editFont, XBrushes.Black, tea.Position.X * sx, ety);
-                            break;
-
                         case SignatureAnnotation sa:
                             if (sa.ImageData is not null)
                             {
@@ -12606,7 +12998,7 @@ namespace KillerPDF
             // Reuse the main window's film-grain texture on the About card.
             if (GrainBrush?.ImageSource != null) AboutGrainBrush.ImageSource = GrainBrush.ImageSource;
 
-            // Logo block: "Killer" in the primary colour, "PDF" in the brand green.
+            // Logo block: "Killer" in the primary color, "PDF" in the brand green.
             AboutLogoBlock.Inlines.Clear();
             var logoHl = new System.Windows.Documents.Hyperlink { TextDecorations = null };
             logoHl.Inlines.Add(new System.Windows.Documents.Run("Killer")
@@ -13235,7 +13627,7 @@ namespace KillerPDF
             };
             titleBar.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed) win.DragMove(); };
             // When the title is just "KillerPDF", render it as the main window's wordmark - "Killer"
-            // in the primary text colour and "PDF" in the green logo accent, bold, with a soft shadow.
+            // in the primary text color and "PDF" in the green logo accent, bold, with a soft shadow.
             if (title == "KillerPDF")
             {
                 var wm = new StackPanel { Orientation = Orientation.Horizontal };

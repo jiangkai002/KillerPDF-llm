@@ -16,7 +16,7 @@ namespace KillerPDF
     /// Themed modal dialog that cryptographically signs the open PDF with a certificate (a .pfx/.p12
     /// file, or one from the Windows store) and writes a NEW signed copy. This is the real digital
     /// signature - distinct from the drawn "Signature" stamp tool, which only places a picture.
-    /// Chrome and colours mirror PrintPreviewWindow so every KillerPDF dialog looks identical.
+    /// Chrome and colors mirror PrintPreviewWindow so every KillerPDF dialog looks identical.
     /// </summary>
     internal sealed class SignDocumentDialog : Window
     {

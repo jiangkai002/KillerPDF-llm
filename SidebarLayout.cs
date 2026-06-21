@@ -103,7 +103,7 @@ namespace KillerPDF
             int accentStartCol = _sidebarRight ? 0 : 1;
             foreach (var n in new[] { "DocTopAccent", "DocBottomAccent" })
                 if (FindName(n) is Border accentLine) System.Windows.Controls.Grid.SetColumn(accentLine, accentStartCol);
-            // The top accent (pane-border colour) bled 1px into the sidebar; inset its sidebar-facing
+            // The top accent (pane-border color) bled 1px into the sidebar; inset its sidebar-facing
             // edge by 1px so it stops exactly at the splitter instead of overhanging the list.
             if (FindName("DocTopAccent") is Border topAccent)
                 topAccent.Margin = _sidebarRight ? new Thickness(0, 0, 1, 0) : new Thickness(1, 0, 0, 0);
