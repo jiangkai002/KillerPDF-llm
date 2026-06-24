@@ -224,19 +224,18 @@ namespace KillerPDF
             _ctxMenu.Items.Add(new Separator());
 
             _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_DuplicatePage"), (s, e) => DuplicatePage(pageIdx)));
-            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_StampNumbers"), (s, e) => StampPageNumbers()));
-            _ctxMenu.Items.Add(new Separator());
-
-            if (_annotationClipboard.Count > 0)
-                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Paste"), (s, e) => PasteAnnotations(pageIdx), "Ctrl+V"));
-
             // Delete Selected when something is selected; otherwise Delete Page (the page under the cursor,
             // which the right-click already made the selected page).
             if (hasSelection)
                 _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_DeleteSel"), (s, e) => DeleteSelected(), "Delete"));
             else
                 _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_DeletePage"), (s, e) => Delete_Click(s!, e)));
+            _ctxMenu.Items.Add(new Separator());
 
+            if (_annotationClipboard.Count > 0)
+                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Paste"), (s, e) => PasteAnnotations(pageIdx), "Ctrl+V"));
+
+            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_StampNumbers"), (s, e) => StampPageNumbers()));
             _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_UndoLast"), (s, e) => Undo_Click(s!, e), "Ctrl+Z"));
             _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_ClearPage"), (s, e) => ClearAnnotations_Click(s!, e)));
         }
@@ -334,7 +333,8 @@ namespace KillerPDF
                 ColorR = h.ColorR,
                 ColorG = h.ColorG,
                 ColorB = h.ColorB,
-                ColorA = h.ColorA
+                ColorA = h.ColorA,
+                Erases = h.Erases?.Select(e => new HighlightErase { Points = new List<Point>(e.Points), Radius = e.Radius }).ToList()
             },
             TextAnnotation t => new TextAnnotation
             {
@@ -509,22 +509,73 @@ namespace KillerPDF
         private void PageList_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
         {
             if (_doc is null) return;
+            // Did the click land on a thumbnail, or the empty area below the list? Page-specific actions
+            // (rotate, move, delete) only make sense on a thumbnail; the empty area gets the page-agnostic
+            // menu (same one the gray area around the page uses).
+            bool onThumb = false;
+            for (var d = e.OriginalSource as DependencyObject; d != null; d = VisualTreeHelper.GetParent(d))
+                if (d is ListBoxItem) { onThumb = true; break; }
+
+            var menu = MakeThemedMenu();
+            if (onThumb)
+            {
+                menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_InsertBlank"), (s, ev) => InsertBlankPage_Click(s!, ev)));
+                menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_DuplicatePage"), (s, ev) => DuplicatePage(PageList.SelectedIndex)));
+                menu.Items.Add(new Separator());
+                menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_RotateCWShort"), (s, ev) => RotatePages_Click(90)));
+                menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_RotateCCWShort"), (s, ev) => RotatePages_Click(-90)));
+                menu.Items.Add(new Separator());
+                menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_MoveUp"), (s, ev) => MoveUp_Click(s!, ev)));
+                menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_MoveDown"), (s, ev) => MoveDown_Click(s!, ev)));
+                menu.Items.Add(new Separator());
+                menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_ExtractPages"), (s, ev) => Split_Click(s!, ev)));
+                menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_DeletePages"), (s, ev) => Delete_Click(s!, ev)));
+                menu.Items.Add(new Separator());
+                menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_StampNumbers"), (s, ev) => StampPageNumbers()));
+            }
+            else
+            {
+                FillPageAgnosticMenu(menu);
+            }
+            menu.PlacementTarget = PageList;
+            menu.IsOpen = true;
+            e.Handled = true;
+        }
+
+        private ContextMenu MakeThemedMenu()
+        {
             var menu = new ContextMenu();
             TextOptions.SetTextFormattingMode(menu, TextFormattingMode.Display);
             TextOptions.SetTextRenderingMode(menu, TextRenderingMode.Grayscale);
-            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_InsertBlank"), (s, ev) => InsertBlankPage_Click(s!, ev)));
+            return menu;
+        }
+
+        // Document-wide actions for a right-click with no specific page under the cursor: the empty sidebar
+        // area below the thumbnails, or the gray area around the page in the document pane.
+        private void FillPageAgnosticMenu(ContextMenu menu)
+        {
+            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_AddBlankPage"), (s, e) => AddBlankPageAtEnd()));
             menu.Items.Add(new Separator());
-            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_RotateCWShort"), (s, ev) => RotatePages_Click(90)));
-            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_RotateCCWShort"), (s, ev) => RotatePages_Click(-90)));
+            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Print"), (s, e) => Print_Click(s!, e), "Ctrl+P"));
+            menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_ZoomIn"), (s, e) => ZoomIn_Click(s!, e), "Ctrl+="));
+            menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_ZoomOut"), (s, e) => ZoomOut_Click(s!, e), "Ctrl+-"));
             menu.Items.Add(new Separator());
-            menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_MoveUp"), (s, ev) => MoveUp_Click(s!, ev)));
-            menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_MoveDown"), (s, ev) => MoveDown_Click(s!, ev)));
-            menu.Items.Add(new Separator());
-            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_ExtractPages"), (s, ev) => Split_Click(s!, ev)));
-            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_DeletePages"), (s, ev) => Delete_Click(s!, ev)));
-            menu.Items.Add(new Separator());
-            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_StampNumbers"), (s, ev) => StampPageNumbers()));
-            menu.PlacementTarget = PageList;
+            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_UndoLast"), (s, e) => Undo_Click(s!, e), "Ctrl+Z"));
+            menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_Clear"), (s, e) => ClearAllAnnotations_Click(s!, e)));
+        }
+
+        // Opens the page-agnostic menu for a right-click on the gray area around the page (the document
+        // pane background). Wired in code so right-clicking outside the page is no longer a dead spot.
+        private void DocPaneBackground_RightClick(object sender, MouseButtonEventArgs e)
+        {
+            if (_doc is null) return;
+            // Only when the click really hit the background, not a page tile (those have their own menu).
+            if (e.OriginalSource is DependencyObject d)
+                for (var n = d; n != null; n = VisualTreeHelper.GetParent(n))
+                    if (n is Canvas) return;
+            var menu = MakeThemedMenu();
+            FillPageAgnosticMenu(menu);
+            menu.PlacementTarget = (UIElement)sender;
             menu.IsOpen = true;
             e.Handled = true;
         }

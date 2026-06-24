@@ -1597,6 +1597,7 @@
                                   PreviewMouseDown="PagePreviewPanel_PreviewMouseDown"
                                   PreviewMouseMove="PagePreviewPanel_PreviewMouseMove"
                                   PreviewMouseUp="PagePreviewPanel_PreviewMouseUp"
+                                  MouseRightButtonUp="DocPaneBackground_RightClick"
                                   AllowDrop="True" Drop="DropZone_Drop" DragOver="DropZone_DragOver">
                         <Border VerticalAlignment="Top" HorizontalAlignment="Center" Padding="12">
                             <!-- Override the window's Display/ClearType text mode for the zoomed
@@ -1618,6 +1619,7 @@
                                             <Canvas x:Name="AnnotationCanvas" Background="Transparent" ClipToBounds="True"
                                                     PreviewMouseLeftButtonDown="Canvas_MouseLeftButtonDown"
                                                     MouseMove="Canvas_MouseMove"
+                                                    MouseLeave="Canvas_MouseLeave"
                                                     PreviewMouseLeftButtonUp="Canvas_MouseLeftButtonUp"/>
                                         </Grid>
                                     </Border>

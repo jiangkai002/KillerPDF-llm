@@ -87,9 +87,21 @@ namespace KillerPDF
         public void SetColor(Color c) { ColorR = c.R; ColorG = c.G; ColorB = c.B; ColorA = c.A; }
     }
 
+    // One brush-eraser pass over a highlight: a stroke (canvas-space points) of the given radius. The
+    // highlight renders as its rectangle MINUS the union of these widened strokes - one anti-aliased
+    // geometry, so the erased edges are smooth curves, not blocky steps or seamed strips.
+    public sealed class HighlightErase
+    {
+        public System.Collections.Generic.List<Point> Points { get; set; } = [];
+        public double Radius { get; set; }
+    }
+
     public class HighlightAnnotation : PageAnnotation
     {
         public Rect Bounds { get; set; }
+        // Brush-eraser passes carved out of this highlight (null = untouched solid rect). Only Fill-style
+        // highlights are ever carved.
+        public System.Collections.Generic.List<HighlightErase>? Erases { get; set; }
         public HighlightStyle Style { get; set; } = HighlightStyle.Fill;
         public byte ColorR { get; set; } = 255;
         public byte ColorG { get; set; } = 255;

@@ -351,4 +351,7 @@
     <sys:String x:Key="Str_TT_Search">搜索 (Ctrl+F)</sys:String>
     <sys:String x:Key="Str_Ctx_DeletePage">删除页面</sys:String>
     <sys:String x:Key="Str_Ctx_DuplicatePage">复制页面</sys:String>
+    <sys:String x:Key="Str_Ctx_AddBlankPage">添加空白页</sys:String>
+    <sys:String x:Key="Str_Ctx_CloseTab">关闭标签页</sys:String>
+    <sys:String x:Key="Str_Ctx_CloseOthers">关闭其他标签页</sys:String>
 </ResourceDictionary>

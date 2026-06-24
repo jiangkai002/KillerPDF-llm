@@ -78,6 +78,7 @@ namespace KillerPDF
         private void WirePageOverlay(Canvas overlay, int page)
         {
             overlay.MouseMove                += Canvas_MouseMove;
+            overlay.MouseLeave               += Canvas_MouseLeave;
             overlay.PreviewMouseLeftButtonUp += Canvas_MouseLeftButtonUp;
             overlay.PreviewMouseRightButtonUp += (s, ev) =>
             {

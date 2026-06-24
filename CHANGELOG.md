@@ -12,7 +12,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Highlighter bar with color and opacity controls.
 - Select tool moves and resizes any annotation, Shift+click to multi-select, and reopens an annotation's bar to restyle it in place.
 - Full RGB color picker on every swatch row: saturation/value square, hue strip, RGB/hex inputs, a screen eyedropper, and an editable palette.
-- Tabbed documents: open several PDFs at once, each restoring its page, zoom, and view mode.
+- Tabbed documents: open several PDFs at once, each restoring its page, zoom, and view mode. Drag tabs to re-order.
 - Recent files: a dropdown by Open (last 10) and on the start screen, plus a Save / Save As dropdown.
 - One-click update from the About dialog when a newer release exists.
 - Print options: scale, position, margins, pages per sheet, color / black-and-white, and two-sided.

@@ -351,4 +351,7 @@ Bu işlem uygulamayı %LocalAppData%\KillerPDF konumuna kopyalar ve bir Başlat 
     <sys:String x:Key="Str_TT_Search">Ara (Ctrl+F)</sys:String>
     <sys:String x:Key="Str_Ctx_DeletePage">Sayfayı sil</sys:String>
     <sys:String x:Key="Str_Ctx_DuplicatePage">Sayfayı çoğalt</sys:String>
+    <sys:String x:Key="Str_Ctx_AddBlankPage">Boş sayfa ekle</sys:String>
+    <sys:String x:Key="Str_Ctx_CloseTab">Sekmeyi kapat</sys:String>
+    <sys:String x:Key="Str_Ctx_CloseOthers">Diğer sekmeleri kapat</sys:String>
 </ResourceDictionary>

@@ -342,6 +342,13 @@ namespace KillerPDF
 
         // Close a tab. Prompts to save if that tab has unsaved changes, then switches to a
         // neighbouring tab (or the empty state when the last tab closes).
+        // Closes every open document tab except `keep` (each may prompt to save if dirty, like a manual close).
+        private void CloseOtherTabs(DocumentSession keep)
+        {
+            foreach (var s in _sessions.Where(z => !ReferenceEquals(z, keep) && (z.Doc != null || z.DeferredPath != null)).ToList())
+                CloseTab(s);
+        }
+
         private void CloseTab(DocumentSession? s)
         {
             EnsureInitialSession();
@@ -698,6 +705,19 @@ namespace KillerPDF
             // Middle-click closes the tab (common tabbed-UI convention). Left-click switches on mouse-UP
             // (see the drag handlers below) so a press can begin a drag without first rebuilding the strip.
             bd.MouseDown += (_, e) => { if (e.ChangedButton == MouseButton.Middle) { e.Handled = true; CloseTab(s); } };
+
+            // Right-click: tab actions.
+            bd.MouseRightButtonUp += (_, ev) =>
+            {
+                var menu = MakeThemedMenu();
+                menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_CloseTab"), (_, _) => CloseTab(s)));
+                var others = MakeMenuItem(Loc("Str_Ctx_CloseOthers"), (_, _) => CloseOtherTabs(s));
+                others.IsEnabled = _sessions.Count(z => z.Doc != null || z.DeferredPath != null) > 1;
+                menu.Items.Add(others);
+                menu.PlacementTarget = bd;
+                menu.IsOpen = true;
+                ev.Handled = true;
+            };
 
             // Live drag-reorder: arm on press, and once past the threshold slide this tab between its
             // neighbours in real time as the cursor crosses their midpoints (a plain click still switches).

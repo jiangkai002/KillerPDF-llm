@@ -118,6 +118,25 @@ namespace KillerPDF
             }
         }
 
+        // Appends a blank A4 page to the END of the document. Used by the page-agnostic context menu
+        // (sidebar empty area / outside the page), where there's no specific page to insert relative to.
+        private void AddBlankPageAtEnd()
+        {
+            if (_doc is null) { KillerDialog.Show(this, "Open a PDF first."); return; }
+            var doc = _doc;
+            try
+            {
+                doc.Pages.Add(new PdfPage { Width = XUnit.FromPoint(595), Height = XUnit.FromPoint(842) });
+                SaveTempAndReload();
+                if (PageList.Items.Count > 0) PageList.SelectedIndex = PageList.Items.Count - 1;
+                SetStatus($"Added blank page (now {_doc?.PageCount} pages)");
+            }
+            catch (Exception ex)
+            {
+                KillerDialog.Show(this, $"Add page failed:\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void MoveUp_Click(object sender, RoutedEventArgs e)
         {
             if (_doc is null || PageList.SelectedIndex <= 0) return;

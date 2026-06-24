@@ -76,6 +76,33 @@ namespace KillerPDF
             _activeCanvas.Children.Add(box);
         }
 
+        // Builds the geometry for a carved highlight: the painted rectangle MINUS the union of the eraser
+        // strokes (each widened to its brush radius with round caps) - one smooth, anti-aliased shape. Used
+        // for both on-screen rendering and PDF export. Null when the highlight hasn't been carved.
+        private static Geometry? HighlightEraseGeometry(HighlightAnnotation h)
+        {
+            if (h.Erases is not { Count: > 0 } erases) return null;
+            var holes = new GeometryGroup { FillRule = FillRule.Nonzero };
+            foreach (var e in erases)
+            {
+                if (e.Points.Count == 0) continue;
+                if (e.Points.Count == 1)
+                {
+                    holes.Children.Add(new EllipseGeometry(e.Points[0], e.Radius, e.Radius));
+                    continue;
+                }
+                var fig = new PathFigure { StartPoint = e.Points[0], IsClosed = false, IsFilled = false };
+                for (int i = 1; i < e.Points.Count; i++) fig.Segments.Add(new LineSegment(e.Points[i], true));
+                var pg = new PathGeometry();
+                pg.Figures.Add(fig);
+                var pen = new Pen(Brushes.Black, Math.Max(0.5, e.Radius * 2))
+                { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round, LineJoin = PenLineJoin.Round };
+                holes.Children.Add(pg.GetWidenedPathGeometry(pen));
+            }
+            if (holes.Children.Count == 0) return null;
+            return new CombinedGeometry(GeometryCombineMode.Exclude, new RectangleGeometry(h.DrawRect()), holes);
+        }
+
         private void RenderAllAnnotations(int pageIndex)
         {
             // Resolve this page's annotation surface from the unified per-page overlay map, which
@@ -113,16 +140,25 @@ namespace KillerPDF
                         _activeCanvas.Children.Add(covRect);
                         break;
                     case HighlightAnnotation ha:
-                        var hr = ha.DrawRect();
-                        var rect = new Rectangle
+                        if (HighlightEraseGeometry(ha) is { } hgeo)
                         {
-                            Fill = new SolidColorBrush(ha.GetColor()),
-                            Width = hr.Width,
-                            Height = hr.Height
-                        };
-                        Canvas.SetLeft(rect, hr.X);
-                        Canvas.SetTop(rect, hr.Y);
-                        _activeCanvas.Children.Add(rect);
+                            // Carved highlight: rectangle minus the eraser strokes, one anti-aliased fill.
+                            _activeCanvas.Children.Add(new System.Windows.Shapes.Path
+                            { Fill = new SolidColorBrush(ha.GetColor()), Data = hgeo, IsHitTestVisible = false });
+                        }
+                        else
+                        {
+                            var hr = ha.DrawRect();
+                            var rect = new Rectangle
+                            {
+                                Fill = new SolidColorBrush(ha.GetColor()),
+                                Width = hr.Width,
+                                Height = hr.Height
+                            };
+                            Canvas.SetLeft(rect, hr.X);
+                            Canvas.SetTop(rect, hr.Y);
+                            _activeCanvas.Children.Add(rect);
+                        }
                         break;
                     case InkAnnotation ia:
                         if (ia.Points.Count < 2) continue;
@@ -664,7 +700,16 @@ namespace KillerPDF
             {
                 case PlacedAnnotation p: p.Position = pos; break;
                 case TextAnnotation t:   t.Position = pos; break;
-                case HighlightAnnotation h: h.Bounds = new Rect(pos, h.Bounds.Size); break;
+                case HighlightAnnotation h:
+                {
+                    double hdx = pos.X - h.Bounds.X, hdy = pos.Y - h.Bounds.Y;
+                    h.Bounds = new Rect(pos, h.Bounds.Size);
+                    if (h.Erases is { } hes)
+                        foreach (var e in hes)
+                            for (int i = 0; i < e.Points.Count; i++)
+                                e.Points[i] = new Point(e.Points[i].X + hdx, e.Points[i].Y + hdy);
+                    break;
+                }
                 case InkAnnotation ink when ink.Points.Count > 0:
                     // Move the whole stroke by the delta from its current bounding-box origin.
                     double ox = ink.Points.Min(p => p.X), oy = ink.Points.Min(p => p.Y);
@@ -1173,6 +1218,10 @@ namespace KillerPDF
                 (_brushPreview.Parent as Canvas)?.Children.Remove(_brushPreview);
         }
 
+        // The pointer left a page surface: drop the brush cursor so it doesn't hang frozen at the page
+        // edge (MouseMove stops firing off-canvas, so it can't clear itself there).
+        private void Canvas_MouseLeave(object sender, MouseEventArgs e) => HideBrushPreview();
+
         private void Canvas_MouseMove(object sender, MouseEventArgs e)
         {
             // Don't interfere with mouse interaction inside form field overlays.
@@ -1292,6 +1341,7 @@ namespace KillerPDF
                 double nx = (_resizeCorner is "NW" or "SW") ? _resizeAnchor.X - newW : _resizeAnchor.X;
                 double ny = (_resizeCorner is "NW" or "NE") ? _resizeAnchor.Y - newH : _resizeAnchor.Y;
                 _resizeHlAnnot.Bounds = new Rect(nx, ny, newW, newH);
+                _resizeHlAnnot.Erases = null;   // resizing remakes a solid highlight; old carve no longer fits
                 if (_selectionBorder is not null)
                 {
                     _selectionBorder.Width  = newW + 8;
@@ -1743,7 +1793,7 @@ namespace KillerPDF
                                 if (DistPointToSegment(p, pts[i], pts[i + 1]) <= radius) return true;
                             return false;
                         }
-                        ErasePartial(pageIdx, Covered, null, Math.Max(1.0, radius / 2.0));
+                        ErasePartial(pageIdx, Covered, null, Math.Max(1.0, radius / 2.0), pts, radius);
                     }
                     else if (_activeInk.Points.Count > 2)
                     {
@@ -1835,11 +1885,20 @@ namespace KillerPDF
         // only - rectRegion). Text, images, signatures and covers can't be vector-erased, so they're left
         // as-is. One undoable action. 'covered' tests a single canvas point; densifySpacing controls how
         // finely strokes are resampled before testing.
-        private void ErasePartial(int pageIdx, Func<Point, bool> covered, Rect? rectRegion, double densifySpacing)
+        private void ErasePartial(int pageIdx, Func<Point, bool> covered, Rect? rectRegion, double densifySpacing,
+                                  List<Point>? brushPath = null, double brushRadius = 0)
         {
             if (!_annotations.TryGetValue(pageIdx, out var list)) return;
+
+            // Both erasers partial-erase VECTOR annotations only: ink strokes (split at covered points) and
+            // highlights (the brush carves its circular footprint; the rect eraser subtracts its box). Text,
+            // images, and signatures aren't vector regions an eraser can carve, so they're left untouched
+            // (use the Select tool + Delete for those).
+            bool brush = rectRegion is null;
+
             var result = new List<PageAnnotation>();
             bool changed = false;
+
             foreach (var a in list)
             {
                 switch (a)
@@ -1877,8 +1936,26 @@ namespace KillerPDF
                         break;
                     }
 
+                    case HighlightAnnotation h when brush:
+                    {
+                        if (h.Style != HighlightStyle.Fill || brushPath is not { Count: > 0 }) { result.Add(h); break; }
+                        // Record the eraser stroke on the highlight (skip ones the stroke doesn't reach). The
+                        // stroke is widened to the brush radius and subtracted at render/export time, giving a
+                        // smooth anti-aliased hole instead of a blocky grid.
+                        var hit = h.Bounds; hit.Inflate(brushRadius, brushRadius);
+                        if (!brushPath.Any(p => hit.Contains(p))) { result.Add(h); break; }
+                        changed = true;
+                        if (CloneAnnotation(h) is HighlightAnnotation carved)
+                        {
+                            carved.Erases ??= [];
+                            carved.Erases.Add(new HighlightErase { Points = new List<Point>(brushPath), Radius = brushRadius });
+                            result.Add(carved);
+                        }
+                        break;
+                    }
+
                     default:
-                        result.Add(a);   // text / image / signature (or a highlight under the brush): untouched
+                        result.Add(a);   // text / image / signature: not vector-erasable, left for Select+Delete
                         break;
                 }
             }
@@ -2410,10 +2487,30 @@ namespace KillerPDF
                         case HighlightAnnotation ha:
                             var hc = ha.GetColor();
                             var hBrush = new XSolidBrush(XColor.FromArgb(hc.A, hc.R, hc.G, hc.B));
-                            var hdr = ha.DrawRect();
-                            gfx.DrawRectangle(hBrush,
-                                hdr.X * sx, hdr.Y * sy,
-                                hdr.Width * sx, hdr.Height * sy);
+                            if (HighlightEraseGeometry(ha) is { } hgeo)
+                            {
+                                // Carved highlight: flatten the rect-minus-strokes geometry to polygons and
+                                // draw as one filled path so the smooth hole survives into the saved PDF.
+                                var flat = hgeo.GetFlattenedPathGeometry();
+                                var hpath = new XGraphicsPath();
+                                foreach (var fig in flat.Figures)
+                                {
+                                    var poly = new System.Collections.Generic.List<XPoint> { new(fig.StartPoint.X * sx, fig.StartPoint.Y * sy) };
+                                    foreach (var seg in fig.Segments)
+                                        if (seg is PolyLineSegment pls) foreach (var p in pls.Points) poly.Add(new XPoint(p.X * sx, p.Y * sy));
+                                        else if (seg is LineSegment ls) poly.Add(new XPoint(ls.Point.X * sx, ls.Point.Y * sy));
+                                    if (poly.Count >= 3) hpath.AddPolygon(poly.ToArray());
+                                }
+                                hpath.FillMode = XFillMode.Winding;
+                                gfx.DrawPath(hBrush, hpath);
+                            }
+                            else
+                            {
+                                var hdr = ha.DrawRect();
+                                gfx.DrawRectangle(hBrush,
+                                    hdr.X * sx, hdr.Y * sy,
+                                    hdr.Width * sx, hdr.Height * sy);
+                            }
                             break;
 
                         case InkAnnotation ia:

@@ -351,4 +351,7 @@ You can uninstall via Add/Remove Programs at any time.</sys:String>
     <sys:String x:Key="Str_KS_NextTab">Next tab (Shift: previous)</sys:String>
     <sys:String x:Key="Str_Ctx_DeletePage">Delete Page</sys:String>
     <sys:String x:Key="Str_Ctx_DuplicatePage">Duplicate Page</sys:String>
+    <sys:String x:Key="Str_Ctx_AddBlankPage">Add Blank Page</sys:String>
+    <sys:String x:Key="Str_Ctx_CloseTab">Close Tab</sys:String>
+    <sys:String x:Key="Str_Ctx_CloseOthers">Close Other Tabs</sys:String>
 </ResourceDictionary>

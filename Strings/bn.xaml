@@ -351,4 +351,7 @@
     <sys:String x:Key="Str_TT_Search">অনুসন্ধান (Ctrl+F)</sys:String>
     <sys:String x:Key="Str_Ctx_DeletePage">পৃষ্ঠা মুছুন</sys:String>
     <sys:String x:Key="Str_Ctx_DuplicatePage">পৃষ্ঠা সদৃশ করুন</sys:String>
+    <sys:String x:Key="Str_Ctx_AddBlankPage">ফাঁকা পৃষ্ঠা যোগ করুন</sys:String>
+    <sys:String x:Key="Str_Ctx_CloseTab">ট্যাব বন্ধ করুন</sys:String>
+    <sys:String x:Key="Str_Ctx_CloseOthers">অন্যান্য ট্যাব বন্ধ করুন</sys:String>
 </ResourceDictionary>

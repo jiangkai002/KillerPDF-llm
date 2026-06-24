@@ -351,4 +351,7 @@ Puede desinstalarla en cualquier momento desde Agregar o quitar programas.</sys:
     <sys:String x:Key="Str_TT_Search">Buscar (Ctrl+F)</sys:String>
     <sys:String x:Key="Str_Ctx_DeletePage">Eliminar página</sys:String>
     <sys:String x:Key="Str_Ctx_DuplicatePage">Duplicar página</sys:String>
+    <sys:String x:Key="Str_Ctx_AddBlankPage">Añadir página en blanco</sys:String>
+    <sys:String x:Key="Str_Ctx_CloseTab">Cerrar pestaña</sys:String>
+    <sys:String x:Key="Str_Ctx_CloseOthers">Cerrar otras pestañas</sys:String>
 </ResourceDictionary>

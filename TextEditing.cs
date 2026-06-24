@@ -62,6 +62,27 @@ namespace KillerPDF
             }
         }
 
+        // Heuristic for a broken glyph->Unicode CMap (common on OCR'd scans): the extracted text comes out
+        // as mojibake - replacement chars, private-use glyphs, or words peppered with currency/math symbols.
+        // We don't pre-fill an in-place edit from text that looks like this. Conservative on purpose so clean
+        // PDFs are never flagged; all-letter garbling (wrong letters that are still valid) can't be caught.
+        private static bool LooksGarbled(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return false;
+            const string ok = ".,;:!?'\"()[]{}-/\\&%@#*+=<>|~`^_$";
+            int letters = 0, weird = 0, total = 0;
+            foreach (char c in s)
+            {
+                if (char.IsWhiteSpace(c)) continue;
+                total++;
+                if (char.IsLetterOrDigit(c)) { letters++; continue; }
+                if (ok.IndexOf(c) >= 0) continue;          // ordinary punctuation is fine
+                weird++;                                   // replacement / PUA / stray symbol = mapping break
+            }
+            if (total == 0) return false;
+            return (double)weird / total > 0.15 || (double)letters / total < 0.35;
+        }
+
         private void EditTextAtPosition(Point canvasPos, int pageIdx)
         {
             if (_currentFile is null || !_renderDims.ContainsKey(pageIdx)) return;
@@ -279,7 +300,11 @@ namespace KillerPDF
 
                 // Drop the cover + editable text box for the detected line. Detected size carries the
                 // EditTextSizeCorrection (WPF renders the source point size ~25% large); manual edits don't.
-                StartCoverTextEdit(pageIdx, new Rect(cLeft, cTop, cWidth, cHeight), lineText,
+                // Scanned PDFs with a broken glyph->Unicode map extract as mojibake; in that case start the
+                // box empty (like a manual edit) instead of pre-filling garbage - the user types over the
+                // whited-out original.
+                string prefill = LooksGarbled(lineText) ? "" : lineText;
+                StartCoverTextEdit(pageIdx, new Rect(cLeft, cTop, cWidth, cHeight), prefill,
                     Math.Max(canvasFontSize * EditTextSizeCorrection, 8), fontName, syInv);
             }
             catch (Exception ex)
@@ -540,24 +565,16 @@ namespace KillerPDF
         {
             if (e.Key == Key.Escape)
             {
-                RemoveTextEditHandles();
-                RemoveReeditCoverOutline();   // edit cancelled; drop the cover hint (repaint follows)
-                if (_activeTextBox is not null)
-                {
-                    RemoveFromParent(_activeTextBox);
-                    _activeTextBox = null;
-                }
-                // Escaping an existing-text edit drops the cover too (it was placed un-undone).
-                if (_pendingCover is not null) DiscardPendingCover();
-                if (_reeditOriginal is not null)
-                {
-                    int rp = _reeditOriginal.PageIndex;
-                    if (!_annotations.TryGetValue(rp, out var rlist)) { rlist = []; _annotations[rp] = rlist; }
-                    rlist.Add(_reeditOriginal);
-                    _reeditOriginal = null;
-                    RenderAllAnnotations(rp);
-                }
-                if (_currentTool != EditTool.Text) HideTextSettings();
+                CancelActiveTextEdit();
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Z && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control
+                     && sender is TextBox ztb && !ztb.CanUndo)
+            {
+                // The box has no typed text left to undo, so Ctrl+Z backs out of the whole in-place edit
+                // (same as Escape) instead of being a no-op - otherwise a fresh edit could only be undone
+                // after committing it. While the box still has edits to undo, WPF's TextBox handles Ctrl+Z.
+                CancelActiveTextEdit();
                 e.Handled = true;
             }
             else if (e.Key == Key.Enter && Keyboard.Modifiers != ModifierKeys.Shift)
@@ -565,6 +582,31 @@ namespace KillerPDF
                 CommitActiveTextBox();
                 e.Handled = true;
             }
+        }
+
+        // Abandons the in-progress text edit: removes the editing box and its handles, drops a pending
+        // cover (placed un-undone), and restores a re-edited annotation. Shared by Escape and the
+        // "Ctrl+Z with nothing left in the box" path.
+        private void CancelActiveTextEdit()
+        {
+            RemoveTextEditHandles();
+            RemoveReeditCoverOutline();   // edit cancelled; drop the cover hint (repaint follows)
+            if (_activeTextBox is not null)
+            {
+                RemoveFromParent(_activeTextBox);
+                _activeTextBox = null;
+            }
+            // Cancelling an existing-text edit drops the cover too (it was placed un-undone).
+            if (_pendingCover is not null) DiscardPendingCover();
+            if (_reeditOriginal is not null)
+            {
+                int rp = _reeditOriginal.PageIndex;
+                if (!_annotations.TryGetValue(rp, out var rlist)) { rlist = []; _annotations[rp] = rlist; }
+                rlist.Add(_reeditOriginal);
+                _reeditOriginal = null;
+                RenderAllAnnotations(rp);
+            }
+            if (_currentTool != EditTool.Text) HideTextSettings();
         }
 
         private void TextBox_LostFocus(object sender, RoutedEventArgs e)
