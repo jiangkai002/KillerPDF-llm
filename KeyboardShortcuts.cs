@@ -31,8 +31,10 @@ namespace KillerPDF
         {
             base.OnPreviewKeyDown(e);
 
-            // Don't intercept keys when typing in any TextBox (typewriter tool or form field)
-            if (e.OriginalSource is TextBox) return;
+            // Don't intercept keys when typing in an editable TextBox (typewriter tool or form field).
+            // The zoom ComboBox is editable-but-read-only; after using it, focus parks on its inner
+            // TextBox and would otherwise swallow every shortcut (e.g. Ctrl+F) until the user clicked away.
+            if (e.OriginalSource is TextBox tbSrc && !tbSrc.IsReadOnly) return;
             if (_activeTextBox is not null && _activeTextBox.IsFocused) return;
 
             if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)

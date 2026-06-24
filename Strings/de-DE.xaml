@@ -342,4 +342,13 @@ Sie können das Programm jederzeit über „Programme hinzufügen oder entfernen
     <sys:String x:Key="Str_Sign_Cancel">Abbrechen</sys:String>
     <sys:String x:Key="Str_Sign_TitleSuffix">Digitale Signatur</sys:String>
     <sys:String x:Key="Str_Lbl_DigitalSig">Digitale Signatur...</sys:String>
+    <sys:String x:Key="Str_Sidebar">SEITENLEISTE</sys:String>
+    <sys:String x:Key="Str_Sidebar_Left">Links</sys:String>
+    <sys:String x:Key="Str_Sidebar_Right">Rechts</sys:String>
+    <sys:String x:Key="Str_KS_ToggleSidebar">Seitenleiste umschalten</sys:String>
+    <sys:String x:Key="Str_KS_NextTab">Nächster Tab (Umschalt: vorheriger)</sys:String>
+    <sys:String x:Key="Str_Lbl_Search">Suchen</sys:String>
+    <sys:String x:Key="Str_TT_Search">Suchen (Strg+F)</sys:String>
+    <sys:String x:Key="Str_Ctx_DeletePage">Seite löschen</sys:String>
+    <sys:String x:Key="Str_Ctx_DuplicatePage">Seite duplizieren</sys:String>
 </ResourceDictionary>

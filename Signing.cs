@@ -156,8 +156,14 @@ namespace KillerPDF
             if (_signaturePopup is not null)
             {
                 var previewGrid = PagePreviewPanel.Parent as Grid;
-                previewGrid?.Children.Remove(_signaturePopup);
-                _signaturePopup = null;
+                var popup = _signaturePopup;
+                _signaturePopup = null;   // detach now so a re-open builds a fresh popup
+                // Fade out (it's a Border, not a Window, so WindowFx doesn't apply) then remove.
+                var fade = new DoubleAnimation(popup.Opacity, 0,
+                    new Duration(TimeSpan.FromMilliseconds(WindowFx.FadeMs)))
+                { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
+                fade.Completed += (_, _) => previewGrid?.Children.Remove(popup);
+                popup.BeginAnimation(UIElement.OpacityProperty, fade);
             }
         }
 
@@ -570,6 +576,7 @@ namespace KillerPDF
                 AllowsTransparency = true,
                 Background = System.Windows.Media.Brushes.Transparent
             };
+            WindowFx.EnableFadeClose(win);
             TextOptions.SetTextFormattingMode(win, TextFormattingMode.Display);
             TextOptions.SetTextRenderingMode(win, TextRenderingMode.Grayscale);
             // This separate window can't see MainWindow's ChromeCloseCorner, so the close button's

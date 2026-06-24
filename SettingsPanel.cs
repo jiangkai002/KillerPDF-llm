@@ -68,7 +68,7 @@ namespace KillerPDF
             // Sync sidebar-side picker
             SidebarLeftRadio.IsChecked   = !_sidebarRight;
             SidebarRightRadio.IsChecked  = _sidebarRight;
-            SidebarCurrentLabel.Text     = _sidebarRight ? "Right" : "Left";
+            SidebarCurrentLabel.Text     = Loc(_sidebarRight ? "Str_Sidebar_Right" : "Str_Sidebar_Left");
             PositionSettingsPanel();
             SettingsOverlay.Visibility = Visibility.Visible;
             SlideSettingsOpen();
@@ -537,6 +537,9 @@ namespace KillerPDF
             [""] = "Str_Lbl_ZoomIn",
             [""] = "Str_Lbl_Highlight",   // current highlighter glyph (see ToolHighlightBtn)
             [""] = "Str_Lbl_Line",   // repurposed ToolUnderlineBtn glyph = the Line tool
+            [""] = "Str_Lbl_ZoomOut",   // boxed minus (RemoveFrom) - new zoom-out glyph
+            [""] = "Str_Lbl_ZoomIn",    // boxed plus  (AddTo)      - new zoom-in glyph
+            [""] = "Str_Lbl_Search",    // magnifier - toolbar search button
         };
 
         // Walks LeftBar + RightBar once and records each icon button with its glyph + label key.

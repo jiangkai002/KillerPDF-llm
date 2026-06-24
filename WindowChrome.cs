@@ -503,17 +503,24 @@ namespace KillerPDF
             return false;
         }
 
+        private bool _fadingOut;
+
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
+            // Second pass (our own Close after the fade): let it through.
+            if (_fadingOut) { base.OnClosing(e); return; }
+
             // Fold the live (active-tab) dirty flag back into its session, then prompt once if
             // any open tab has unsaved changes.
             if (_active != null) CaptureSessionState(_active);
             bool anyDirty = _isDirty || _sessions.Any(s => s.IsDirty);
             if (anyDirty)
             {
+                // fadeClose:false so the prompt closes instantly instead of adding its own 150ms fade
+                // before the app's fade-out starts - otherwise the two run back-to-back (300ms of waiting).
                 var res = KillerDialog.Show(this,
                     Loc("Str_Dlg_UnsavedExit"),
-                    Loc("Str_Dlg_AppTitle"), MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                    Loc("Str_Dlg_AppTitle"), MessageBoxButton.YesNo, MessageBoxImage.Warning, fadeClose: false);
                 if (res != MessageBoxResult.Yes)
                 {
                     e.Cancel = true;
@@ -521,7 +528,17 @@ namespace KillerPDF
                 }
             }
             SaveWindowSettings();
-            base.OnClosing(e);
+            // Fade the whole app out before it really closes (matches the dialog fade-out).
+            e.Cancel = true;
+            _fadingOut = true;
+            var anim = new System.Windows.Media.Animation.DoubleAnimation(
+                Opacity, 0, new Duration(TimeSpan.FromMilliseconds(WindowFx.FadeMs)))
+            {
+                EasingFunction = new System.Windows.Media.Animation.QuadraticEase
+                { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut }
+            };
+            anim.Completed += (_, _) => Close();
+            BeginAnimation(OpacityProperty, anim);
         }
     }
 }

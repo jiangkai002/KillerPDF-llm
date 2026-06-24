@@ -23,6 +23,8 @@ namespace KillerPDF
 {
     public partial class MainWindow
     {
+        private void Search_Click(object sender, RoutedEventArgs e) => ToggleSearchBar();
+
         private void ToggleSearchBar()
         {
             if (_searchBar is not null && _searchBar.Visibility == Visibility.Visible)
@@ -88,7 +90,7 @@ namespace KillerPDF
                 _searchStatus.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondary");
 
                 // Small VSCode-style prev / next / close buttons. Hover tooltips carry the shortcuts.
-                Button SearchNavBtn(string glyph, string tip, Action onClick)
+                Button SearchNavBtn(string glyph, string tip, Action onClick, bool danger = false)
                 {
                     var b = new Button
                     {
@@ -97,7 +99,9 @@ namespace KillerPDF
                         FontSize   = 12,
                         Width = 26, Height = 24,
                         Padding    = new Thickness(0),   // ToolbarButton's 10,6 padding clips the glyph in a 26px button
-                        Style      = (Style)FindResource("ToolbarButton"),
+                        // The close X uses the shared danger style so its glyph turns red on hover like
+                        // every other close X (window chrome, tabs, overlay headers).
+                        Style      = (Style)FindResource(danger ? "DangerCloseButton" : "ToolbarButton"),
                         ToolTip    = tip
                     };
                     b.Click += (_, _) => onClick();
@@ -105,7 +109,7 @@ namespace KillerPDF
                 }
                 var prevBtn  = SearchNavBtn("", "Previous Match (Shift+Enter)", SearchPrevResult); // ChevronUp
                 var nextBtn  = SearchNavBtn("", "Next Match (Enter)", SearchNextResult);            // ChevronDown
-                var closeBtn = SearchNavBtn("", "Close (Esc)", CloseSearchBar);                     // Cancel
+                var closeBtn = SearchNavBtn("", "Close (Esc)", CloseSearchBar, danger: true);       // Cancel
 
                 var searchIcon = new TextBlock
                 {
@@ -118,12 +122,38 @@ namespace KillerPDF
                 };
                 searchIcon.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondary");
 
+                // Drag grip: two columns of three dots on the left (same look as the sidebar splitter and
+                // the annotate bars). Grabbing it moves the whole bar anywhere in the document area.
+                var gripBrush = TryFindResource("TextSecondary") as Brush ?? Brushes.Gray;
+                var gripDots = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(2, 0, 6, 0)
+                };
+                for (int gcol = 0; gcol < 2; gcol++)
+                {
+                    var colDots = new StackPanel { Orientation = Orientation.Vertical, VerticalAlignment = VerticalAlignment.Center };
+                    for (int grow = 0; grow < 3; grow++)
+                        colDots.Children.Add(new Ellipse { Width = 3, Height = 3, Margin = new Thickness(1.5), Fill = gripBrush });
+                    gripDots.Children.Add(colDots);
+                }
+                var searchGrip = new Border
+                {
+                    Background = Brushes.Transparent,   // transparent yet hit-testable, so it can be grabbed
+                    Cursor = Cursors.SizeAll,
+                    VerticalAlignment = VerticalAlignment.Stretch,
+                    Child = gripDots,
+                    ToolTip = "Drag to move"
+                };
+
                 var panel = new StackPanel
                 {
                     Orientation = Orientation.Horizontal,
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(8, 6, 8, 6)
                 };
+                panel.Children.Add(searchGrip);
                 panel.Children.Add(searchIcon);
                 panel.Children.Add(_searchBox);
                 panel.Children.Add(_searchStatus);
@@ -134,26 +164,48 @@ namespace KillerPDF
                 _searchBar = new Border
                 {
                     BorderThickness = new Thickness(1),
-                    HorizontalAlignment = HorizontalAlignment.Right,
+                    // Free-floating like the Signatures popup: positioned by Left/Top margin (set after
+                    // layout from the saved spot) and draggable by the grip, so it can sit anywhere.
+                    HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Top,
-                    CornerRadius = new CornerRadius(0, 0, 4, 4),
+                    CornerRadius = new CornerRadius(6),
                     Padding = new Thickness(4),
                     Child = GrainWrap(panel),
-                    Margin = new Thickness(0, 0, 16, 0),
+                    Margin = new Thickness(0),
                     Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Colors.Black, BlurRadius = 16, ShadowDepth = 3, Direction = 270, Opacity = 0.55 }
                 };
-                _searchBar.SetResourceReference(Border.BackgroundProperty, "BgPanel");
+                _searchBar.SetResourceReference(Border.BackgroundProperty, "BgFlyout");
                 _searchBar.SetResourceReference(Border.BorderBrushProperty, "AccentBorder");
 
                 // Add to the preview area grid (parent of ScrollViewer)
                 var previewGrid = PagePreviewPanel.Parent as Grid;
                 if (previewGrid is not null)
                 {
-                    Panel.SetZIndex(_searchBar, 100);
+                    // Above the annotate settings bars (ZIndex 100) so Ctrl+F is never hidden under
+                    // the highlight/draw/text toolbar when both are open.
+                    Panel.SetZIndex(_searchBar, 200);
                     previewGrid.Children.Add(_searchBar);
-                    // Keep the whole bar on screen: when the preview area is resized, shrink the
-                    // text box (not the buttons) so the bar never overflows the window.
-                    previewGrid.SizeChanged += (_, _) => FitSearchBox();
+                    // Keep the whole bar on screen: when the preview area is resized, shrink the text box
+                    // (not the buttons) so it never overflows, and re-clamp the floating bar back inside.
+                    previewGrid.SizeChanged += (_, _) =>
+                    {
+                        FitSearchBox();
+                        if (_searchBar is { Visibility: Visibility.Visible })
+                        {
+                            double cl = _searchBar.Margin.Left, ct = _searchBar.Margin.Top;
+                            ClampPanelToBounds(_searchBar, previewGrid, ref cl, ref ct);
+                            _searchBar.Margin = new Thickness(cl, ct, 0, 0);
+                        }
+                    };
+                    // Place it (saved spot, or default near the old top-right position) and wire the grip
+                    // for dragging once it's laid out and has a real width - mirrors the Signatures popup.
+                    var bar = _searchBar;
+                    var grip = searchGrip;
+                    Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
+                    {
+                        ApplySavedPanelPosition(bar, previewGrid, "SearchBar", fallbackRightInset: 16, fallbackTop: 6);
+                        EnablePanelDrag(grip, bar, previewGrid, "SearchBar");
+                    }));
                 }
             }
 
@@ -171,14 +223,26 @@ namespace KillerPDF
         {
             if (_searchBar is null || _searchBox is null) return;
             double avail = (PagePreviewPanel.Parent as Grid)?.ActualWidth ?? 0;
-            const double reserved = 210;   // icon + status + 3 buttons + paddings/margins
+            const double reserved = 232;   // grip + icon + status + 3 buttons + paddings/margins
             _searchBox.Width = Math.Max(60, Math.Min(200, avail - reserved));
         }
 
         private void CloseSearchBar()
         {
-            if (_searchBar is not null)
-                _searchBar.Visibility = Visibility.Collapsed;
+            if (_searchBar is { Visibility: Visibility.Visible } bar)
+            {
+                // Fade out rather than blink away. On completion, collapse and restore opacity so the
+                // next open shows it cleanly.
+                var fade = new DoubleAnimation(bar.Opacity, 0, new Duration(TimeSpan.FromMilliseconds(150)))
+                    { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
+                fade.Completed += (_, _) =>
+                {
+                    bar.Visibility = Visibility.Collapsed;
+                    bar.BeginAnimation(UIElement.OpacityProperty, null);
+                    bar.Opacity = 1;
+                };
+                bar.BeginAnimation(UIElement.OpacityProperty, fade);
+            }
             ClearSearchHighlights();
         }
 

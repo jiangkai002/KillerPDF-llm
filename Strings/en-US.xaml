@@ -30,6 +30,7 @@
     <sys:String x:Key="Str_TT_ImageTool">Image Tool - click to insert an image onto the page</sys:String>
     <sys:String x:Key="Str_TT_CropTool">Crop Tool - drag to set crop area, then apply to page(s)</sys:String>
     <sys:String x:Key="Str_TT_ClearAnnotations">Clear All Annotations</sys:String>
+    <sys:String x:Key="Str_TT_Search">Search (Ctrl+F)</sys:String>
     <sys:String x:Key="Str_TT_UndoLast">Undo Last (Ctrl+Z)</sys:String>
     <sys:String x:Key="Str_TT_MultiPageGrid">Multi-page grid view</sys:String>
     <sys:String x:Key="Str_TT_ZoomOut">Zoom out (Ctrl+-)</sys:String>
@@ -185,7 +186,7 @@ You can uninstall via Add/Remove Programs at any time.</sys:String>
     <sys:String x:Key="Str_Lbl_Image">Add Image</sys:String>
     <sys:String x:Key="Str_Lbl_Signature">Signature</sys:String>
     <sys:String x:Key="Str_Lbl_Undo">Undo</sys:String>
-    <sys:String x:Key="Str_Lbl_Clear">Clear Annotations</sys:String>
+    <sys:String x:Key="Str_Lbl_Clear">Clear All</sys:String>
     <sys:String x:Key="Str_Lbl_New">New</sys:String>
     <sys:String x:Key="Str_Lbl_Open">Open</sys:String>
     <sys:String x:Key="Str_Lbl_Close">Close</sys:String>
@@ -195,6 +196,7 @@ You can uninstall via Add/Remove Programs at any time.</sys:String>
     <sys:String x:Key="Str_Lbl_Select">Select</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">Zoom Out</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">Zoom In</sys:String>
+    <sys:String x:Key="Str_Lbl_Search">Search</sys:String>
 
     <!-- ── Right-click menu labels ────────────────────────────────────── -->
     <sys:String x:Key="Str_Ctx_CopyText">Copy Text</sys:String>
@@ -342,4 +344,11 @@ You can uninstall via Add/Remove Programs at any time.</sys:String>
     <sys:String x:Key="Str_Sign_Cancel">Cancel</sys:String>
     <sys:String x:Key="Str_Sign_TitleSuffix">Digital Signature</sys:String>
     <sys:String x:Key="Str_Lbl_DigitalSig">Digital Signature...</sys:String>
+    <sys:String x:Key="Str_Sidebar">SIDEBAR</sys:String>
+    <sys:String x:Key="Str_Sidebar_Left">Left</sys:String>
+    <sys:String x:Key="Str_Sidebar_Right">Right</sys:String>
+    <sys:String x:Key="Str_KS_ToggleSidebar">Toggle sidebar</sys:String>
+    <sys:String x:Key="Str_KS_NextTab">Next tab (Shift: previous)</sys:String>
+    <sys:String x:Key="Str_Ctx_DeletePage">Delete Page</sys:String>
+    <sys:String x:Key="Str_Ctx_DuplicatePage">Duplicate Page</sys:String>
 </ResourceDictionary>

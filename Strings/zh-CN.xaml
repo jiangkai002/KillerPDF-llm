@@ -342,4 +342,13 @@
     <sys:String x:Key="Str_Sign_Cancel">取消</sys:String>
     <sys:String x:Key="Str_Sign_TitleSuffix">数字签名</sys:String>
     <sys:String x:Key="Str_Lbl_DigitalSig">数字签名...</sys:String>
+    <sys:String x:Key="Str_Sidebar">侧边栏</sys:String>
+    <sys:String x:Key="Str_Sidebar_Left">左侧</sys:String>
+    <sys:String x:Key="Str_Sidebar_Right">右侧</sys:String>
+    <sys:String x:Key="Str_KS_ToggleSidebar">切换侧边栏</sys:String>
+    <sys:String x:Key="Str_KS_NextTab">下一个标签页（Shift：上一个）</sys:String>
+    <sys:String x:Key="Str_Lbl_Search">搜索</sys:String>
+    <sys:String x:Key="Str_TT_Search">搜索 (Ctrl+F)</sys:String>
+    <sys:String x:Key="Str_Ctx_DeletePage">删除页面</sys:String>
+    <sys:String x:Key="Str_Ctx_DuplicatePage">复制页面</sys:String>
 </ResourceDictionary>

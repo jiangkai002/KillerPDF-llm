@@ -131,7 +131,9 @@ namespace KillerPDF
                 double w = TabStripFade.ActualWidth;
                 if (w > 0)
                 {
-                    double f = Math.Min(0.4, 15.0 / w);   // ~15px feather, matches the footer corner
+                    double f = Math.Min(0.5, 32.0 / w);   // wider (~32px) feather than the footer - the top
+                                                          // shadow is darker, so a 15px fade still read as a
+                                                          // hard vertical edge near the sidebar corner
                     var mask = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(1, 0) };
                     if (_sidebarRight)
                     {

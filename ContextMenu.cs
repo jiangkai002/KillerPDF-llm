@@ -101,7 +101,7 @@ namespace KillerPDF
                 }
                 AddAnnotationMenuItems(hit);
             }
-            else AddPageMenuItems();
+            else AddPageMenuItems(pt, pageIdx);
         }
 
         // Topmost draggable annotation under pt on the given page, or null. Mirrors the click-select loop
@@ -184,26 +184,87 @@ namespace KillerPDF
         }
 
         // Page-level menu shown when the right-click lands on empty page space (no annotation under it).
-        private void AddPageMenuItems()
+        // Tailored to the click: Copy Text only over a text selection, the placement actions drop their
+        // item where the user right-clicked, and delete is "Delete Selected" when something is selected
+        // (otherwise "Delete Page").
+        private void AddPageMenuItems(Point pt, int pageIdx)
         {
-            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_CopyText"), (s, e) => CopySelectedText(), "Ctrl+C"));
+            bool hasSelection = SelectionCount() > 0;
+            bool hasTextSel   = !string.IsNullOrEmpty(_selectedText);
+
+            // Copy Text only when there is actually selected text to copy.
+            if (hasTextSel)
+                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_CopyText"), (s, e) => CopySelectedText(), "Ctrl+C"));
             _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Print"), (s, e) => Print_Click(s!, e), "Ctrl+P"));
             _ctxMenu.Items.Add(new Separator());
-            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_SelectTool"), (s, e) => SetTool(EditTool.Select)));
-            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_TextTool"), (s, e) => SetTool(EditTool.Text)));
-            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_HighlightTool"), (s, e) => SetTool(EditTool.Highlight)));
-            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_DrawTool"), (s, e) => SetTool(EditTool.Draw)));
+
+            // Placement actions - drop the item exactly where the user right-clicked (Select / Highlight /
+            // Draw were removed: they only make sense as toolbar modes, not as one-shot right-click actions).
+            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Lbl_Text"), (s, e) =>
+            {
+                SetTool(EditTool.Text);
+                _activeCanvas = CanvasForPage(pageIdx);
+                PlaceTextBox(pt, pageIdx);
+            }));
+            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Lbl_Image"), (s, e) =>
+            {
+                _activeCanvas = CanvasForPage(pageIdx);
+                PlaceImageFromDialog(pt, pageIdx);
+            }));
+            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Lbl_Signature"), (s, e) =>
+            {
+                _activeCanvas = CanvasForPage(pageIdx);
+                if (_pendingSignature is not null) PlaceSignature(pt, pageIdx);
+                else { SetTool(EditTool.Signature); ShowSignaturePopup(); }
+            }));
             _ctxMenu.Items.Add(new Separator());
+
             _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_RotateCW"), (s, e) => RotatePages_Click(90)));
             _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_RotateCCW"), (s, e) => RotatePages_Click(-90)));
             _ctxMenu.Items.Add(new Separator());
+
+            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_DuplicatePage"), (s, e) => DuplicatePage(pageIdx)));
             _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_StampNumbers"), (s, e) => StampPageNumbers()));
             _ctxMenu.Items.Add(new Separator());
+
             if (_annotationClipboard.Count > 0)
-                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Paste"), (s, e) => PasteAnnotations(PageList.SelectedIndex), "Ctrl+V"));
-            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_DeleteSel"), (s, e) => DeleteSelected(), "Delete"));
+                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Paste"), (s, e) => PasteAnnotations(pageIdx), "Ctrl+V"));
+
+            // Delete Selected when something is selected; otherwise Delete Page (the page under the cursor,
+            // which the right-click already made the selected page).
+            if (hasSelection)
+                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_DeleteSel"), (s, e) => DeleteSelected(), "Delete"));
+            else
+                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_DeletePage"), (s, e) => Delete_Click(s!, e)));
+
             _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_UndoLast"), (s, e) => Undo_Click(s!, e), "Ctrl+Z"));
             _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_ClearPage"), (s, e) => ClearAnnotations_Click(s!, e)));
+        }
+
+        // Deep-copies page pageIdx and inserts the copy right after it. AddPage on a same-document page
+        // would share the reference rather than duplicate, so the page is re-imported from an in-memory
+        // copy of the document (the same round-trip the undo snapshot uses).
+        private void DuplicatePage(int pageIdx)
+        {
+            if (_doc is null || pageIdx < 0 || pageIdx >= _doc.PageCount) return;
+            var doc = _doc;
+            try
+            {
+                using var ms = new MemoryStream();
+                doc.Save(ms, false);
+                ms.Position = 0;
+                using var src = PdfReader.Open(ms, PdfDocumentOpenMode.Import);
+                var copy = doc.AddPage(src.Pages[pageIdx]);   // imported copy, appended at the end
+                doc.Pages.RemoveAt(doc.PageCount - 1);
+                doc.Pages.Insert(pageIdx + 1, copy);
+                SaveTempAndReload();
+                PageList.SelectedIndex = pageIdx + 1;
+                SetStatus($"Duplicated page {pageIdx + 1}");
+            }
+            catch (Exception ex)
+            {
+                KillerDialog.Show(this, $"Duplicate failed:\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         // Nearest annotation that visually overlaps `a`, searching up (dir>0) or down (dir<0) the page's

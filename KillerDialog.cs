@@ -29,7 +29,8 @@ namespace KillerPDF
             string message,
             string title = "KillerPDF",
             MessageBoxButton buttons = MessageBoxButton.OK,
-            MessageBoxImage image = MessageBoxImage.None)
+            MessageBoxImage image = MessageBoxImage.None,
+            bool fadeClose = true)
 #pragma warning restore IDE0060
         {
             var result = MessageBoxResult.OK;
@@ -48,6 +49,7 @@ namespace KillerPDF
                 Owner = owner,
                 ResizeMode = ResizeMode.NoResize
             };
+            if (fadeClose) WindowFx.EnableFadeClose(win);
             // AllowsTransparency windows can't use ClearType. Display mode pixel-snaps the (unscaled)
             // dialog text so it stays crisp, and Grayscale gives smooth anti-aliased edges - the best
             // combination available on a layered window.

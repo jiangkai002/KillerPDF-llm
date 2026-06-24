@@ -118,6 +118,8 @@
                                 ToolTip="{TemplateBinding ToolTip}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <ContentPresenter.Effect>
+                                    <!-- IconShadowOpacity is 0 in Light theme, so the glyph stays crisp ClearType
+                                         there; dark themes get the soft depth shadow. -->
                                     <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="2" Direction="270" Opacity="{DynamicResource IconShadowOpacity}"/>
                                 </ContentPresenter.Effect>
                             </ContentPresenter>
@@ -1073,9 +1075,12 @@
                         <Rectangle Width="1" Fill="{DynamicResource BorderDim}" Margin="4,6"/>
                         <Button Content="&#xE7A7;" Style="{StaticResource ToolbarButton}" Click="Undo_Click" ToolTip="{DynamicResource Str_TT_UndoLast}"/>
                         <Button Content="&#xED62;" Style="{StaticResource ToolbarButtonDanger}" Click="ClearAllAnnotations_Click" ToolTip="{DynamicResource Str_TT_ClearAnnotations}"/>
+                        <Rectangle Width="1" Fill="{DynamicResource BorderDim}" Margin="4,6"/>
+                        <Button x:Name="SearchBtn" Content="&#xE721;" Style="{StaticResource ToolbarButton}" Click="Search_Click" ToolTip="{DynamicResource Str_TT_Search}"/>
                     </StackPanel>
-                    <Button x:Name="ZoomOutBtn" Content="&#xE71F;" Style="{StaticResource ToolbarButton}"
-                            Click="ZoomOut_Click" ToolTip="{DynamicResource Str_TT_ZoomOut}"/>
+                    <!-- 10px left gap so the zoom cluster reads as separate from the Search button. -->
+                    <Button x:Name="ZoomOutBtn" Content="&#xECC9;" Style="{StaticResource ToolbarButton}"
+                            Click="ZoomOut_Click" ToolTip="{DynamicResource Str_TT_ZoomOut}" Margin="10,0,4,0"/>
                     <ComboBox x:Name="ZoomBox" Width="{DynamicResource ZoomBoxWidth}" Height="24" VerticalAlignment="Center"
                               Margin="0,0,2,0"
                               IsEditable="True" IsReadOnly="True"
@@ -1090,7 +1095,7 @@
                         <ComboBoxItem Tag="1.5">150%</ComboBoxItem>
                         <ComboBoxItem Tag="2.0">200%</ComboBoxItem>
                     </ComboBox>
-                    <Button x:Name="ZoomInBtn" Content="&#xE8A3;" Style="{StaticResource ToolbarButton}"
+                    <Button x:Name="ZoomInBtn" Content="&#xECC8;" Style="{StaticResource ToolbarButton}"
                             Click="ZoomIn_Click" ToolTip="{DynamicResource Str_TT_ZoomIn}" Margin="0,0,4,0"/>
                     </StackPanel>
                     <!-- Overflow chevron: shown only when the bar is too narrow -->
@@ -1519,6 +1524,11 @@
                         </ScrollViewer>
                     </Grid>
                 </Border>
+            <!-- 1px PaneBorder cap across the TOP of the splitter column so the document's top border reads
+                 as one continuous line into the corner; the splitter's vertical DragLine otherwise pokes
+                 up past the pane's top border at that corner. High ZIndex so it paints over the splitter. -->
+            <Border Grid.Row="1" Grid.Column="1" x:Name="SplitterTopCap" VerticalAlignment="Top" Height="1"
+                    Background="{DynamicResource PaneBorder}" Panel.ZIndex="60" IsHitTestVisible="False"/>
             <!-- Document pane: row 1 of the document column. -->
             <Border Grid.Row="1" Grid.Column="2" x:Name="DocPaneBorder" Background="{DynamicResource BgCanvas}"
                     BorderBrush="{DynamicResource PaneBorder}" BorderThickness="1">
@@ -1995,10 +2005,10 @@
                                     <StackPanel x:Name="LightAccentRow" Orientation="Horizontal" Margin="10,-5,0,5" Height="0" ClipToBounds="True" Visibility="Collapsed">
                                         <Border x:Name="AccentDotLightRed"    Style="{StaticResource AccentDot}" Background="#931A1A" Tag="Red"    MouseLeftButtonUp="AccentDotLight_Click"/>
                                         <Border x:Name="AccentDotLightOrange" Style="{StaticResource AccentDot}" Background="#C7710F" Tag="Orange" MouseLeftButtonUp="AccentDotLight_Click"/>
-                                        <Border x:Name="AccentDotLightGreen"  Style="{StaticResource AccentDot}" Background="#18843D" Tag="Green"  MouseLeftButtonUp="AccentDotLight_Click"/>
+                                        <Border x:Name="AccentDotLightGreen"  Style="{StaticResource AccentDot}" Background="#1B5E20" Tag="Green"  MouseLeftButtonUp="AccentDotLight_Click"/>
                                         <Border x:Name="AccentDotLightTeal"   Style="{StaticResource AccentDot}" Background="#0D827E" Tag="Teal"   MouseLeftButtonUp="AccentDotLight_Click"/>
-                                        <Border x:Name="AccentDotLightBlue"   Style="{StaticResource AccentDot}" Background="#1D6CA5" Tag="Blue"   MouseLeftButtonUp="AccentDotLight_Click"/>
-                                        <Border x:Name="AccentDotLightPurple" Style="{StaticResource AccentDot}" Background="#6A1DA5" Tag="Purple" MouseLeftButtonUp="AccentDotLight_Click"/>
+                                        <Border x:Name="AccentDotLightBlue"   Style="{StaticResource AccentDot}" Background="#18608E" Tag="Blue"   MouseLeftButtonUp="AccentDotLight_Click"/>
+                                        <Border x:Name="AccentDotLightPurple" Style="{StaticResource AccentDot}" Background="#5A1690" Tag="Purple" MouseLeftButtonUp="AccentDotLight_Click"/>
                                     </StackPanel>
                                     <RadioButton x:Name="ThemeHCRadio"
                                                  Content="{DynamicResource Str_Theme_Black}"
@@ -2102,7 +2112,7 @@
                                                  Checked="ToolbarOnlyRadio_Checked"/>
                         </StackPanel>
                     <!-- Sidebar position picker (Left / Right) -->
-                    <TextBlock Text="SIDEBAR" Style="{StaticResource SettingsSubheader}"
+                    <TextBlock Text="{DynamicResource Str_Sidebar}" Style="{StaticResource SettingsSubheader}"
                                Margin="0,12,0,8"/>
                     <Grid Margin="0,0,0,4">
                         <ToggleButton x:Name="SidebarMenuButton"
@@ -2146,10 +2156,10 @@
                         </ToggleButton>
                     </Grid>
                     <StackPanel x:Name="SidebarSubmenu" Visibility="Collapsed" Margin="10,2,0,6">
-                        <RadioButton x:Name="SidebarLeftRadio" Content="Left"
+                        <RadioButton x:Name="SidebarLeftRadio" Content="{DynamicResource Str_Sidebar_Left}"
                                      GroupName="SidebarGroup" Style="{StaticResource ThemeRadio}"
                                      Checked="SidebarLeftRadio_Checked"/>
-                        <RadioButton x:Name="SidebarRightRadio" Content="Right"
+                        <RadioButton x:Name="SidebarRightRadio" Content="{DynamicResource Str_Sidebar_Right}"
                                      GroupName="SidebarGroup" Style="{StaticResource ThemeRadio}"
                                      Checked="SidebarRightRadio_Checked"/>
                     </StackPanel>
@@ -2311,8 +2321,8 @@
                             <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+0" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_ResetZoom}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
                             <DockPanel Margin="0,0,0,4"><TextBlock Text="Middle drag" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_PanView}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
                             <DockPanel Margin="0,0,0,4"><TextBlock Text="Space + drag" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_PanView}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+B" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="Toggle sidebar" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,0"><TextBlock Text="Ctrl+Tab" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="Next tab (Shift: previous)" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+B" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_ToggleSidebar}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,0"><TextBlock Text="Ctrl+Tab" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="{DynamicResource Str_KS_NextTab}" FontSize="{DynamicResource Str_KS_FontSize}" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
 
                             <TextBlock Text="{DynamicResource Str_KS_Editing}" Foreground="{DynamicResource Accent}"
                                        FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI" FontSize="11" FontWeight="SemiBold" Margin="0,12,0,4"/>

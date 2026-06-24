@@ -344,4 +344,13 @@
     <sys:String x:Key="Str_Sign_Cancel">取消</sys:String>
     <sys:String x:Key="Str_Sign_TitleSuffix">數位簽章</sys:String>
     <sys:String x:Key="Str_Lbl_DigitalSig">數位簽章...</sys:String>
+    <sys:String x:Key="Str_Sidebar">側邊欄</sys:String>
+    <sys:String x:Key="Str_Sidebar_Left">左側</sys:String>
+    <sys:String x:Key="Str_Sidebar_Right">右側</sys:String>
+    <sys:String x:Key="Str_KS_ToggleSidebar">切換側邊欄</sys:String>
+    <sys:String x:Key="Str_KS_NextTab">下一個分頁（Shift：上一個）</sys:String>
+    <sys:String x:Key="Str_Lbl_Search">搜尋</sys:String>
+    <sys:String x:Key="Str_TT_Search">搜尋 (Ctrl+F)</sys:String>
+    <sys:String x:Key="Str_Ctx_DeletePage">刪除頁面</sys:String>
+    <sys:String x:Key="Str_Ctx_DuplicatePage">複製頁面</sys:String>
 </ResourceDictionary>

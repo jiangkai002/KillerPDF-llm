@@ -43,8 +43,8 @@
     <SolidColorBrush x:Key="RadioAccent"    Color="#e0d49a" po:Freeze="True"/>
     <SolidColorBrush x:Key="BgOverlay"      Color="#CC003322" po:Freeze="True"/>
     <sys:Double x:Key="GrainOpacity">0.26</sys:Double>
-    <sys:Double x:Key="IconShadowOpacity">0.9</sys:Double>
-    <sys:Double x:Key="HeaderShadowOpacity">0.8</sys:Double>
+    <sys:Double x:Key="IconShadowOpacity">1.0</sys:Double>
+    <sys:Double x:Key="HeaderShadowOpacity">0.95</sys:Double>
 
     <SolidColorBrush x:Key="BgCanvas"                                                       Color="#0a5234" po:Freeze="True"/>
     <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}"                      Color="#44ffffff" po:Freeze="True"/>

@@ -87,6 +87,7 @@ namespace KillerPDF
             AllowsTransparency    = true;
             Background            = Brushes.Transparent;
             ResizeMode            = ResizeMode.CanResize;
+            WindowFx.EnableFadeClose(this);
             Owner                 = owner;
             WindowStartupLocation = owner != null
                 ? WindowStartupLocation.CenterOwner

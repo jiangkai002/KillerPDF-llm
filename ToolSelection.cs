@@ -58,6 +58,7 @@ namespace KillerPDF
             // Continuous view now supports annotation tools inline via per-page overlays.
             CommitActiveTextBox();
             ClearTextSelection();
+            if (tool != EditTool.Draw) HideBrushPreview();   // drop the brush cursor when leaving Draw
             _currentTool = tool;
 
             var map = new (Button btn, EditTool t)[]

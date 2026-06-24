@@ -53,6 +53,7 @@ namespace KillerPDF
             AllowsTransparency = true;
             Background = Brushes.Transparent;
             ResizeMode = ResizeMode.NoResize;
+            WindowFx.EnableFadeClose(this);
             Owner = owner;
             WindowStartupLocation = owner != null ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen;
             FontFamily = new FontFamily("Segoe UI, Microsoft JhengHei UI, Nirmala UI");
@@ -97,6 +98,7 @@ namespace KillerPDF
                 FontSize = 14, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 12),
                 Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Colors.Black, BlurRadius = 2, ShadowDepth = 1, Direction = 270, Opacity = 0.7 }
             };
+            title.Cursor = Cursors.SizeAll;
             title.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed) DragMove(); };
             panel.Children.Add(title);
             // SV square + hue strip

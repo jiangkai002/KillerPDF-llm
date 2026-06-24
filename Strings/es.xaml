@@ -342,4 +342,13 @@ Puede desinstalarla en cualquier momento desde Agregar o quitar programas.</sys:
     <sys:String x:Key="Str_Sign_Cancel">Cancelar</sys:String>
     <sys:String x:Key="Str_Sign_TitleSuffix">Firma digital</sys:String>
     <sys:String x:Key="Str_Lbl_DigitalSig">Firma digital...</sys:String>
+    <sys:String x:Key="Str_Sidebar">BARRA LATERAL</sys:String>
+    <sys:String x:Key="Str_Sidebar_Left">Izquierda</sys:String>
+    <sys:String x:Key="Str_Sidebar_Right">Derecha</sys:String>
+    <sys:String x:Key="Str_KS_ToggleSidebar">Mostrar/ocultar barra lateral</sys:String>
+    <sys:String x:Key="Str_KS_NextTab">Pestaña siguiente (Mayús: anterior)</sys:String>
+    <sys:String x:Key="Str_Lbl_Search">Buscar</sys:String>
+    <sys:String x:Key="Str_TT_Search">Buscar (Ctrl+F)</sys:String>
+    <sys:String x:Key="Str_Ctx_DeletePage">Eliminar página</sys:String>
+    <sys:String x:Key="Str_Ctx_DuplicatePage">Duplicar página</sys:String>
 </ResourceDictionary>

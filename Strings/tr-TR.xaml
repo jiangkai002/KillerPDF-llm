@@ -342,4 +342,13 @@ Bu işlem uygulamayı %LocalAppData%\KillerPDF konumuna kopyalar ve bir Başlat 
     <sys:String x:Key="Str_Sign_Cancel">İptal</sys:String>
     <sys:String x:Key="Str_Sign_TitleSuffix">Dijital İmza</sys:String>
     <sys:String x:Key="Str_Lbl_DigitalSig">Dijital İmza...</sys:String>
+    <sys:String x:Key="Str_Sidebar">KENAR ÇUBUĞU</sys:String>
+    <sys:String x:Key="Str_Sidebar_Left">Sol</sys:String>
+    <sys:String x:Key="Str_Sidebar_Right">Sağ</sys:String>
+    <sys:String x:Key="Str_KS_ToggleSidebar">Kenar çubuğunu aç/kapat</sys:String>
+    <sys:String x:Key="Str_KS_NextTab">Sonraki sekme (Shift: önceki)</sys:String>
+    <sys:String x:Key="Str_Lbl_Search">Ara</sys:String>
+    <sys:String x:Key="Str_TT_Search">Ara (Ctrl+F)</sys:String>
+    <sys:String x:Key="Str_Ctx_DeletePage">Sayfayı sil</sys:String>
+    <sys:String x:Key="Str_Ctx_DuplicatePage">Sayfayı çoğalt</sys:String>
 </ResourceDictionary>

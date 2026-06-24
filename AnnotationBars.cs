@@ -137,7 +137,7 @@ namespace KillerPDF
             var dotsStrip = new Border
             {
                 Background = Brushes.Transparent,
-                Cursor = Cursors.SizeAll,
+                Cursor = Cursors.Hand,
                 Visibility = Visibility.Collapsed,
                 Child = dots
             };
@@ -413,11 +413,16 @@ namespace KillerPDF
                     Height = 15,
                     CornerRadius = new CornerRadius(3),
                     BorderThickness = new Thickness(active ? 0 : 1),
-                    Background = active ? AccentBrush() : Brushes.Transparent,
+                    Background = Brushes.Transparent,
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(0, 0, 5, 0)
                 };
                 if (active)
+                {
+                    // Live theme reference (not a snapshot) so the checked fill tracks the current theme's
+                    // accent - the old AccentBrush() snapshot kept whatever accent was active when the bar
+                    // was first built, so it showed the wrong (often green) color after a theme switch.
+                    box.SetResourceReference(Border.BackgroundProperty, "SelectionAccent");
                     box.Child = new TextBlock
                     {
                         Text = "✓",
@@ -426,6 +431,7 @@ namespace KillerPDF
                         HorizontalAlignment = HorizontalAlignment.Center,
                         VerticalAlignment = VerticalAlignment.Center
                     };
+                }
                 else box.BorderBrush = _swatchDimBorder;
                 var lbl = new TextBlock
                 {

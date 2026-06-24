@@ -342,4 +342,13 @@
     <sys:String x:Key="Str_Sign_Cancel">বাতিল করুন</sys:String>
     <sys:String x:Key="Str_Sign_TitleSuffix">ডিজিটাল স্বাক্ষর</sys:String>
     <sys:String x:Key="Str_Lbl_DigitalSig">ডিজিটাল স্বাক্ষর...</sys:String>
+    <sys:String x:Key="Str_Sidebar">সাইডবার</sys:String>
+    <sys:String x:Key="Str_Sidebar_Left">বাঁ দিকে</sys:String>
+    <sys:String x:Key="Str_Sidebar_Right">ডান দিকে</sys:String>
+    <sys:String x:Key="Str_KS_ToggleSidebar">সাইডবার টগল করুন</sys:String>
+    <sys:String x:Key="Str_KS_NextTab">পরবর্তী ট্যাব (Shift: পূর্ববর্তী)</sys:String>
+    <sys:String x:Key="Str_Lbl_Search">অনুসন্ধান</sys:String>
+    <sys:String x:Key="Str_TT_Search">অনুসন্ধান (Ctrl+F)</sys:String>
+    <sys:String x:Key="Str_Ctx_DeletePage">পৃষ্ঠা মুছুন</sys:String>
+    <sys:String x:Key="Str_Ctx_DuplicatePage">পৃষ্ঠা সদৃশ করুন</sys:String>
 </ResourceDictionary>

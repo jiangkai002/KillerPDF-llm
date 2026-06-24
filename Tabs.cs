@@ -39,16 +39,16 @@ namespace KillerPDF
             public double ScrollV;
             public int SearchPageCursor = -1;
 
-            public Dictionary<int, List<PageAnnotation>> Annotations = new();
-            public Dictionary<int, (int w, int h)> RenderDims = new();
-            public Dictionary<int, int> PageRotations = new();
-            public Dictionary<int, string> FormTextValues = new();
-            public Dictionary<int, bool> FormCheckValues = new();
-            public Dictionary<string, string> FormRadioValues = new();
-            public Dictionary<int, double> FormFontSizes = new();
+            public Dictionary<int, List<PageAnnotation>> Annotations = [];
+            public Dictionary<int, (int w, int h)> RenderDims = [];
+            public Dictionary<int, int> PageRotations = [];
+            public Dictionary<int, string> FormTextValues = [];
+            public Dictionary<int, bool> FormCheckValues = [];
+            public Dictionary<string, string> FormRadioValues = [];
+            public Dictionary<int, double> FormFontSizes = [];
             public Stack<UndoEntry> UndoStack = new();
-            public Dictionary<int, List<(double left, double bottom, double right, double top)>> AllSearchRects = new();
-            public List<int> SearchResultPages = new();
+            public Dictionary<int, List<(double left, double bottom, double right, double top)>> AllSearchRects = [];
+            public List<int> SearchResultPages = [];
 
             public string Title =>
                 string.IsNullOrEmpty(OriginalFile)
@@ -56,7 +56,7 @@ namespace KillerPDF
                     : System.IO.Path.GetFileNameWithoutExtension(OriginalFile);
         }
 
-        private readonly List<DocumentSession> _sessions = new();
+        private readonly List<DocumentSession> _sessions = [];
         private DocumentSession? _active;
 
         // ============================================================
@@ -418,7 +418,7 @@ namespace KillerPDF
         // Tab strip UI (built in code so it follows the active theme)
         // ============================================================
 
-        private readonly List<(DocumentSession s, FrameworkElement btn, double natW)> _tabButtonList = new();
+        private readonly List<(DocumentSession s, FrameworkElement btn, double natW)> _tabButtonList = [];
         private System.Windows.Threading.DispatcherTimer? _tabReflowTimer;
         private bool _reflowingTabs;
 
@@ -489,7 +489,7 @@ namespace KillerPDF
                 if (natTotal <= viewport)
                 {
                     TabStrip.Children.Clear();
-                    foreach (var t in _tabButtonList) { t.btn.Width = double.NaN; TabStrip.Children.Add(t.btn); }
+                    foreach (var (_, btn, _) in _tabButtonList) { btn.Width = double.NaN; TabStrip.Children.Add(btn); }
                     return;
                 }
 
@@ -534,7 +534,7 @@ namespace KillerPDF
                 }
 
                 TabStrip.Children.Clear();
-                foreach (var t in visible) { t.btn.Width = tabW; TabStrip.Children.Add(t.btn); }
+                foreach (var (_, btn, _) in visible) { btn.Width = tabW; TabStrip.Children.Add(btn); }
                 TabStrip.Children.Add(BuildTabOverflowButton(overflow));
             }
             finally { _reflowingTabs = false; }
@@ -591,10 +591,11 @@ namespace KillerPDF
             {
                 CornerRadius = new CornerRadius(4, 4, 0, 0),
                 Margin = new Thickness(0, 3, 1, 0),
-                Padding = new Thickness(10, 4, 5, 5),
+                Padding = new Thickness(12, 4, 5, 5),
                 MinWidth = 90,
                 MaxWidth = 220,
                 Cursor = Cursors.Hand,
+                Tag = s,
                 ToolTip = s.OriginalFile ?? "Untitled",
             };
             if (active)
@@ -636,6 +637,28 @@ namespace KillerPDF
                 TextTrimming = TextTrimming.CharacterEllipsis,
             };
             label.SetResourceReference(TextBlock.ForegroundProperty, active ? "TextPrimary" : "TextSecondary");
+            // Reserve the BOLD width on EVERY tab so activating one (which bolds its title) never widens
+            // the tab and shoves its neighbours. Inactive tabs render normal weight but still claim the
+            // bold width via MinWidth; capped so squished tabs still ellipsis-trim instead of clipping.
+            double tabDip = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+            var boldFt = new FormattedText(label.Text,
+                System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+                new Typeface(label.FontFamily, FontStyles.Normal, FontWeights.Bold, FontStretches.Normal),
+                label.FontSize, Brushes.Black, tabDip);
+            label.MinWidth = Math.Min(183, Math.Ceiling(boldFt.Width) + 1);
+            if (active)
+            {
+                label.FontWeight = FontWeights.Bold;
+                // Clicked tabs otherwise sit a hair low; nudge the active title up 2px.
+                label.RenderTransform = new TranslateTransform(0, -2);
+                // Drop shadow under the bold title, its strength taken from the theme's HeaderShadowOpacity
+                // (same as the settings headers): heavier on Blood/Greed/Cyanotic, off in Light where a
+                // dark shadow just muddies the pale tab. Resolved here at build time; the strip is rebuilt
+                // on theme change (RebuildTabStrip in OnThemeChanged), so it tracks the theme.
+                double titleShadowOpacity = TryFindResource("HeaderShadowOpacity") is double hso ? hso : 0.5;
+                label.Effect = new System.Windows.Media.Effects.DropShadowEffect
+                { Color = Colors.Black, BlurRadius = 3, ShadowDepth = 1, Direction = 270, Opacity = titleShadowOpacity };
+            }
 
             var close = new Button
             {
@@ -672,12 +695,80 @@ namespace KillerPDF
             content.Children.Add(sp);
             bd.Child = content;
 
-            // The close button consumes its own clicks, so this only fires for the tab body.
-            bd.MouseLeftButtonDown += (_, _) => SwitchToTab(s);
-            // Middle-click closes the tab (common tabbed-UI convention).
+            // Middle-click closes the tab (common tabbed-UI convention). Left-click switches on mouse-UP
+            // (see the drag handlers below) so a press can begin a drag without first rebuilding the strip.
             bd.MouseDown += (_, e) => { if (e.ChangedButton == MouseButton.Middle) { e.Handled = true; CloseTab(s); } };
 
+            // Live drag-reorder: arm on press, and once past the threshold slide this tab between its
+            // neighbours in real time as the cursor crosses their midpoints (a plain click still switches).
+            // The Border is moved within TabStrip.Children directly - no rebuild mid-drag - so the mouse
+            // capture survives. A clean RebuildTabStrip on release re-applies widths / overflow / styling.
+            bd.PreviewMouseLeftButtonDown += (_, e) =>
+            {
+                if (close.IsMouseOver) return;   // let the close button handle its own click
+                _tabDragSession = s;
+                _tabDragStart = e.GetPosition(TabStrip);
+                _tabDragging = false;
+                bd.CaptureMouse();
+            };
+            bd.PreviewMouseMove += (_, e) =>
+            {
+                if (!bd.IsMouseCaptured || _tabDragSession is null) return;
+                double x = e.GetPosition(TabStrip).X;
+                if (!_tabDragging && Math.Abs(x - _tabDragStart.X) < SystemParameters.MinimumHorizontalDragDistance) return;
+                _tabDragging = true;
+                int curIdx = TabStrip.Children.IndexOf(bd);
+                if (curIdx < 0) return;
+                // Swap with whichever immediate neighbour the cursor has crossed the midpoint of. We move
+                // the NEIGHBOUR around bd (never bd itself) so bd stays in the tree and keeps mouse capture.
+                if (curIdx + 1 < TabStrip.Children.Count && TabStrip.Children[curIdx + 1] is FrameworkElement right
+                    && x > right.TranslatePoint(new Point(right.ActualWidth / 2, 0), TabStrip).X)
+                {
+                    var t = TabStrip.Children[curIdx + 1];
+                    TabStrip.Children.RemoveAt(curIdx + 1);
+                    TabStrip.Children.Insert(curIdx, t);
+                    ResyncSessionsFromTabStrip();
+                }
+                else if (curIdx - 1 >= 0 && TabStrip.Children[curIdx - 1] is FrameworkElement left
+                    && x < left.TranslatePoint(new Point(left.ActualWidth / 2, 0), TabStrip).X)
+                {
+                    var t = TabStrip.Children[curIdx - 1];
+                    TabStrip.Children.RemoveAt(curIdx - 1);
+                    TabStrip.Children.Insert(curIdx, t);
+                    ResyncSessionsFromTabStrip();
+                }
+            };
+            bd.PreviewMouseLeftButtonUp += (_, _) =>
+            {
+                if (!bd.IsMouseCaptured) return;   // close-button press (we never captured) - leave it alone
+                bd.ReleaseMouseCapture();
+                bool wasDragging = _tabDragging;
+                _tabDragSession = null;
+                _tabDragging = false;
+                if (wasDragging) RebuildTabStrip();   // re-apply widths / overflow / active styling cleanly
+                else SwitchToTab(s);                  // it was a click, not a drag
+            };
+
             return bd;
+        }
+
+        // Live drag-reorder state.
+        private Point _tabDragStart;
+        private DocumentSession? _tabDragSession;
+        private bool _tabDragging;
+
+        // Rebuild the session order from the tab strip's current visual order (each tab Border's Tag is its
+        // session); sessions not currently shown (overflow) keep their order after the visible ones.
+        private void ResyncSessionsFromTabStrip()
+        {
+            var vis = new List<DocumentSession>();
+            foreach (var child in TabStrip.Children)
+                if (child is FrameworkElement fe && fe.Tag is DocumentSession ds) vis.Add(ds);
+            if (vis.Count == 0) return;
+            var rest = _sessions.Where(z => !vis.Contains(z)).ToList();
+            _sessions.Clear();
+            _sessions.AddRange(vis);
+            _sessions.AddRange(rest);
         }
 
         // Tab divider: the document-pane border color (PaneBorder) at the bottom, fading to fully

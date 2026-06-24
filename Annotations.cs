@@ -1023,11 +1023,16 @@ namespace KillerPDF
                     var rect = new Rectangle { Width = 0, Height = 0 };
                     if (_currentTool == EditTool.Highlight && _highlightErase)
                     {
-                        // Eraser: a dashed hollow box so it reads as "delete inside" rather than a highlight.
-                        rect.Fill = new SolidColorBrush(Color.FromArgb(28, 255, 255, 255));
-                        rect.Stroke = Brushes.White;
-                        rect.StrokeThickness = 1.5;
+                        // Eraser: red marching-ants box so it reads as "delete inside" and stays visible on
+                        // any page color (the old faint white dashes vanished on light scans). The dash
+                        // offset animates so the ants "walk".
+                        rect.Fill = new SolidColorBrush(Color.FromArgb(36, 255, 60, 60));
+                        rect.Stroke = new SolidColorBrush(Color.FromArgb(235, 220, 40, 40));
+                        rect.StrokeThickness = 2;
                         rect.StrokeDashArray = [4, 3];
+                        rect.BeginAnimation(Shape.StrokeDashOffsetProperty,
+                            new DoubleAnimation(0, 7, new Duration(TimeSpan.FromSeconds(0.5)))
+                            { RepeatBehavior = RepeatBehavior.Forever });
                     }
                     else rect.Fill = new SolidColorBrush(previewFill);
                     Canvas.SetLeft(rect, pos.X);
@@ -1127,11 +1132,62 @@ namespace KillerPDF
             }
         }
 
+        // Ink/eraser brush cursor preview: a circle the size of the brush, shown while hovering with the
+        // Draw tool so the brush footprint is visible before a stroke. Ink = color-tinted ring; eraser =
+        // grey dashed ring. Lives on the page overlay under the cursor; removed on tool change / stroke /
+        // when the pointer is no longer hovering the Draw tool.
+        private System.Windows.Shapes.Ellipse? _brushPreview;
+
+        private void ShowBrushPreview(Canvas canvas, Point center)
+        {
+            double d = Math.Max(2, _drawWidth);   // brush diameter in canvas (render-dim) units
+            _brushPreview ??= new System.Windows.Shapes.Ellipse { IsHitTestVisible = false };
+            Panel.SetZIndex(_brushPreview, 9000);
+            _brushPreview.StrokeThickness = 1;
+            _brushPreview.Width = d;
+            _brushPreview.Height = d;
+            if (_drawErase)
+            {
+                _brushPreview.Stroke = new SolidColorBrush(Color.FromArgb(220, 150, 150, 150));
+                _brushPreview.StrokeDashArray = [3, 2];
+                _brushPreview.Fill = new SolidColorBrush(Color.FromArgb(28, 255, 255, 255));
+            }
+            else
+            {
+                _brushPreview.Stroke = new SolidColorBrush(_drawColor);
+                _brushPreview.StrokeDashArray = null;
+                _brushPreview.Fill = new SolidColorBrush(Color.FromArgb(40, _drawColor.R, _drawColor.G, _drawColor.B));
+            }
+            if (!ReferenceEquals(_brushPreview.Parent, canvas))
+            {
+                (_brushPreview.Parent as Canvas)?.Children.Remove(_brushPreview);
+                canvas.Children.Add(_brushPreview);
+            }
+            Canvas.SetLeft(_brushPreview, center.X - d / 2);
+            Canvas.SetTop(_brushPreview, center.Y - d / 2);
+        }
+
+        private void HideBrushPreview()
+        {
+            if (_brushPreview is not null)
+                (_brushPreview.Parent as Canvas)?.Children.Remove(_brushPreview);
+        }
+
         private void Canvas_MouseMove(object sender, MouseEventArgs e)
         {
             // Don't interfere with mouse interaction inside form field overlays.
             if (e.OriginalSource is DependencyObject moveSrc && IsFormFieldElement(moveSrc))
                 return;
+
+            // Brush cursor: with the Draw tool active and no button down, show a circle the size of the
+            // brush (ink or eraser) at the pointer so it's obvious where the next stroke will land.
+            if (sender is Canvas hoverCv)
+            {
+                if (_currentTool == EditTool.Draw && !_isDrawing && e.LeftButton != MouseButtonState.Pressed)
+                    ShowBrushPreview(hoverCv, e.GetPosition(hoverCv));
+                else
+                    HideBrushPreview();
+            }
 
             // Safety: a drag/resize is in progress but the left button is no longer down - the mouse-up was
             // lost (typically because the app was in the background when the user released). Finish the

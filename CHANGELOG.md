@@ -4,7 +4,7 @@ All notable changes to KillerPDF are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.5.7] - 2026-06-20
+## [1.5.7] - 2026-06-23
 
 ### Added
 - Line tool: drag to draw straight lines, with its own color, opacity, and width.
@@ -25,16 +25,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Resizable sidebar: drag the splitter to scale the page list and thumbnails; drag to open or close, or toggle with Ctrl+B.
 - Accent colors (red, orange, green, teal, blue, purple) for the Dark, Light, and Black themes, each remembered independently.
 - Keyboard shortcuts for tools and panels (F1 shortcuts list, F2 About, Ctrl+V paste, Esc to close); the overlay lists them all.
-- Bengali, Turkish, and Simplified Chinese translations (contributors akib-h #79, mrantikadev #76, KaneLeung #82).
+- Bengali, Turkish, Simplified Chinese, and German translations (contributors akib-h #79, mrantikadev #76, KaneLeung #82, Dtrieb #93).
 
 ### Changed
-- Visual refresh: rounded window corners (squared when maximized), film grain on surfaces and dialogs, drop shadows on icons and menus, a green "PDF" wordmark, accent-colored radios, per-theme scrollbars, and themed sliders. The floating annotation bars fade, crossfade between tools, and minimize to a dotted strip.
+- Visual refresh: rounded window corners (squared when maximized), film grain on surfaces and dialogs, drop shadows on icons and menus, themed KillerPDF wordmark, accent-colored radios, per-theme scrollbars, and themed sliders. The floating annotation bars fade, crossfade between tools, and minimize to a dotted strip.
 - Blood, Greed, and Cyanotic use darker chrome with a lighter document pane; the signature windows are fully themed and reload on theme change.
 - Settings is now a slide-out accordion (Language, Theme, Toolbar, View Mode, Sidebar) that stays open after a pick.
 - Text-over-text editing drops an opaque cover (fill sampled from the page) with an editable box on top; the pair can be unpaired, and image-only pages get a manual cover and box.
 - Grid and Two-Page pages render sharper on high-DPI displays.
 - Restored sessions load tabs lazily, and placed images no longer re-decode while being dragged.
 - Save Flattened opens the source PDF once instead of per page (Issue #68).
+- Internal refactor: the ~15,000-line MainWindow code-behind split into ~40 focused partial-class files, no behavior change.
+- Unified the page-rendering pipeline so annotations, search highlights, and tools behave identically across Single, Continuous, Two-Page, and Grid views.
 
 ### Fixed
 - Form fields appear and fill in every view mode, align on pages with an inset CropBox or offset origin, and size their text from the field's own /DA.
