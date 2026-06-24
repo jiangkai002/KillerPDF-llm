@@ -338,6 +338,7 @@ namespace KillerPDF
                 _toolbarStyle = savedTb;
             if (string.Equals(App.GetSetting("SidebarSide"), "Right", StringComparison.OrdinalIgnoreCase))
                 _sidebarRight = true;
+            RestoreToolSettings();   // Draw + Text tool styles carry across sessions
             IndexToolbarButtons();
             OutlineTree.SelectedItemChanged += OutlineTree_SelectedItemChanged;
             LoadSignatures();
@@ -483,8 +484,86 @@ namespace KillerPDF
                     App.SetSetting("ActiveTab", af);
                 else
                     App.RemoveSetting("ActiveTab");
+                PersistToolSettings();
             }
             catch { /* best-effort */ }
+        }
+
+        // Persist the Draw and Text tool styles so they carry across sessions. The eraser toggle is
+        // deliberately NOT saved (it's a transient mode, not a style).
+        private void PersistToolSettings()
+        {
+            try
+            {
+                App.SetSetting("DrawColor",     ToolColorHex(_drawColor));
+                App.SetSetting("DrawWidth",     _drawWidth.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                App.SetSetting("DrawOpacity",   _drawOpacity.ToString());
+                App.SetSetting("TextFontSize",  _textFontSize.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                App.SetSetting("TextFontName",  _textFontName);
+                App.SetSetting("TextBold",      _textBold ? "1" : "0");
+                App.SetSetting("TextItalic",    _textItalic ? "1" : "0");
+                App.SetSetting("TextStrike",    _textStrike ? "1" : "0");
+                App.SetSetting("TextUnderline", _textUnderline ? "1" : "0");
+                App.SetSetting("TextColor",     ToolColorHex(_textColor));
+                App.SetSetting("TextOpacity",   _textOpacity.ToString());
+                App.SetSetting("TextFillColor", ToolColorHexA(_textFillColor));
+            }
+            catch { /* best-effort */ }
+        }
+
+        private void RestoreToolSettings()
+        {
+            try
+            {
+                if (ParseToolColor(App.GetSetting("DrawColor")) is Color dc) _drawColor = dc;
+                if (double.TryParse(App.GetSetting("DrawWidth"), System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out double dw) && dw > 0) _drawWidth = dw;
+                if (byte.TryParse(App.GetSetting("DrawOpacity"), out byte dop)) _drawOpacity = dop;
+
+                if (double.TryParse(App.GetSetting("TextFontSize"), System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out double tfs) && tfs > 0) _textFontSize = tfs;
+                if (App.GetSetting("TextFontName") is { Length: > 0 } tfn) _textFontName = tfn;
+                _textBold      = App.GetSetting("TextBold") == "1";
+                _textItalic    = App.GetSetting("TextItalic") == "1";
+                _textStrike    = App.GetSetting("TextStrike") == "1";
+                _textUnderline = App.GetSetting("TextUnderline") == "1";
+                if (ParseToolColor(App.GetSetting("TextColor")) is Color tc) _textColor = tc;
+                if (byte.TryParse(App.GetSetting("TextOpacity"), out byte top)) _textOpacity = top;
+                if (ParseToolColorA(App.GetSetting("TextFillColor")) is Color tfc) _textFillColor = tfc;
+
+                // Keep each color's alpha in sync with its opacity byte (the bars store them coupled).
+                _drawColor = Color.FromArgb(_drawOpacity, _drawColor.R, _drawColor.G, _drawColor.B);
+                _textColor = Color.FromArgb(_textOpacity, _textColor.R, _textColor.G, _textColor.B);
+            }
+            catch { /* best-effort */ }
+        }
+
+        private static string ToolColorHex(Color c)  => $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+        private static string ToolColorHexA(Color c) => $"#{c.A:X2}{c.R:X2}{c.G:X2}{c.B:X2}";
+
+        private static Color? ParseToolColor(string? s)
+        {
+            if (s is null || s.Length != 7 || s[0] != '#') return null;
+            try
+            {
+                return Color.FromRgb(Convert.ToByte(s.Substring(1, 2), 16),
+                                     Convert.ToByte(s.Substring(3, 2), 16),
+                                     Convert.ToByte(s.Substring(5, 2), 16));
+            }
+            catch { return null; }
+        }
+
+        private static Color? ParseToolColorA(string? s)
+        {
+            if (s is null || s.Length != 9 || s[0] != '#') return null;
+            try
+            {
+                return Color.FromArgb(Convert.ToByte(s.Substring(1, 2), 16),
+                                      Convert.ToByte(s.Substring(3, 2), 16),
+                                      Convert.ToByte(s.Substring(5, 2), 16),
+                                      Convert.ToByte(s.Substring(7, 2), 16));
+            }
+            catch { return null; }
         }
 
         private void RestoreWindowSettings()

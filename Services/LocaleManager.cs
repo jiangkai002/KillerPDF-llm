@@ -3,7 +3,7 @@ using System.Windows;
 
 namespace KillerPDF.Services
 {
-    internal enum Locale { EnUS, Es, ZhTW, ZhCN, Bn, TrTR, De }
+    internal enum Locale { EnUS, Es, ZhTW, ZhCN, Bn, TrTR, De, Fr }
 
     internal static class LocaleManager
     {
@@ -35,25 +35,34 @@ namespace KillerPDF.Services
 
         private static void ApplyInternal(Locale locale)
         {
-            var uri = locale switch
+            var merged = Application.Current.Resources.MergedDictionaries;
+
+            // [0] theme. [1] en-US BASE - always present so any partial locale falls back to English for
+            // keys it doesn't translate. [2] the chosen locale's overrides (absent for English).
+            if (merged.Count > 1)
+                merged[1] = new ResourceDictionary { Source = new Uri("pack://application:,,,/Strings/en-US.xaml") };
+
+            Uri? overrideUri = locale switch
             {
                 Locale.Es   => new Uri("pack://application:,,,/Strings/es.xaml"),
+                Locale.Fr   => new Uri("pack://application:,,,/Strings/fr-FR.xaml"),
                 Locale.ZhTW => new Uri("pack://application:,,,/Strings/zh-TW.xaml"),
                 Locale.ZhCN => new Uri("pack://application:,,,/Strings/zh-CN.xaml"),
                 Locale.Bn   => new Uri("pack://application:,,,/Strings/bn.xaml"),
                 Locale.TrTR => new Uri("pack://application:,,,/Strings/tr-TR.xaml"),
                 Locale.De   => new Uri("pack://application:,,,/Strings/de-DE.xaml"),
-                _           => new Uri("pack://application:,,,/Strings/en-US.xaml"),
+                _           => null,   // English: base only
             };
 
-            var dict   = new ResourceDictionary { Source = uri };
-            var merged = Application.Current.Resources.MergedDictionaries;
-
-            // Index 0 = theme dict, Index 1 = strings dict
-            if (merged.Count > 1)
-                merged[1] = dict;
-            else
-                merged.Add(dict);
+            if (overrideUri is not null)
+            {
+                var ov = new ResourceDictionary { Source = overrideUri };
+                if (merged.Count > 2) merged[2] = ov; else merged.Add(ov);
+            }
+            else if (merged.Count > 2)
+            {
+                merged.RemoveAt(2);
+            }
         }
     }
 }

@@ -40,22 +40,22 @@ KillerPDF is what I wanted: local-only, portable, no account, no telemetry. The 
 Six themes to choose from:
 
 **Dark**
-![KillerPDF - Dark theme](screenshots/6_Dark.png)
+![KillerPDF - Dark theme](pdf-landing/screenshots/6_Dark.png)
 
 **Blood**
-![KillerPDF - Blood theme](screenshots/1_Blood.png)
+![KillerPDF - Blood theme](pdf-landing/screenshots/1_Blood.png)
 
 **Greed**
-![KillerPDF - Greed theme](screenshots/2_Greed.png)
+![KillerPDF - Greed theme](pdf-landing/screenshots/2_Greed.png)
 
 **Cyanotic**
-![KillerPDF - Cyanotic theme](screenshots/3_Cyanotic.png)
+![KillerPDF - Cyanotic theme](pdf-landing/screenshots/3_Cyanotic.png)
 
 **Black**
-![KillerPDF - Black theme](screenshots/4_High_Contrast.png)
+![KillerPDF - Black theme](pdf-landing/screenshots/4_High_Contrast.png)
 
 **Light**
-![KillerPDF - Light theme](screenshots/5_Light.png)
+![KillerPDF - Light theme](pdf-landing/screenshots/5_Light.png)
 
 ## Requirements
 

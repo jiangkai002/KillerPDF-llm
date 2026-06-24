@@ -46,6 +46,7 @@ namespace KillerPDF
             var curLoc = KillerPDF.Services.LocaleManager.Current;
             LangEnRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.EnUS;
             LangEsRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.Es;
+            LangFrRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.Fr;
             LangZhTWRadio.IsChecked = curLoc == KillerPDF.Services.Locale.ZhTW;
             LangZhCNRadio.IsChecked = curLoc == KillerPDF.Services.Locale.ZhCN;
             LangBnRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.Bn;
@@ -432,6 +433,7 @@ namespace KillerPDF
 
         private void LangEnRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.EnUS);
         private void LangEsRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.Es);
+        private void LangFrRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.Fr);
         private void LangZhTWRadio_Checked(object sender, RoutedEventArgs e) => SelectLocale(KillerPDF.Services.Locale.ZhTW);
         private void LangZhCNRadio_Checked(object sender, RoutedEventArgs e) => SelectLocale(KillerPDF.Services.Locale.ZhCN);
         private void LangBnRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.Bn);
@@ -484,6 +486,7 @@ namespace KillerPDF
         private static string LangDisplayName(KillerPDF.Services.Locale loc) => loc switch
         {
             KillerPDF.Services.Locale.Es   => "Español",
+            KillerPDF.Services.Locale.Fr   => "Français",
             KillerPDF.Services.Locale.ZhTW => "中文 (繁體)",
             KillerPDF.Services.Locale.ZhCN => "中文 (简体)",
             KillerPDF.Services.Locale.Bn   => "বাংলা",

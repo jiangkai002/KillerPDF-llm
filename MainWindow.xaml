@@ -1895,6 +1895,19 @@
                                                        Foreground="{DynamicResource TextSecondary}"/>
                                         </Grid>
                                     </RadioButton>
+                                    <RadioButton x:Name="LangFrRadio" GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
+                                                 Checked="LangFrRadio_Checked">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Français" VerticalAlignment="Center"
+                                                       FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
+                                            <TextBlock Grid.Column="1" Text="fr" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
+                                                       Foreground="{DynamicResource TextSecondary}"/>
+                                        </Grid>
+                                    </RadioButton>
                                     <RadioButton x:Name="LangTrRadio" GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
                                                  Checked="LangTrRadio_Checked">
                                         <Grid>

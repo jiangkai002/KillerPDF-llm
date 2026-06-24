@@ -25,7 +25,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Resizable sidebar: drag the splitter to scale the page list and thumbnails; drag to open or close, or toggle with Ctrl+B.
 - Accent colors (red, orange, green, teal, blue, purple) for the Dark, Light, and Black themes, each remembered independently.
 - Keyboard shortcuts for tools and panels (F1 shortcuts list, F2 About, Ctrl+V paste, Esc to close); the overlay lists them all.
-- Bengali, Turkish, Simplified Chinese, and German translations (contributors akib-h #79, mrantikadev #76, KaneLeung #82, Dtrieb #93).
+- Bengali, Turkish, Simplified Chinese, German, and French translations (contributors akib-h #79, mrantikadev #76, KaneLeung #82, Dtrieb #93, Thalis-fr #95).
 
 ### Changed
 - Visual refresh: rounded window corners (squared when maximized), film grain on surfaces and dialogs, drop shadows on icons and menus, themed KillerPDF wordmark, accent-colored radios, per-theme scrollbars, and themed sliders. The floating annotation bars fade, crossfade between tools, and minimize to a dotted strip.
