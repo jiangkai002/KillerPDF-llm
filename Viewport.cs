@@ -71,6 +71,31 @@ namespace KillerPDF
             }
         }
 
+        // Common overlay wiring shared by the continuous and secondary-tile builders: the move/up
+        // gesture handlers, the shared right-click context menu (per-page overlays don't inherit the
+        // primary's ContextMenu), and registration in both page maps. The mouse-DOWN handler and the
+        // overlay's size/layout are caller-specific, so those stay in the callers.
+        private void WirePageOverlay(Canvas overlay, int page)
+        {
+            overlay.MouseMove                += Canvas_MouseMove;
+            overlay.PreviewMouseLeftButtonUp += Canvas_MouseLeftButtonUp;
+            overlay.PreviewMouseRightButtonUp += (s, ev) =>
+            {
+                if (_viewMode != ViewMode.TwoPage) PageList.SelectedIndex = page;
+                if (_annotationCanvas.ContextMenu is ContextMenu cm)
+                {
+                    // Selection chrome draws on _activeCanvas, so point it at this tile before populating.
+                    _activeCanvas = (Canvas)s;
+                    PopulateContextMenu(ev.GetPosition((Canvas)s), page);
+                    cm.PlacementTarget = (UIElement)s;
+                    cm.IsOpen = true;
+                    ev.Handled = true;
+                }
+            };
+            _continuousCanvases[page] = overlay;
+            _pages[page] = overlay;
+        }
+
         private void SetupContinuousView(int initialPage)
         {
             if (_doc is null) return;
@@ -118,26 +143,7 @@ namespace KillerPDF
                     LayoutTransform  = new System.Windows.Media.ScaleTransform(slotScale, slotScale)
                 };
                 overlay.PreviewMouseLeftButtonDown += Canvas_MouseLeftButtonDown;
-                overlay.MouseMove                  += Canvas_MouseMove;
-                overlay.PreviewMouseLeftButtonUp   += Canvas_MouseLeftButtonUp;
-                // Right-click opens the same context menu as the primary page (overlays don't
-                // inherit _annotationCanvas's ContextMenu), targeting the right-clicked page.
-                int rcPage = i;
-                overlay.PreviewMouseRightButtonUp += (s, ev) =>
-                {
-                    if (_viewMode != ViewMode.TwoPage) PageList.SelectedIndex = rcPage;
-                    if (_annotationCanvas.ContextMenu is ContextMenu cm)
-                    {
-                        // Selection chrome draws on _activeCanvas, so point it at this tile before populating.
-                        _activeCanvas = (Canvas)s;
-                        PopulateContextMenu(ev.GetPosition((Canvas)s), rcPage);
-                        cm.PlacementTarget = (UIElement)s;
-                        cm.IsOpen = true;
-                        ev.Handled = true;
-                    }
-                };
-                _continuousCanvases[i] = overlay;
-                _pages[i] = overlay;
+                WirePageOverlay(overlay, i);
 
                 var pageImg = new Image { Stretch = Stretch.None, Width = _continuousPageW, Height = slotH };
                 RenderOptions.SetBitmapScalingMode(pageImg, BitmapScalingMode.HighQuality);
@@ -290,6 +296,16 @@ namespace KillerPDF
         private void RenderPage(int pageIndex)
         {
             if (_currentFile is null || _doc is null) return;
+            // Continuous has its own pipeline (SetupContinuousView + RenderContinuousPages into
+            // _continuousPanel) and owns the _pages map for every page. RenderPage targets the hidden
+            // single/grid primary (_annotationCanvas in the collapsed _pageContentPanel) and calls
+            // ClearSecondaryPages, which would WIPE the continuous _pages map and repoint the current
+            // page at the invisible primary - so any annotation added afterwards renders off-screen
+            // until a mode switch rebuilds the overlays. Stray callers (the zoom re-sharpen timer, the
+            // DPI-change handler) can fire RenderPage while continuous is active; ignore them. The mode
+            // switch sets _viewMode to the new (non-continuous) mode BEFORE calling RenderPage, so this
+            // guard never blocks a legitimate switch-into-single/grid render.
+            if (_viewMode == ViewMode.Continuous) return;
             // Two-page spreads pair (0,1),(2,3),...; render the pair's left (even) page as primary so
             // selecting the right page of a pair still shows the whole spread, not a lone page.
             if (_viewMode == ViewMode.TwoPage) pageIndex -= pageIndex % 2;
@@ -592,27 +608,7 @@ namespace KillerPDF
                 }
                 else Canvas_MouseLeftButtonDown(s, ev);
             };
-            overlay.MouseMove                += Canvas_MouseMove;
-            overlay.PreviewMouseLeftButtonUp += Canvas_MouseLeftButtonUp;
-            // Right-click on a tile selects that page and opens the same context menu the primary
-            // page uses (per-page overlays don't inherit _annotationCanvas's ContextMenu).
-            overlay.PreviewMouseRightButtonUp += (s, ev) =>
-            {
-                // Don't change the selected page in Two-Page view - it would reflow the pair and
-                // drop to a single page. Grid is anchored at page 0 and Continuous just scrolls.
-                if (_viewMode != ViewMode.TwoPage) PageList.SelectedIndex = capturedPi;
-                if (_annotationCanvas.ContextMenu is ContextMenu cm)
-                {
-                    // Selection chrome draws on _activeCanvas, so point it at this tile before populating.
-                    _activeCanvas = (Canvas)s;
-                    PopulateContextMenu(ev.GetPosition((Canvas)s), capturedPi);
-                    cm.PlacementTarget = (UIElement)s;
-                    cm.IsOpen = true;
-                    ev.Handled = true;
-                }
-            };
-            _continuousCanvases[pi] = overlay;
-            _pages[pi] = overlay;
+            WirePageOverlay(overlay, pi);
 
             var pageGrid = new Grid();
             pageGrid.Children.Add(img);
