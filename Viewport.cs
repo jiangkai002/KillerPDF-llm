@@ -97,6 +97,40 @@ namespace KillerPDF
             _pages[page] = overlay;
         }
 
+        // Build tile-0 (the primary page) in code and insert it at the head of the page panel, replacing the
+        // former hardcoded XAML PageImage + AnnotationCanvas singleton. Wiring mirrors the old XAML attributes
+        // exactly: left-down/move/leave/left-up, plus the attached ContextMenu set later in BuildContextMenu.
+        // It deliberately does NOT use WirePageOverlay - the primary must stay OUT of _continuousCanvases, and
+        // RenderPage remains the sole registrar of _pages[primary], preserving ClearSecondaryPages' "keep the
+        // index-0 tile" contract. Runs once from the constructor after _pageContentPanel is resolved.
+        private void BuildPrimaryTile()
+        {
+            var img = new Image { Stretch = Stretch.None };
+            RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
+
+            var overlay = new Canvas { Background = Brushes.Transparent, ClipToBounds = true };
+            overlay.PreviewMouseLeftButtonDown += Canvas_MouseLeftButtonDown;
+            overlay.MouseMove                  += Canvas_MouseMove;
+            overlay.MouseLeave                 += Canvas_MouseLeave;
+            overlay.PreviewMouseLeftButtonUp   += Canvas_MouseLeftButtonUp;
+
+            var grid = new Grid();
+            grid.Children.Add(img);
+            grid.Children.Add(overlay);
+
+            var tile = new Border
+            {
+                Background        = Brushes.White,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin            = new Thickness(0, 0, 12, 12),
+                Child             = grid,
+            };
+            _pageContentPanel.Children.Insert(0, tile);
+
+            PageImage         = img;
+            _annotationCanvas = overlay;
+        }
+
         private void SetupContinuousView(int initialPage)
         {
             if (_doc is null) return;

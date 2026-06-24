@@ -1614,18 +1614,8 @@
                                     <ScaleTransform ScaleX="1" ScaleY="1"/>
                                 </Grid.LayoutTransform>
                                 <WrapPanel x:Name="PageContentPanel" Orientation="Horizontal">
-                                    <!-- Primary page (always present) -->
-                                    <Border Background="White" VerticalAlignment="Top" Margin="0,0,12,12">
-                                        <Grid>
-                                            <Image x:Name="PageImage" RenderOptions.BitmapScalingMode="HighQuality" Stretch="None"/>
-                                            <Canvas x:Name="AnnotationCanvas" Background="Transparent" ClipToBounds="True"
-                                                    PreviewMouseLeftButtonDown="Canvas_MouseLeftButtonDown"
-                                                    MouseMove="Canvas_MouseMove"
-                                                    MouseLeave="Canvas_MouseLeave"
-                                                    PreviewMouseLeftButtonUp="Canvas_MouseLeftButtonUp"/>
-                                        </Grid>
-                                    </Border>
-                                    <!-- Additional pages rendered dynamically in code-behind -->
+                                    <!-- Tile 0 (the primary page) is built in code by BuildPrimaryTile and
+                                         inserted at index 0; additional pages are rendered dynamically too. -->
                                 </WrapPanel>
                                 <!-- Continuous scroll panel - shown in Continuous view mode -->
                                 <StackPanel x:Name="ContinuousPanel"

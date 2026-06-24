@@ -225,8 +225,10 @@ namespace KillerPDF
         // Form fields already signed, so re-clicking one offers change/remove instead of re-stamping.
         private readonly Dictionary<int, SignatureAnnotation> _signedFields = [];
 
-        // Manual element refs (XAML codegen doesn't resolve these)
-        private readonly Canvas _annotationCanvas = null!;
+        // Manual element refs. Tile-0's Image + overlay are built in code (BuildPrimaryTile) now that the
+        // primary page is no longer a hardcoded XAML singleton - both are reassignable.
+        private Canvas _annotationCanvas = null!;
+        private Image PageImage = null!;
         // Active annotation surface. Single view: always _annotationCanvas. Continuous view:
         // set on mouse-down to the clicked page's overlay. Shared handlers target this.
         private Canvas _activeCanvas = null!;
@@ -272,8 +274,6 @@ namespace KillerPDF
             InitializeComponent();
             var v = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
             if (v != null) VersionLabel.Text = $"v{v.Major}.{v.Minor}.{v.Build}";
-            _annotationCanvas = (Canvas)FindName("AnnotationCanvas")!;
-            _activeCanvas = _annotationCanvas;
             // Safety net: if the window loses focus mid-drag/resize (e.g. Alt-Tab away to type elsewhere),
             // the mouse-up can be lost and the dragged annotation would stay glued to the cursor with the
             // canvas still holding mouse capture. End any in-progress gesture on deactivate so control is
@@ -292,6 +292,8 @@ namespace KillerPDF
             _sidebarBorder = (Border)FindName("SidebarBorder")!;
             _sidebarCol = (ColumnDefinition)FindName("SidebarCol")!;
             _pageContentPanel = (WrapPanel)FindName("PageContentPanel")!;
+            BuildPrimaryTile();              // code-built tile-0 (replaces the former XAML PageImage + AnnotationCanvas)
+            _activeCanvas = _annotationCanvas;
             _saveAsBtnRef = (Button)FindName("SaveAsBtn")!;
             _closeFileBtnRef = (Button)FindName("CloseFileBtn")!;
             _zoomBox = (ComboBox)FindName("ZoomBox")!;

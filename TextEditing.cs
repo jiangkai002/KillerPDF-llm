@@ -728,8 +728,8 @@ namespace KillerPDF
             if (_continuousCanvases.TryGetValue(pageIdx, out var overlay) && overlay.Parent is Panel mp)
                 foreach (var ch in mp.Children)
                     if (ch is Image im && im.Source is System.Windows.Media.Imaging.BitmapSource bs) return bs;
-            if (pageIdx == PageList.SelectedIndex && FindName("PageImage") is Image pgi
-                && pgi.Source is System.Windows.Media.Imaging.BitmapSource pbs) return pbs;
+            if (pageIdx == PageList.SelectedIndex && PageImage.Source is System.Windows.Media.Imaging.BitmapSource pbs)
+                return pbs;
             return null;
         }
 

@@ -178,7 +178,7 @@ namespace KillerPDF
             RemoveTextEditHandles();
             _thumbCts?.Cancel();
             PageList.ItemsSource = null;
-            if (FindName("PageImage") is System.Windows.Controls.Image img) img.Source = null;
+            PageImage.Source = null;
             _annotationCanvas.Children.Clear();
             FileNameLabel.Text = "";
             DropZone.Visibility = Visibility.Visible;
