@@ -62,6 +62,7 @@ namespace KillerPDF
         private readonly DispatcherTimer _previewTimer = null!;
 
         private static SolidColorBrush R(string key) => (SolidColorBrush)Application.Current.Resources[key];
+        private static string S(string key) => Application.Current.TryFindResource(key) as string ?? key;
 
         public TransformWindow(Window owner, BitmapSource src, double pageWpt, double pageHpt)
         {
@@ -71,7 +72,7 @@ namespace KillerPDF
             _pageWpt = pageWpt;
             _pageHpt = pageHpt;
             Owner = owner;
-            Title = "KillerPDF - Transform";
+            Title = "KillerPDF - " + S("Str_Tf_Suffix");
             Width = 980;
             Height = 720;
             MinWidth = 640;
@@ -137,41 +138,39 @@ namespace KillerPDF
             root.Children.Add(titleBar);
 
             // ---- Right sidebar (transparent so it blends with the dark title bar, like Print Preview) ----
-            var sidebar = new Border { Width = 256, Background = Brushes.Transparent, Padding = new Thickness(16, 8, 16, 14) };
+            var sidebar = new Border { Width = 288, Background = Brushes.Transparent, Padding = new Thickness(16, 8, 16, 14) };
             DockPanel.SetDock(sidebar, Dock.Right);
 
             var side = new DockPanel();
 
-            // Bottom row: a small "Reset all" text link on the left (no button chrome, so it stays
-            // compact and never crowds the action buttons), with Cancel / Apply on the right.
-            var bottom = new DockPanel { Margin = new Thickness(0, 10, 0, 0), LastChildFill = false };
+            // Bottom: a "Reset all" text link on its own line (translations like "Tout reinitialiser" are
+            // long), with Cancel / Apply right-aligned beneath it - so nothing crowds or clips.
+            var bottom = new StackPanel { Margin = new Thickness(0, 10, 0, 0) };
             var resetAll = new TextBlock
             {
-                Text = "Reset all", FontFamily = new FontFamily("Segoe UI"), FontSize = 12,
+                Text = S("Str_Tf_ResetAll"), FontFamily = new FontFamily("Segoe UI"), FontSize = 12,
                 Foreground = R("TextSecondary"), Cursor = Cursors.Hand,
                 VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Left
             };
             resetAll.MouseEnter += (_, _2) => resetAll.Foreground = R("Accent");
             resetAll.MouseLeave += (_, _2) => resetAll.Foreground = R("TextSecondary");
             resetAll.MouseLeftButtonUp += (_, _2) => { _quarter = 0; _rotSlider.Value = 0; _scaleSlider.Value = 100; _resizeRadio.IsChecked = true; _flipHCheck.IsChecked = false; _flipVCheck.IsChecked = false; };
-            DockPanel.SetDock(resetAll, Dock.Left);
             bottom.Children.Add(resetAll);
-            var actionRow = new StackPanel { Orientation = Orientation.Horizontal };
-            var cancelBtn = UiButtons.Make("Cancel", false);
+            var actionRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 8, 0, 0) };
+            var cancelBtn = UiButtons.Make(S("Str_Tf_Cancel"), false);
             cancelBtn.Margin = new Thickness(0, 0, 8, 0);
             cancelBtn.Click += (_, _2) => { Applied = false; Close(); };
             actionRow.Children.Add(cancelBtn);
-            var applyBtn = UiButtons.Make("Apply", true);
+            var applyBtn = UiButtons.Make(S("Str_Tf_Apply"), true);
             applyBtn.Click += (_, _2) => CommitAndClose();
             actionRow.Children.Add(applyBtn);
-            DockPanel.SetDock(actionRow, Dock.Right);
             bottom.Children.Add(actionRow);
             DockPanel.SetDock(bottom, Dock.Bottom);
             side.Children.Add(bottom);
 
             var stack = new StackPanel();
 
-            stack.Children.Add(SectionHeader("ROTATE"));
+            stack.Children.Add(SectionHeader(S("Str_Tf_Rotate")));
             // Quarter-turn buttons.
             var turnRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 6) };
             var turnL = UiButtons.Make("↺ 90°", false);
@@ -187,22 +186,22 @@ namespace KillerPDF
             if (darkSlider != null) _rotSlider.Style = darkSlider;
             _rotSlider.ValueChanged += (_, ev) => { _fine = Math.Round(ev.NewValue, 1); if (_rotReadout != null) _rotReadout.Text = $"{Total:0.0}°"; SchedulePreview(); };
             stack.Children.Add(_rotSlider);
-            stack.Children.Add(ValueRow("Angle", "0.0°", out _rotReadout, out var rotReset));
+            stack.Children.Add(ValueRow(S("Str_Tf_Angle"), "0.0°", out _rotReadout, out var rotReset));
             rotReset.Click += (_, _2) => { _quarter = 0; _rotSlider.Value = 0; UpdatePreview(); };
 
             stack.Children.Add(Divider());
 
-            stack.Children.Add(SectionHeader("SCALE"));
+            stack.Children.Add(SectionHeader(S("Str_Tf_Scale")));
             _scaleSlider = new Slider { Minimum = 25, Maximum = 200, Value = 100, TickFrequency = 5, SmallChange = 1, LargeChange = 10, Margin = new Thickness(0, 2, 0, 2) };
             if (darkSlider != null) _scaleSlider.Style = darkSlider;
             _scaleSlider.ValueChanged += (_, ev) => { _scale = Math.Round(ev.NewValue) / 100.0; _scaleReadout.Text = $"{ev.NewValue:0}%"; SchedulePreview(); };
             stack.Children.Add(_scaleSlider);
-            stack.Children.Add(ValueRow("Size", "100%", out _scaleReadout, out var scaleReset));
+            stack.Children.Add(ValueRow(S("Str_Tf_Size"), "100%", out _scaleReadout, out var scaleReset));
             scaleReset.Click += (_, _2) => _scaleSlider.Value = 100;
 
-            stack.Children.Add(new TextBlock { Text = "When scaling:", Foreground = R("TextSecondary"), FontFamily = new FontFamily("Segoe UI"), FontSize = 11, Margin = new Thickness(0, 10, 0, 4) });
-            _resizeRadio = MakeRadio("Resize the whole page", true, themeRadio);
-            var fixedRadio = MakeRadio("Keep page size (add margins)", false, themeRadio);
+            stack.Children.Add(new TextBlock { Text = S("Str_Tf_WhenScaling"), Foreground = R("TextSecondary"), FontFamily = new FontFamily("Segoe UI"), FontSize = 11, Margin = new Thickness(0, 10, 0, 4) });
+            _resizeRadio = MakeRadio(S("Str_Tf_ResizePage"), true, themeRadio);
+            var fixedRadio = MakeRadio(S("Str_Tf_KeepSize"), false, themeRadio);
             _resizeRadio.Checked += (_, _2) => { _fixedPage = false; UpdatePreview(); };
             fixedRadio.Checked += (_, _2) => { _fixedPage = true; UpdatePreview(); };
             stack.Children.Add(_resizeRadio);
@@ -214,25 +213,25 @@ namespace KillerPDF
             stack.Children.Add(_sizeReadout);
 
             stack.Children.Add(Divider());
-            stack.Children.Add(SectionHeader("FLIP"));
-            _flipHCheck = MakeCheck("Flip horizontal");
+            stack.Children.Add(SectionHeader(S("Str_Tf_Flip")));
+            _flipHCheck = MakeCheck(S("Str_Tf_FlipH"));
             _flipHCheck.Checked   += (_, _2) => { _flipH = true;  UpdatePreview(); };
             _flipHCheck.Unchecked += (_, _2) => { _flipH = false; UpdatePreview(); };
             stack.Children.Add(_flipHCheck);
-            _flipVCheck = MakeCheck("Flip vertical");
+            _flipVCheck = MakeCheck(S("Str_Tf_FlipV"));
             _flipVCheck.Checked   += (_, _2) => { _flipV = true;  UpdatePreview(); };
             _flipVCheck.Unchecked += (_, _2) => { _flipV = false; UpdatePreview(); };
             stack.Children.Add(_flipVCheck);
 
             stack.Children.Add(Divider());
-            stack.Children.Add(SectionHeader("SKEW"));
-            _deskewCheck = MakeCheck("Draw a level line");
+            stack.Children.Add(SectionHeader(S("Str_Tf_Skew")));
+            _deskewCheck = MakeCheck(S("Str_Tf_LevelLine"));
             _deskewCheck.Checked   += (_, _2) => { _lineCanvas.IsHitTestVisible = true; };
             _deskewCheck.Unchecked += (_, _2) => { _lineCanvas.IsHitTestVisible = false; _alignLine.Visibility = Visibility.Collapsed; _lineCoords.Text = ""; };
             stack.Children.Add(_deskewCheck);
             stack.Children.Add(new TextBlock
             {
-                Text = "Drag along anything that should be level (an edge, a line of text). The page rotates to match.",
+                Text = S("Str_Tf_SkewHint"),
                 Foreground = R("TextSecondary"), FontFamily = new FontFamily("Segoe UI"), FontSize = 10,
                 TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0)
             });
@@ -410,7 +409,7 @@ namespace KillerPDF
             {
                 double outWin = b.PixelWidth * (_pageWpt / _srcW) / 72.0;
                 double outHin = b.PixelHeight * (_pageHpt / _srcH) / 72.0;
-                _sizeReadout.Text = $"Output: {outWin:0.0} × {outHin:0.0} in";
+                _sizeReadout.Text = string.Format(S("Str_Tf_Output"), outWin.ToString("0.0"), outHin.ToString("0.0"));
             }
             SizePreviewImage();
         }
@@ -448,7 +447,7 @@ namespace KillerPDF
         private DockPanel ValueRow(string label, string value, out TextBlock valueBlock, out Button reset)
         {
             var row = new DockPanel { Margin = new Thickness(0, 2, 0, 0) };
-            reset = UiButtons.Make("Reset", false);
+            reset = UiButtons.Make(S("Str_Tf_Reset"), false);
             reset.Padding = new Thickness(8, 1, 8, 1);
             reset.FontSize = 11;
             DockPanel.SetDock(reset, Dock.Right);
@@ -473,7 +472,8 @@ namespace KillerPDF
         {
             var rb = new RadioButton
             {
-                Content = text, IsChecked = isChecked, Foreground = R("TextPrimary"),
+                Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center },
+                IsChecked = isChecked, Foreground = R("TextPrimary"),
                 FontFamily = new FontFamily("Segoe UI"), FontSize = 12, Margin = new Thickness(0, 3, 0, 0)
             };
             if (style != null) rb.Style = style;

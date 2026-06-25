@@ -4,7 +4,7 @@ All notable changes to KillerPDF are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.5.8] - 2026-06-24
+## [1.5.8] - 2026-06-25
 
 ### Added
 - Line tool: drag to draw straight lines, with its own color, opacity, and width.
@@ -17,6 +17,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - One-click update from the About dialog when a newer release exists.
 - Print options: scale, position, margins, pages per sheet, color / black-and-white, and two-sided.
 - Page-number stamping from the right-click menu (start value, format, position, size) as one undo.
+- OCR built into the single exe (Tesseract): OCR a whole page or a dragged region to the clipboard, Make Searchable PDF (an invisible text layer over the scan), and Extract All Text to a .txt or .md file. A language picker downloads extra languages on demand, with an optional high-quality model toggle.
+- Transform tool: rotate in 90-degree steps or by a fine angle, scale, flip, and straighten a crooked scan by drawing a line along anything that should be level, all with a live preview. Annotations on the page follow the transform.
+- "Clear all Data" link in the About window to wipe settings, downloaded OCR language models, and temp files.
 - Per-field font size while filling text fields, baked into the saved PDF.
 - Digital signatures with a cloud certificate (Certum SimplySign): reusable signatures and initials, and click-to-sign form fields.
 - Movable Signatures popup, its position remembered.
@@ -24,11 +27,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Sidebar on the left or right, with the collapse toggle, splitter, and Settings flyout mirroring to match.
 - Resizable sidebar: drag the splitter to scale the page list and thumbnails; drag to open or close, or toggle with Ctrl+B.
 - Accent colors (red, orange, green, teal, blue, purple) for the Dark, Light, and Black themes, each remembered independently.
-- Keyboard shortcuts for tools and panels (F1 shortcuts list, F2 About, Ctrl+V paste, Esc to close); the overlay lists them all.
+- Keyboard shortcuts for tools, views, and panels (F1 shortcuts list, F2 About, Ctrl+V paste, Esc to close, f5-f8 view modes, f11 fullscreen...); the overlay lists them all.
 - Bengali, Turkish, Simplified Chinese, German, and French translations (contributors akib-h #79, mrantikadev #76, KaneLeung #82, Dtrieb & Gevlug #93, Thalis-fr #95).
 
 ### Changed
-- Visual refresh: rounded window corners (squared when maximized), film grain on surfaces and dialogs, drop shadows on icons and menus, themed KillerPDF wordmark, accent-colored radios, per-theme scrollbars, and themed sliders. The floating annotation bars fade, crossfade between tools, and minimize to a dotted strip.
+- Visual refresh.
 - Blood, Greed, and Cyanotic use darker chrome with a lighter document pane; the signature windows are fully themed and reload on theme change.
 - Settings is now a slide-out accordion (Language, Theme, Toolbar, View Mode, Sidebar) that stays open after a pick.
 - Text-over-text editing drops an opaque cover (fill sampled from the page) with an editable box on top; the pair can be unpaired, and image-only pages get a manual cover and box.
@@ -37,6 +40,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Save Flattened opens the source PDF once instead of per page (Issue #68).
 - Internal refactor: the ~15,000-line MainWindow code-behind split into ~40 focused partial-class files, no behavior change.
 - Unified the page-rendering pipeline so annotations, search highlights, and tools behave identically across Single, Continuous, Two-Page, and Grid views.
+- Crop tool rebuilt as a single docked, slidable bar matching the annotation bars.
 
 ### Fixed
 - Form fields appear and fill in every view mode, align on pages with an inset CropBox or offset origin, and size their text from the field's own /DA.
@@ -48,6 +52,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - A manually-closed PDF no longer reopens on next launch (Issue #75).
 - The vertical scrollbar is grabbable again at the window edge.
 - Search waits for a pause in typing before running; the Outlines panel scrolls and no longer auto-expands every branch.
+- Pressing Esc during a long OCR, repair, or flatten operation asks whether to cancel instead of closing the window.
+- Print Preview shows the rendering progress ("Rendering X / Y") on its own line above the page counter, and the preview window stays responsive while pages stream in.
 
 ## [1.5.1] - 2026-06-14
 

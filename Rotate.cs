@@ -36,15 +36,14 @@ namespace KillerPDF
             // modest resolution (the preview only shows at ~600px) so the live scale/rotate compose stays
             // fast; Apply re-renders at full resolution independently.
             var src = RenderPageBitmap(pageIdx, 1100, BurnPageAnnotationsToTemp(pageIdx));
-            if (src is null) { SetStatus("Could not render the page - try again in a moment."); return; }
+            if (src is null) { SetStatus(Loc("Str_Tf_NoRender")); return; }
 
             // First-use warning that a transform rasterizes the page; persists the opt-out.
             if (App.GetSetting("RotateWarnAck") != "1")
             {
                 var (res, dontWarn) = KillerDialog.ShowWithCheckbox(this,
-                    "Transforming a page (rotate or scale) rasterizes it: the page is re-saved as an image, so " +
-                    "any selectable text on it is lost. You can run OCR afterward to make it searchable again.",
-                    "Don't warn me again", "Transform", MessageBoxButton.OKCancel);
+                    Loc("Str_Tf_Warn"),
+                    Loc("Str_Tf_DontWarn"), Loc("Str_Tf_Suffix"), MessageBoxButton.OKCancel);
                 if (res != MessageBoxResult.OK) return;
                 if (dontWarn) App.SetSetting("RotateWarnAck", "1");
             }
@@ -126,11 +125,11 @@ namespace KillerPDF
                 }
 
                 SaveTempAndReload(keepAnnotations: true);
-                SetStatus($"Transformed page {pageIdx + 1}");
+                SetStatus(string.Format(Loc("Str_Tf_Done"), pageIdx + 1));
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, $"Transform failed:\n{ex.Message}", "KillerPDF",
+                KillerDialog.Show(this, string.Format(Loc("Str_Tf_Failed"), ex.Message), "KillerPDF",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

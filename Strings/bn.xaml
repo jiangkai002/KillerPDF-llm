@@ -354,4 +354,51 @@
     <sys:String x:Key="Str_Ctx_AddBlankPage">ফাঁকা পৃষ্ঠা যোগ করুন</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">ট্যাব বন্ধ করুন</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">অন্যান্য ট্যাব বন্ধ করুন</sys:String>
+
+    <!-- ── OCR + Transform + Crop (v1.5.x এ যোগ করা হয়েছে) ──────────────── -->
+    <sys:String x:Key="Str_Ocr_Region">OCR অঞ্চল...</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdf">অনুসন্ধানযোগ্য PDF তৈরি করুন...</sys:String>
+    <sys:String x:Key="Str_Ocr_ExtractText">সমস্ত টেক্সট বের করুন...</sys:String>
+    <sys:String x:Key="Str_Ocr_Language">ভাষা</sys:String>
+    <sys:String x:Key="Str_Ocr_NoDoc">প্রথমে একটি PDF খুলুন</sys:String>
+    <sys:String x:Key="Str_Ocr_ComingSoon">{0} - শীঘ্রই আসছে</sys:String>
+    <sys:String x:Key="Str_TT_Ocr">পৃষ্ঠায় OCR করুন (টেক্সট কপি করুন)</sys:String>
+    <sys:String x:Key="Str_Lbl_Ocr">OCR</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPage">পৃষ্ঠায় OCR করুন (টেক্সট কপি করুন)</sys:String>
+    <sys:String x:Key="Str_Lbl_Rotate">রূপান্তর</sys:String>
+    <sys:String x:Key="Str_TT_RotateTool">পৃষ্ঠা রূপান্তর - ঘোরান / সোজা করুন (স্কেল শীঘ্রই আসছে)</sys:String>
+    <sys:String x:Key="Str_Tf_Suffix">রূপান্তর</sys:String>
+    <sys:String x:Key="Str_Tf_Rotate">ঘোরান</sys:String>
+    <sys:String x:Key="Str_Tf_Scale">স্কেল</sys:String>
+    <sys:String x:Key="Str_Tf_Flip">উল্টান</sys:String>
+    <sys:String x:Key="Str_Tf_Skew">তির্যক</sys:String>
+    <sys:String x:Key="Str_Tf_Angle">কোণ</sys:String>
+    <sys:String x:Key="Str_Tf_Size">আকার</sys:String>
+    <sys:String x:Key="Str_Tf_WhenScaling">স্কেল করার সময়:</sys:String>
+    <sys:String x:Key="Str_Tf_ResizePage">পুরো পৃষ্ঠার আকার পরিবর্তন করুন</sys:String>
+    <sys:String x:Key="Str_Tf_KeepSize">পৃষ্ঠার আকার রাখুন (মার্জিন যোগ করুন)</sys:String>
+    <sys:String x:Key="Str_Tf_FlipH">অনুভূমিকভাবে উল্টান</sys:String>
+    <sys:String x:Key="Str_Tf_FlipV">উল্লম্বভাবে উল্টান</sys:String>
+    <sys:String x:Key="Str_Tf_LevelLine">একটি সমতল রেখা আঁকুন</sys:String>
+    <sys:String x:Key="Str_Tf_SkewHint">যা সমতল হওয়া উচিত তার বরাবর টানুন (একটি প্রান্ত, একটি লেখার লাইন)। পৃষ্ঠাটি সেই অনুযায়ী ঘুরবে।</sys:String>
+    <sys:String x:Key="Str_Tf_Output">আউটপুট: {0} × {1} ইঞ্চি</sys:String>
+    <sys:String x:Key="Str_Tf_ResetAll">সব রিসেট করুন</sys:String>
+    <sys:String x:Key="Str_Tf_Reset">রিসেট</sys:String>
+    <sys:String x:Key="Str_Tf_Cancel">বাতিল করুন</sys:String>
+    <sys:String x:Key="Str_Tf_Apply">প্রয়োগ করুন</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">একটি পৃষ্ঠা রূপান্তর করলে (ঘোরানো বা স্কেল) তা রাস্টারাইজ হয়: পৃষ্ঠাটি ছবি হিসেবে পুনরায় সংরক্ষিত হয়, তাই এতে থাকা যেকোনো নির্বাচনযোগ্য টেক্সট হারিয়ে যায়। পরে আপনি OCR চালিয়ে এটিকে আবার অনুসন্ধানযোগ্য করতে পারেন।</sys:String>
+    <sys:String x:Key="Str_Tf_DontWarn">আমাকে আর সতর্ক করবেন না</sys:String>
+    <sys:String x:Key="Str_Tf_Done">{0} পৃষ্ঠা রূপান্তর করা হয়েছে</sys:String>
+    <sys:String x:Key="Str_Tf_NoRender">পৃষ্ঠাটি রেন্ডার করা যায়নি - কিছুক্ষণ পরে আবার চেষ্টা করুন।</sys:String>
+    <sys:String x:Key="Str_Tf_Failed">রূপান্তর ব্যর্থ হয়েছে: {0}</sys:String>
+    <sys:String x:Key="Str_Crop_Position">অবস্থান</sys:String>
+    <sys:String x:Key="Str_Crop_Size">আকার</sys:String>
+    <sys:String x:Key="Str_Crop_Pages">পৃষ্ঠা</sys:String>
+    <sys:String x:Key="Str_Crop_All">সব</sys:String>
+    <sys:String x:Key="Str_Crop_Apply">ক্রপ</sys:String>
+    <sys:String x:Key="Str_Crop_RangeTip">পৃষ্ঠার পরিসর, যেমন 1-3,5 (খালি = বর্তমান পৃষ্ঠা)</sys:String>
+    <sys:String x:Key="Str_Crop_AllTip">প্রতিটি পৃষ্ঠা ক্রপ করুন</sys:String>
+    <sys:String x:Key="Str_KS_View">ভিউ</sys:String>
+    <sys:String x:Key="Str_KS_FullScreen">পূর্ণ স্ক্রিন</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">পূর্ণ স্ক্রিন থেকে বের হতে F11 বা Esc চাপুন</sys:String>
 </ResourceDictionary>

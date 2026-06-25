@@ -155,10 +155,14 @@ namespace KillerPDF
                 GetMonitorInfo(monitor, ref info);
                 RECT work = info.rcWork;
                 RECT mon = info.rcMonitor;
-                mmi.ptMaxPosition.x = Math.Abs(work.left - mon.left);
-                mmi.ptMaxPosition.y = Math.Abs(work.top - mon.top);
-                mmi.ptMaxSize.x = Math.Abs(work.right - work.left);
-                mmi.ptMaxSize.y = Math.Abs(work.bottom - work.top);
+                // Normal maximize respects the taskbar (work area). F11 full screen needs the whole monitor:
+                // ptMaxTrackSize caps how large the window can ever be sized, so without this the explicit
+                // full-screen bounds get silently clamped back to the work area (taskbar stays visible).
+                RECT bounds = _fullScreen ? mon : work;
+                mmi.ptMaxPosition.x = Math.Abs(bounds.left - mon.left);
+                mmi.ptMaxPosition.y = Math.Abs(bounds.top - mon.top);
+                mmi.ptMaxSize.x = Math.Abs(bounds.right - bounds.left);
+                mmi.ptMaxSize.y = Math.Abs(bounds.bottom - bounds.top);
                 mmi.ptMaxTrackSize.x = mmi.ptMaxSize.x;
                 mmi.ptMaxTrackSize.y = mmi.ptMaxSize.y;
                 // Enforce the window's MinWidth/MinHeight during user resize. The custom chrome
@@ -397,7 +401,7 @@ namespace KillerPDF
         private bool? _appliedSquared;   // last state pushed to the chrome; guards per-frame churn
         private void UpdateWindowChrome()
         {
-            bool max     = WindowState == WindowState.Maximized;
+            bool max     = WindowState == WindowState.Maximized || _fullScreen;
             bool squared = max || IsSnapped();
             _chromeSquared = squared;
 

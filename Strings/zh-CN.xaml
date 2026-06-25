@@ -354,4 +354,55 @@
     <sys:String x:Key="Str_Ctx_AddBlankPage">添加空白页</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">关闭标签页</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">关闭其他标签页</sys:String>
+
+    <!-- ── OCR ────────────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Ocr_Region">OCR 区域...</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdf">制作可搜索 PDF...</sys:String>
+    <sys:String x:Key="Str_Ocr_ExtractText">提取全部文本...</sys:String>
+    <sys:String x:Key="Str_Ocr_Language">语言</sys:String>
+    <sys:String x:Key="Str_Ocr_NoDoc">请先打开一个 PDF</sys:String>
+    <sys:String x:Key="Str_Ocr_ComingSoon">{0} - 即将推出</sys:String>
+    <sys:String x:Key="Str_TT_Ocr">对页面执行 OCR（复制文本）</sys:String>
+    <sys:String x:Key="Str_Lbl_Ocr">OCR</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPage">对页面执行 OCR（复制文本）</sys:String>
+
+    <!-- ── Transform（旋转 / 缩放 / 翻转 / 倾斜） ──────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_Rotate">变换</sys:String>
+    <sys:String x:Key="Str_TT_RotateTool">变换页面 - 旋转 / 校正倾斜（缩放即将推出）</sys:String>
+    <sys:String x:Key="Str_Tf_Suffix">变换</sys:String>
+    <sys:String x:Key="Str_Tf_Rotate">旋转</sys:String>
+    <sys:String x:Key="Str_Tf_Scale">缩放</sys:String>
+    <sys:String x:Key="Str_Tf_Flip">翻转</sys:String>
+    <sys:String x:Key="Str_Tf_Skew">倾斜</sys:String>
+    <sys:String x:Key="Str_Tf_Angle">角度</sys:String>
+    <sys:String x:Key="Str_Tf_Size">大小</sys:String>
+    <sys:String x:Key="Str_Tf_WhenScaling">缩放时：</sys:String>
+    <sys:String x:Key="Str_Tf_ResizePage">调整整个页面大小</sys:String>
+    <sys:String x:Key="Str_Tf_KeepSize">保持页面大小（添加边距）</sys:String>
+    <sys:String x:Key="Str_Tf_FlipH">水平翻转</sys:String>
+    <sys:String x:Key="Str_Tf_FlipV">垂直翻转</sys:String>
+    <sys:String x:Key="Str_Tf_LevelLine">绘制一条水平线</sys:String>
+    <sys:String x:Key="Str_Tf_SkewHint">沿着任何应当水平的对象拖动（边缘、一行文本）。页面将随之旋转对齐。</sys:String>
+    <sys:String x:Key="Str_Tf_Output">输出：{0} × {1} 英寸</sys:String>
+    <sys:String x:Key="Str_Tf_ResetAll">全部重置</sys:String>
+    <sys:String x:Key="Str_Tf_Reset">重置</sys:String>
+    <sys:String x:Key="Str_Tf_Cancel">取消</sys:String>
+    <sys:String x:Key="Str_Tf_Apply">应用</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">变换页面（旋转或缩放）会将其栅格化：页面会重新另存为图片，因此其中任何可选取的文本都会丢失。之后您可以运行 OCR 使其重新可搜索。</sys:String>
+    <sys:String x:Key="Str_Tf_DontWarn">不再警告我</sys:String>
+    <sys:String x:Key="Str_Tf_Done">已变换第 {0} 页</sys:String>
+    <sys:String x:Key="Str_Tf_NoRender">无法呈现页面 - 请稍后再试。</sys:String>
+    <sys:String x:Key="Str_Tf_Failed">变换失败：{0}</sys:String>
+
+    <!-- ── Crop（裁切栏） ─────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Crop_Position">位置</sys:String>
+    <sys:String x:Key="Str_Crop_Size">大小</sys:String>
+    <sys:String x:Key="Str_Crop_Pages">页面</sys:String>
+    <sys:String x:Key="Str_Crop_All">全部</sys:String>
+    <sys:String x:Key="Str_Crop_Apply">裁切</sys:String>
+    <sys:String x:Key="Str_Crop_RangeTip">页面范围，例如 1-3,5（空白 = 当前页面）</sys:String>
+    <sys:String x:Key="Str_Crop_AllTip">裁切每个页面</sys:String>
+    <sys:String x:Key="Str_KS_View">视图</sys:String>
+    <sys:String x:Key="Str_KS_FullScreen">全屏</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">按 F11 或 Esc 退出全屏</sys:String>
 </ResourceDictionary>

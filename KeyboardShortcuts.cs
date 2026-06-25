@@ -129,6 +129,12 @@ namespace KillerPDF
                 else ShowAboutOverlay();
                 e.Handled = true;
             }
+            else if (e.Key == Key.F5) { SetViewMode(ViewMode.Continuous); e.Handled = true; }
+            else if (e.Key == Key.F6) { SetViewMode(ViewMode.Single);     e.Handled = true; }
+            else if (e.Key == Key.F7) { SetViewMode(ViewMode.TwoPage);    e.Handled = true; }
+            else if (e.Key == Key.F8) { SetViewMode(ViewMode.Grid);       e.Handled = true; }
+            else if (e.Key == Key.F11) { ToggleFullScreen(); e.Handled = true; }
+            else if (e.Key == Key.Escape && _fullScreen) { ToggleFullScreen(); e.Handled = true; }
             else if (e.Key == Key.P && Keyboard.Modifiers == ModifierKeys.Control)
             {
                 Print_Click(this, e);
@@ -290,6 +296,7 @@ namespace KillerPDF
             Set(ToolImageBtn, "Str_TT_ImageTool", 6);
             Set(ToolSignatureBtn, "Str_TT_SignatureTool", 7);
             Set(ToolCropBtn, "Str_TT_CropTool", 8);
+            Set(_toolRotateBtn, "Str_TT_RotateTool", 9);
         }
     }
 }

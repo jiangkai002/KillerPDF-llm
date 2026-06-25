@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Docnet.Core;
 using Docnet.Core.Models;
 using Microsoft.Win32;
@@ -129,6 +130,23 @@ namespace KillerPDF
             bool hqPref = OcrHighQuality;
 
             var root = new MenuItem { Header = Loc("Str_Ocr_Language") };
+
+            // Header with the Tesseract language code right-aligned, mirroring the Settings language list.
+            FrameworkElement LangHeader(string name, string code, string? suffix = null)
+            {
+                var dp = new DockPanel { HorizontalAlignment = HorizontalAlignment.Stretch, MinWidth = 170 };
+                var codeTb = new TextBlock
+                {
+                    Text = code, FontFamily = new FontFamily("Consolas"), FontSize = 11,
+                    Foreground = (Brush)FindResource("TextSecondary"),
+                    Margin = new Thickness(20, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center
+                };
+                DockPanel.SetDock(codeTb, Dock.Right);
+                dp.Children.Add(codeTb);
+                dp.Children.Add(new TextBlock { Text = suffix is null ? name : $"{name}  {suffix}", VerticalAlignment = VerticalAlignment.Center });
+                return dp;
+            }
+
             foreach (var (code, name) in OcrLanguageCatalog)
             {
                 bool installed = code == "eng" || File.Exists(Path.Combine(tessDir, code + ".traineddata"));
@@ -136,7 +154,7 @@ namespace KillerPDF
                 {
                     var item = new MenuItem
                     {
-                        Header = name,
+                        Header = LangHeader(name, code),
                         IsCheckable = true,
                         IsChecked = selected.Contains(code),
                         StaysOpenOnClick = true,
@@ -158,7 +176,7 @@ namespace KillerPDF
                 }
                 else
                 {
-                    var item = new MenuItem { Header = hqPref ? $"{name}  (download HQ)" : $"{name}  (download)" };
+                    var item = new MenuItem { Header = LangHeader(name, code, hqPref ? "(download HQ)" : "(download)") };
                     item.Click += (_, _) => DownloadOcrLanguage(code, name);
                     root.Items.Add(item);
                 }

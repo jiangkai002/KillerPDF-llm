@@ -239,7 +239,7 @@ namespace KillerPDF
         // old behaviour of rebuilding it (which flickered).
         private void ToggleAnnotBarMinimized()
         {
-            var bar = _textSettingsBar ?? _drawSettingsBar;
+            var bar = _textSettingsBar ?? _drawSettingsBar ?? _cropConfirmBar;
             if (bar is null) return;
             _annotBarMinimized = !_annotBarMinimized;
             bar.ClipToBounds = true;
@@ -324,6 +324,9 @@ namespace KillerPDF
             // The signature popup is built from snapshot (FindResource) colors, so rebuild it in place
             // if it's open so it picks up the new theme without the user having to close and reopen it.
             if (_signaturePopup is not null) ShowSignaturePopup();
+
+            // The crop bar's buttons snapshot accent colors (UiButtons), so rebuild it in the new theme.
+            RebuildCropBarForLocale();
         }
 
         private void ThemeDarkRadio_Checked(object sender, RoutedEventArgs e)     => SelectTheme(Theme.Dark);
@@ -476,6 +479,9 @@ namespace KillerPDF
                      bt is EditTool.Draw or EditTool.Highlight or EditTool.Line
                         or EditTool.Strikethrough or EditTool.Underline)
                 ShowDrawSettings(bt);
+
+            // The crop bar is built once with Loc() snapshots; rebuild it in the new language if it's showing.
+            RebuildCropBarForLocale();
 
             // A visible signature popup is built with Loc() too; rebuild it so its section headers and
             // pen labels switch immediately.

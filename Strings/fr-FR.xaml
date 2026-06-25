@@ -368,4 +368,55 @@ Vous pourrez désinstaller le programme à tout moment via « Ajouter ou supprim
     <sys:String x:Key="Str_KS_ToggleSidebar">Afficher/masquer le panneau latéral</sys:String>
     <sys:String x:Key="Str_KS_NextTab">Onglet suivant (Maj : précédent)</sys:String>
 
+    <!-- OCR -->
+    <sys:String x:Key="Str_Ocr_Region">Zone OCR...</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdf">Créer un PDF interrogeable...</sys:String>
+    <sys:String x:Key="Str_Ocr_ExtractText">Extraire tout le texte...</sys:String>
+    <sys:String x:Key="Str_Ocr_Language">Langue</sys:String>
+    <sys:String x:Key="Str_Ocr_NoDoc">Ouvrez d'abord un PDF</sys:String>
+    <sys:String x:Key="Str_Ocr_ComingSoon">{0} - bientôt disponible</sys:String>
+    <sys:String x:Key="Str_TT_Ocr">OCR de la page (copier le texte)</sys:String>
+    <sys:String x:Key="Str_Lbl_Ocr">OCR</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPage">OCR de la page (copier le texte)</sys:String>
+
+    <!-- Transform tool -->
+    <sys:String x:Key="Str_Lbl_Rotate">Transformer</sys:String>
+    <sys:String x:Key="Str_TT_RotateTool">Transformer la page - pivoter / redresser (mise à l'échelle bientôt disponible)</sys:String>
+    <sys:String x:Key="Str_Tf_Suffix">Transformer</sys:String>
+    <sys:String x:Key="Str_Tf_Rotate">PIVOTER</sys:String>
+    <sys:String x:Key="Str_Tf_Scale">ÉCHELLE</sys:String>
+    <sys:String x:Key="Str_Tf_Flip">RETOURNER</sys:String>
+    <sys:String x:Key="Str_Tf_Skew">INCLINER</sys:String>
+    <sys:String x:Key="Str_Tf_Angle">Angle</sys:String>
+    <sys:String x:Key="Str_Tf_Size">Taille</sys:String>
+    <sys:String x:Key="Str_Tf_WhenScaling">Lors de la mise à l'échelle :</sys:String>
+    <sys:String x:Key="Str_Tf_ResizePage">Redimensionner toute la page</sys:String>
+    <sys:String x:Key="Str_Tf_KeepSize">Conserver la taille de la page (ajouter des marges)</sys:String>
+    <sys:String x:Key="Str_Tf_FlipH">Retourner horizontalement</sys:String>
+    <sys:String x:Key="Str_Tf_FlipV">Retourner verticalement</sys:String>
+    <sys:String x:Key="Str_Tf_LevelLine">Tracer une ligne de niveau</sys:String>
+    <sys:String x:Key="Str_Tf_SkewHint">Glissez le long de tout ce qui devrait être de niveau (un bord, une ligne de texte). La page pivote pour correspondre.</sys:String>
+    <sys:String x:Key="Str_Tf_Output">Sortie : {0} × {1} po</sys:String>
+    <sys:String x:Key="Str_Tf_ResetAll">Tout réinitialiser</sys:String>
+    <sys:String x:Key="Str_Tf_Reset">Réinitialiser</sys:String>
+    <sys:String x:Key="Str_Tf_Cancel">Annuler</sys:String>
+    <sys:String x:Key="Str_Tf_Apply">Appliquer</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">Transformer une page (pivoter ou mettre à l'échelle) la rastérise : la page est réenregistrée en tant qu'image, donc tout texte sélectionnable est perdu. Vous pouvez ensuite lancer l'OCR pour la rendre à nouveau interrogeable.</sys:String>
+    <sys:String x:Key="Str_Tf_DontWarn">Ne plus m'avertir</sys:String>
+    <sys:String x:Key="Str_Tf_Done">Page {0} transformée</sys:String>
+    <sys:String x:Key="Str_Tf_NoRender">Impossible d'afficher la page - réessayez dans un instant.</sys:String>
+    <sys:String x:Key="Str_Tf_Failed">Échec de la transformation : {0}</sys:String>
+
+    <!-- Crop bar -->
+    <sys:String x:Key="Str_Crop_Position">Position</sys:String>
+    <sys:String x:Key="Str_Crop_Size">Taille</sys:String>
+    <sys:String x:Key="Str_Crop_Pages">Pages</sys:String>
+    <sys:String x:Key="Str_Crop_All">Toutes</sys:String>
+    <sys:String x:Key="Str_Crop_Apply">Recadrer</sys:String>
+    <sys:String x:Key="Str_Crop_RangeTip">Plage de pages, ex. 1-3,5 (vide = page actuelle)</sys:String>
+    <sys:String x:Key="Str_Crop_AllTip">Recadrer toutes les pages</sys:String>
+    <sys:String x:Key="Str_KS_View">Affichage</sys:String>
+    <sys:String x:Key="Str_KS_FullScreen">Plein écran</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">Appuyez sur F11 ou Échap pour quitter le plein écran</sys:String>
+
 </ResourceDictionary>

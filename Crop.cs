@@ -261,6 +261,31 @@ namespace KillerPDF
             ShowCropConfirmBar();
         }
 
+        // Rebuilds the crop bar (and its box) from the current rect so a language switch picks up the new
+        // locale - the bar is built once with Loc() snapshots and would otherwise stay in the old language.
+        // No-op if the bar isn't showing.
+        private void RebuildCropBarForLocale()
+        {
+            if (_cropConfirmBar is null) return;
+            var rect = _cropCanvasRect;
+            var canvas = _activeCanvas;
+            HideCropConfirmBar();
+            if (canvas is null || canvas.Width <= 0 || rect.Width <= 1 || rect.Height <= 1) return;
+            _cropCanvasRect = rect;
+            _cropPreviewRect = new Rectangle
+            {
+                Stroke = Brushes.White, StrokeThickness = 1.5, StrokeDashArray = [5, 3],
+                Fill = Brushes.Transparent, Width = rect.Width, Height = rect.Height,
+                IsHitTestVisible = false,
+                Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Colors.Black, ShadowDepth = 0, BlurRadius = 3, Opacity = 0.7 }
+            };
+            Canvas.SetLeft(_cropPreviewRect, rect.X);
+            Canvas.SetTop(_cropPreviewRect, rect.Y);
+            Panel.SetZIndex(_cropPreviewRect, 1);
+            canvas.Children.Add(_cropPreviewRect);
+            ShowCropConfirmBar();
+        }
+
         private void ShowCropConfirmBar()
         {
             if (_doc is null) return;
@@ -326,10 +351,10 @@ namespace KillerPDF
                 Margin = new Thickness(leftPad, 0, 6, 0)
             });
 
-            GroupLabel("Position", 0);
+            GroupLabel(Loc("Str_Crop_Position"), 0);
             _cropXBox = AddField("X", 50);
             _cropYBox = AddField("Y", 50);
-            GroupLabel("Size", 6);   // padding after the Y box, before the size group
+            GroupLabel(Loc("Str_Crop_Size"), 6);   // padding after the Y box, before the size group
             _cropWBox = AddField("W", 50);
             _cropHBox = AddField("H", 50);
 
@@ -354,7 +379,7 @@ namespace KillerPDF
             // All checked -> every page; else a typed range like "1-3,5"; else just the current page.
             outer.Children.Add(new TextBlock
             {
-                Text = "Pages", FontFamily = new FontFamily("Segoe UI"), FontSize = 11,
+                Text = Loc("Str_Crop_Pages"), FontFamily = new FontFamily("Segoe UI"), FontSize = 11,
                 VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 3, 0),
                 Foreground = Res("TextSecondary")
             });
@@ -363,7 +388,7 @@ namespace KillerPDF
                 Width = 64, Height = 22, FontFamily = new FontFamily("Segoe UI"), FontSize = 11,
                 BorderThickness = new Thickness(1), Padding = new Thickness(3, 1, 3, 1),
                 VerticalAlignment = VerticalAlignment.Center, VerticalContentAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 8, 0), ToolTip = "Page range, e.g. 1-3,5 (blank = current page)",
+                Margin = new Thickness(0, 0, 8, 0), ToolTip = Loc("Str_Crop_RangeTip"),
                 Style = (Style)FindResource("FormFieldTextBox")
             };
             _cropRangeBox.SetResourceReference(TextBox.BackgroundProperty,  "BgPanel");
@@ -375,9 +400,9 @@ namespace KillerPDF
             bool cropAll = false;
             var allTick = new TextBlock { Text = "✓", Foreground = Brushes.White, FontSize = 10, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Visibility = Visibility.Collapsed };
             var allBox = new Border { Width = 15, Height = 15, CornerRadius = new CornerRadius(3), BorderThickness = new Thickness(1), BorderBrush = _swatchDimBorder, Background = Brushes.Transparent, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 5, 0), Child = allTick };
-            var allRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Cursor = Cursors.Hand, Margin = new Thickness(0, 0, 10, 0), ToolTip = "Crop every page" };
+            var allRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Cursor = Cursors.Hand, Margin = new Thickness(0, 0, 10, 0), ToolTip = Loc("Str_Crop_AllTip") };
             allRow.Children.Add(allBox);
-            allRow.Children.Add(new TextBlock { Text = "All", FontFamily = new FontFamily("Segoe UI"), FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Foreground = Res("TextSecondary") });
+            allRow.Children.Add(new TextBlock { Text = Loc("Str_Crop_All"), FontFamily = new FontFamily("Segoe UI"), FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Foreground = Res("TextSecondary") });
             allRow.MouseLeftButtonDown += (_, _) =>
             {
                 cropAll = !cropAll;
@@ -388,7 +413,7 @@ namespace KillerPDF
             outer.Children.Add(allRow);
 
             // Single Crop button on the right.
-            var cropBtn = CropBtn(UiButtons.Make("Crop", true));
+            var cropBtn = CropBtn(UiButtons.Make(Loc("Str_Crop_Apply"), true));
             cropBtn.ToolTip = Loc("Str_TT_CropThisPage");
             cropBtn.Click += (_, _) =>
             {

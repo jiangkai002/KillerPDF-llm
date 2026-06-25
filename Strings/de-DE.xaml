@@ -354,4 +354,55 @@ Sie können das Programm jederzeit über „Programme hinzufügen oder entfernen
     <sys:String x:Key="Str_Ctx_AddBlankPage">Leere Seite hinzufügen</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">Tab schließen</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Andere Tabs schließen</sys:String>
+
+    <!-- ── OCR ─────────────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Ocr_Region">OCR-Bereich...</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdf">Durchsuchbare PDF erstellen...</sys:String>
+    <sys:String x:Key="Str_Ocr_ExtractText">Gesamten Text extrahieren...</sys:String>
+    <sys:String x:Key="Str_Ocr_Language">Sprache</sys:String>
+    <sys:String x:Key="Str_Ocr_NoDoc">Öffnen Sie zuerst eine PDF</sys:String>
+    <sys:String x:Key="Str_Ocr_ComingSoon">{0} - demnächst verfügbar</sys:String>
+    <sys:String x:Key="Str_TT_Ocr">OCR-Seite (Text kopieren)</sys:String>
+    <sys:String x:Key="Str_Lbl_Ocr">OCR</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPage">OCR-Seite (Text kopieren)</sys:String>
+
+    <!-- ── Transform tool ──────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_Rotate">Transformieren</sys:String>
+    <sys:String x:Key="Str_TT_RotateTool">Seite transformieren - drehen / entzerren (Skalieren demnächst verfügbar)</sys:String>
+    <sys:String x:Key="Str_Tf_Suffix">Transformieren</sys:String>
+    <sys:String x:Key="Str_Tf_Rotate">DREHEN</sys:String>
+    <sys:String x:Key="Str_Tf_Scale">SKALIEREN</sys:String>
+    <sys:String x:Key="Str_Tf_Flip">SPIEGELN</sys:String>
+    <sys:String x:Key="Str_Tf_Skew">NEIGEN</sys:String>
+    <sys:String x:Key="Str_Tf_Angle">Winkel</sys:String>
+    <sys:String x:Key="Str_Tf_Size">Größe</sys:String>
+    <sys:String x:Key="Str_Tf_WhenScaling">Beim Skalieren:</sys:String>
+    <sys:String x:Key="Str_Tf_ResizePage">Gesamte Seite skalieren</sys:String>
+    <sys:String x:Key="Str_Tf_KeepSize">Seitengröße beibehalten (Ränder hinzufügen)</sys:String>
+    <sys:String x:Key="Str_Tf_FlipH">Horizontal spiegeln</sys:String>
+    <sys:String x:Key="Str_Tf_FlipV">Vertikal spiegeln</sys:String>
+    <sys:String x:Key="Str_Tf_LevelLine">Eine Hilfslinie ziehen</sys:String>
+    <sys:String x:Key="Str_Tf_SkewHint">Ziehen Sie entlang etwas, das gerade sein sollte (eine Kante, eine Textzeile). Die Seite wird passend gedreht.</sys:String>
+    <sys:String x:Key="Str_Tf_Output">Ausgabe: {0} × {1} Zoll</sys:String>
+    <sys:String x:Key="Str_Tf_ResetAll">Alles zurücksetzen</sys:String>
+    <sys:String x:Key="Str_Tf_Reset">Zurücksetzen</sys:String>
+    <sys:String x:Key="Str_Tf_Cancel">Abbrechen</sys:String>
+    <sys:String x:Key="Str_Tf_Apply">Anwenden</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">Beim Transformieren einer Seite (Drehen oder Skalieren) wird sie gerastert: Die Seite wird als Bild neu gespeichert, sodass jeglicher auswählbare Text darauf verloren geht. Sie können anschließend OCR ausführen, um sie wieder durchsuchbar zu machen.</sys:String>
+    <sys:String x:Key="Str_Tf_DontWarn">Nicht erneut warnen</sys:String>
+    <sys:String x:Key="Str_Tf_Done">Seite {0} transformiert</sys:String>
+    <sys:String x:Key="Str_Tf_NoRender">Die Seite konnte nicht dargestellt werden - versuchen Sie es gleich erneut.</sys:String>
+    <sys:String x:Key="Str_Tf_Failed">Transformieren fehlgeschlagen: {0}</sys:String>
+
+    <!-- ── Crop bar ────────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Crop_Position">Position</sys:String>
+    <sys:String x:Key="Str_Crop_Size">Größe</sys:String>
+    <sys:String x:Key="Str_Crop_Pages">Seiten</sys:String>
+    <sys:String x:Key="Str_Crop_All">Alle</sys:String>
+    <sys:String x:Key="Str_Crop_Apply">Zuschneiden</sys:String>
+    <sys:String x:Key="Str_Crop_RangeTip">Seitenbereich, z. B. 1-3,5 (leer = aktuelle Seite)</sys:String>
+    <sys:String x:Key="Str_Crop_AllTip">Jede Seite zuschneiden</sys:String>
+    <sys:String x:Key="Str_KS_View">Ansicht</sys:String>
+    <sys:String x:Key="Str_KS_FullScreen">Vollbild</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">F11 oder Esc drücken, um den Vollbildmodus zu beenden</sys:String>
 </ResourceDictionary>

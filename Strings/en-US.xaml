@@ -365,4 +365,44 @@ You can uninstall via Add/Remove Programs at any time.</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">Add Blank Page</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">Close Tab</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Close Other Tabs</sys:String>
+
+    <!-- Transform tool -->
+    <sys:String x:Key="Str_Tf_Suffix">Transform</sys:String>
+    <sys:String x:Key="Str_Tf_Rotate">ROTATE</sys:String>
+    <sys:String x:Key="Str_Tf_Scale">SCALE</sys:String>
+    <sys:String x:Key="Str_Tf_Flip">FLIP</sys:String>
+    <sys:String x:Key="Str_Tf_Skew">SKEW</sys:String>
+    <sys:String x:Key="Str_Tf_Angle">Angle</sys:String>
+    <sys:String x:Key="Str_Tf_Size">Size</sys:String>
+    <sys:String x:Key="Str_Tf_WhenScaling">When scaling:</sys:String>
+    <sys:String x:Key="Str_Tf_ResizePage">Resize the whole page</sys:String>
+    <sys:String x:Key="Str_Tf_KeepSize">Keep page size (add margins)</sys:String>
+    <sys:String x:Key="Str_Tf_FlipH">Flip horizontal</sys:String>
+    <sys:String x:Key="Str_Tf_FlipV">Flip vertical</sys:String>
+    <sys:String x:Key="Str_Tf_LevelLine">Draw a level line</sys:String>
+    <sys:String x:Key="Str_Tf_SkewHint">Drag along anything that should be level (an edge, a line of text). The page rotates to match.</sys:String>
+    <sys:String x:Key="Str_Tf_Output">Output: {0} × {1} in</sys:String>
+    <sys:String x:Key="Str_Tf_ResetAll">Reset all</sys:String>
+    <sys:String x:Key="Str_Tf_Reset">Reset</sys:String>
+    <sys:String x:Key="Str_Tf_Cancel">Cancel</sys:String>
+    <sys:String x:Key="Str_Tf_Apply">Apply</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">Transforming a page (rotate or scale) rasterizes it: the page is re-saved as an image, so any selectable text on it is lost. You can run OCR afterward to make it searchable again.</sys:String>
+    <sys:String x:Key="Str_Tf_DontWarn">Don't warn me again</sys:String>
+    <sys:String x:Key="Str_Tf_Done">Transformed page {0}</sys:String>
+    <sys:String x:Key="Str_Tf_NoRender">Could not render the page - try again in a moment.</sys:String>
+    <sys:String x:Key="Str_Tf_Failed">Transform failed: {0}</sys:String>
+
+    <!-- Crop bar -->
+    <sys:String x:Key="Str_Crop_Position">Position</sys:String>
+    <sys:String x:Key="Str_Crop_Size">Size</sys:String>
+    <sys:String x:Key="Str_Crop_Pages">Pages</sys:String>
+    <sys:String x:Key="Str_Crop_All">All</sys:String>
+    <sys:String x:Key="Str_Crop_Apply">Crop</sys:String>
+    <sys:String x:Key="Str_Crop_RangeTip">Page range, e.g. 1-3,5 (blank = current page)</sys:String>
+    <sys:String x:Key="Str_Crop_AllTip">Crop every page</sys:String>
+
+    <!-- View-mode + full-screen shortcuts -->
+    <sys:String x:Key="Str_KS_View">View</sys:String>
+    <sys:String x:Key="Str_KS_FullScreen">Full screen</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">Press F11 or Esc to exit full screen</sys:String>
 </ResourceDictionary>

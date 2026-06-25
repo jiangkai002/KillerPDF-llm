@@ -261,7 +261,10 @@ namespace KillerPDF
                 Content = checkboxText,
                 Foreground = R("TextSecondary"),
                 FontSize = 12,
-                Margin = new Thickness(20, 2, 20, 4)
+                Margin = new Thickness(20, 2, 20, 4),
+                Cursor = Cursors.Hand,
+                VerticalContentAlignment = VerticalAlignment.Center,
+                Template = ThemedCheckTemplate()
             };
             chk.Checked += (_, _2) => boxChecked = true;
             chk.Unchecked += (_, _2) => boxChecked = false;
@@ -312,6 +315,46 @@ namespace KillerPDF
             win.Content = outerBorder;
             win.ShowDialog();
             return (result, boxChecked);
+        }
+
+        // Themed checkbox chrome (no XAML CheckBox style exists): a small rounded box with an accent
+        // checkmark shown when checked, matching the rest of the app instead of the OS default chrome.
+        private static ControlTemplate ThemedCheckTemplate()
+        {
+            var row = new FrameworkElementFactory(typeof(StackPanel));
+            row.SetValue(StackPanel.OrientationProperty, Orientation.Horizontal);
+
+            var box = new FrameworkElementFactory(typeof(Border));
+            box.SetValue(Border.WidthProperty, 16.0);
+            box.SetValue(Border.HeightProperty, 16.0);
+            box.SetValue(Border.CornerRadiusProperty, new CornerRadius(3));
+            box.SetValue(Border.BorderThicknessProperty, new Thickness(1));
+            box.SetValue(Border.BorderBrushProperty, R("BorderDim"));
+            box.SetValue(Border.BackgroundProperty, R("BgCanvas"));
+            box.SetValue(Border.VerticalAlignmentProperty, VerticalAlignment.Center);
+            box.SetValue(Border.MarginProperty, new Thickness(0, 0, 8, 0));
+
+            var check = new FrameworkElementFactory(typeof(TextBlock)) { Name = "chk" };
+            check.SetValue(TextBlock.TextProperty, "✓");   // check mark
+            check.SetValue(TextBlock.FontSizeProperty, 11.0);
+            check.SetValue(TextBlock.FontWeightProperty, FontWeights.Bold);
+            check.SetValue(TextBlock.ForegroundProperty, R("Accent"));
+            check.SetValue(TextBlock.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            check.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
+            check.SetValue(UIElement.VisibilityProperty, Visibility.Collapsed);
+            box.AppendChild(check);
+
+            var content = new FrameworkElementFactory(typeof(ContentPresenter));
+            content.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+
+            row.AppendChild(box);
+            row.AppendChild(content);
+
+            var ct = new ControlTemplate(typeof(CheckBox)) { VisualTree = row };
+            var trig = new Trigger { Property = System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, Value = true };
+            trig.Setters.Add(new Setter(UIElement.VisibilityProperty, Visibility.Visible) { TargetName = "chk" });
+            ct.Triggers.Add(trig);
+            return ct;
         }
     }
 }

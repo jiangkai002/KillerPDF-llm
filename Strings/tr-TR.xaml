@@ -354,4 +354,51 @@ Bu işlem uygulamayı %LocalAppData%\KillerPDF konumuna kopyalar ve bir Başlat 
     <sys:String x:Key="Str_Ctx_AddBlankPage">Boş sayfa ekle</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">Sekmeyi kapat</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Diğer sekmeleri kapat</sys:String>
+
+    <!-- ── OCR + Dönüştürme + Kırpma (v1.x eklendi) ──────────────────── -->
+    <sys:String x:Key="Str_Ocr_Region">OCR Bölgesi...</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdf">Aranabilir PDF Oluştur...</sys:String>
+    <sys:String x:Key="Str_Ocr_ExtractText">Tüm Metni Çıkart...</sys:String>
+    <sys:String x:Key="Str_Ocr_Language">Dil</sys:String>
+    <sys:String x:Key="Str_Ocr_NoDoc">Önce bir PDF açın</sys:String>
+    <sys:String x:Key="Str_Ocr_ComingSoon">{0} - yakında</sys:String>
+    <sys:String x:Key="Str_TT_Ocr">Sayfada OCR uygula (metni kopyala)</sys:String>
+    <sys:String x:Key="Str_Lbl_Ocr">OCR</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPage">Sayfada OCR Uygula (Metni Kopyala)</sys:String>
+    <sys:String x:Key="Str_Lbl_Rotate">Dönüştür</sys:String>
+    <sys:String x:Key="Str_TT_RotateTool">Sayfayı dönüştür - döndür / düzelt (ölçekleme yakında)</sys:String>
+    <sys:String x:Key="Str_Tf_Suffix">Dönüştür</sys:String>
+    <sys:String x:Key="Str_Tf_Rotate">DÖNDÜR</sys:String>
+    <sys:String x:Key="Str_Tf_Scale">ÖLÇEKLE</sys:String>
+    <sys:String x:Key="Str_Tf_Flip">ÇEVİR</sys:String>
+    <sys:String x:Key="Str_Tf_Skew">EĞ</sys:String>
+    <sys:String x:Key="Str_Tf_Angle">Açı</sys:String>
+    <sys:String x:Key="Str_Tf_Size">Boyut</sys:String>
+    <sys:String x:Key="Str_Tf_WhenScaling">Ölçeklerken:</sys:String>
+    <sys:String x:Key="Str_Tf_ResizePage">Tüm sayfayı yeniden boyutlandır</sys:String>
+    <sys:String x:Key="Str_Tf_KeepSize">Sayfa boyutunu koru (kenar boşluğu ekle)</sys:String>
+    <sys:String x:Key="Str_Tf_FlipH">Yatay çevir</sys:String>
+    <sys:String x:Key="Str_Tf_FlipV">Dikey çevir</sys:String>
+    <sys:String x:Key="Str_Tf_LevelLine">Bir düz çizgi çiz</sys:String>
+    <sys:String x:Key="Str_Tf_SkewHint">Düz olması gereken herhangi bir şey boyunca sürükleyin (bir kenar, bir metin satırı). Sayfa buna uyacak şekilde döner.</sys:String>
+    <sys:String x:Key="Str_Tf_Output">Çıktı: {0} × {1} inç</sys:String>
+    <sys:String x:Key="Str_Tf_ResetAll">Tümünü sıfırla</sys:String>
+    <sys:String x:Key="Str_Tf_Reset">Sıfırla</sys:String>
+    <sys:String x:Key="Str_Tf_Cancel">İptal</sys:String>
+    <sys:String x:Key="Str_Tf_Apply">Uygula</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">Bir sayfayı dönüştürmek (döndürmek veya ölçeklemek) onu rasterize eder: sayfa bir görsel olarak yeniden kaydedilir, bu nedenle üzerindeki seçilebilir metin kaybolur. Daha sonra OCR uygulayarak tekrar aranabilir hale getirebilirsiniz.</sys:String>
+    <sys:String x:Key="Str_Tf_DontWarn">Beni bir daha uyarma</sys:String>
+    <sys:String x:Key="Str_Tf_Done">{0} sayfa dönüştürüldü</sys:String>
+    <sys:String x:Key="Str_Tf_NoRender">Sayfa görüntülenemedi - birazdan tekrar deneyin.</sys:String>
+    <sys:String x:Key="Str_Tf_Failed">Dönüştürme başarısız: {0}</sys:String>
+    <sys:String x:Key="Str_Crop_Position">Konum</sys:String>
+    <sys:String x:Key="Str_Crop_Size">Boyut</sys:String>
+    <sys:String x:Key="Str_Crop_Pages">Sayfalar</sys:String>
+    <sys:String x:Key="Str_Crop_All">Tümü</sys:String>
+    <sys:String x:Key="Str_Crop_Apply">Kırp</sys:String>
+    <sys:String x:Key="Str_Crop_RangeTip">Sayfa aralığı, örn. 1-3,5 (boş = geçerli sayfa)</sys:String>
+    <sys:String x:Key="Str_Crop_AllTip">Her sayfayı kırp</sys:String>
+    <sys:String x:Key="Str_KS_View">Görünüm</sys:String>
+    <sys:String x:Key="Str_KS_FullScreen">Tam ekran</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">Tam ekrandan çıkmak için F11 veya Esc'e basın</sys:String>
 </ResourceDictionary>

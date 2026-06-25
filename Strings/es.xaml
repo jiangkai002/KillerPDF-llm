@@ -354,4 +354,51 @@ Puede desinstalarla en cualquier momento desde Agregar o quitar programas.</sys:
     <sys:String x:Key="Str_Ctx_AddBlankPage">Añadir página en blanco</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">Cerrar pestaña</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Cerrar otras pestañas</sys:String>
+
+    <!-- ── OCR + Transform + Crop (añadido) ──────────────────────────── -->
+    <sys:String x:Key="Str_Ocr_Region">Región OCR...</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdf">Crear PDF con texto buscable...</sys:String>
+    <sys:String x:Key="Str_Ocr_ExtractText">Extraer todo el texto...</sys:String>
+    <sys:String x:Key="Str_Ocr_Language">Idioma</sys:String>
+    <sys:String x:Key="Str_Ocr_NoDoc">Primero abre un PDF</sys:String>
+    <sys:String x:Key="Str_Ocr_ComingSoon">{0} - próximamente</sys:String>
+    <sys:String x:Key="Str_TT_Ocr">OCR de la página (copiar texto)</sys:String>
+    <sys:String x:Key="Str_Lbl_Ocr">OCR</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPage">OCR de la página (copiar texto)</sys:String>
+    <sys:String x:Key="Str_Lbl_Rotate">Transformar</sys:String>
+    <sys:String x:Key="Str_TT_RotateTool">Transformar página - rotar / enderezar (escala próximamente)</sys:String>
+    <sys:String x:Key="Str_Tf_Suffix">Transformar</sys:String>
+    <sys:String x:Key="Str_Tf_Rotate">ROTAR</sys:String>
+    <sys:String x:Key="Str_Tf_Scale">ESCALAR</sys:String>
+    <sys:String x:Key="Str_Tf_Flip">VOLTEAR</sys:String>
+    <sys:String x:Key="Str_Tf_Skew">INCLINAR</sys:String>
+    <sys:String x:Key="Str_Tf_Angle">Ángulo</sys:String>
+    <sys:String x:Key="Str_Tf_Size">Tamaño</sys:String>
+    <sys:String x:Key="Str_Tf_WhenScaling">Al escalar:</sys:String>
+    <sys:String x:Key="Str_Tf_ResizePage">Redimensionar toda la página</sys:String>
+    <sys:String x:Key="Str_Tf_KeepSize">Mantener tamaño de página (agregar márgenes)</sys:String>
+    <sys:String x:Key="Str_Tf_FlipH">Voltear horizontalmente</sys:String>
+    <sys:String x:Key="Str_Tf_FlipV">Voltear verticalmente</sys:String>
+    <sys:String x:Key="Str_Tf_LevelLine">Dibujar una línea de nivel</sys:String>
+    <sys:String x:Key="Str_Tf_SkewHint">Arrastra a lo largo de algo que deba quedar nivelado (un borde, una línea de texto). La página rota para coincidir.</sys:String>
+    <sys:String x:Key="Str_Tf_Output">Salida: {0} × {1} pulg</sys:String>
+    <sys:String x:Key="Str_Tf_ResetAll">Restablecer todo</sys:String>
+    <sys:String x:Key="Str_Tf_Reset">Restablecer</sys:String>
+    <sys:String x:Key="Str_Tf_Cancel">Cancelar</sys:String>
+    <sys:String x:Key="Str_Tf_Apply">Aplicar</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">Transformar una página (rotar o escalar) la rasteriza: la página se vuelve a guardar como imagen, por lo que se pierde cualquier texto seleccionable. Puedes ejecutar OCR después para volver a hacerla buscable.</sys:String>
+    <sys:String x:Key="Str_Tf_DontWarn">No volver a avisarme</sys:String>
+    <sys:String x:Key="Str_Tf_Done">Página {0} transformada</sys:String>
+    <sys:String x:Key="Str_Tf_NoRender">No se pudo renderizar la página - inténtalo de nuevo en un momento.</sys:String>
+    <sys:String x:Key="Str_Tf_Failed">Error al transformar: {0}</sys:String>
+    <sys:String x:Key="Str_Crop_Position">Posición</sys:String>
+    <sys:String x:Key="Str_Crop_Size">Tamaño</sys:String>
+    <sys:String x:Key="Str_Crop_Pages">Páginas</sys:String>
+    <sys:String x:Key="Str_Crop_All">Todas</sys:String>
+    <sys:String x:Key="Str_Crop_Apply">Recortar</sys:String>
+    <sys:String x:Key="Str_Crop_RangeTip">Intervalo de páginas, ej. 1-3,5 (vacío = página actual)</sys:String>
+    <sys:String x:Key="Str_Crop_AllTip">Recortar todas las páginas</sys:String>
+    <sys:String x:Key="Str_KS_View">Vista</sys:String>
+    <sys:String x:Key="Str_KS_FullScreen">Pantalla completa</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">Pulsa F11 o Esc para salir de pantalla completa</sys:String>
 </ResourceDictionary>
