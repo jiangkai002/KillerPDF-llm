@@ -7,11 +7,8 @@ using System.Windows.Media.Effects;
 
 namespace KillerPDF
 {
-    // Reusable title-bar chrome for KillerPDF's modal dialog windows (Print Preview, Transform,
-    // Digital Signature, and any future ones). Builds the standard draggable bar: the "KillerPDF"
-    // wordmark (Killer + green PDF) followed by a courier "- <suffix>" label, with the chrome-style
-    // red close button on the right - the same look across every window. New windows just call
-    // BuildTitleBar instead of re-implementing the wordmark/close button.
+    // Chrome for modal dialog windows: Configure (borderless window setup), Frame (the rounded card +
+    // title bar + grain), and BuildTitleBar (the KillerPDF wordmark + red close button).
     internal static class DialogChrome
     {
         public const string CloseGlyph = ""; // Segoe MDL2 ChromeClose
@@ -95,6 +92,60 @@ namespace KillerPDF
 
             bar.Child = grid;
             return bar;
+        }
+
+        // Borderless transparent window setup shared by every dialog.
+        public static void Configure(Window win, Window? owner, bool resizable = false, bool fade = true)
+        {
+            win.Owner = owner;
+            win.WindowStyle = WindowStyle.None;
+            win.AllowsTransparency = true;
+            win.Background = Brushes.Transparent;
+            win.ResizeMode = resizable ? ResizeMode.CanResize : ResizeMode.NoResize;
+            win.WindowStartupLocation = owner != null ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen;
+            win.FontFamily = UiKit.UiFont;
+            TextOptions.SetTextFormattingMode(win, TextFormattingMode.Display);
+            TextOptions.SetTextRenderingMode(win, TextRenderingMode.Grayscale);
+            if (fade) WindowFx.EnableFadeClose(win);
+        }
+
+        // Standard dialog card: rounded themed border + shadow, the title bar on top, film grain, Esc-to-close.
+        public static Border Frame(Window win, Window? owner, string title, Action onClose, UIElement body)
+        {
+            win.KeyDown += (_, e) => { if (e.Key == Key.Escape) { e.Handled = true; onClose(); } };
+
+            var card = new Border
+            {
+                Background = UiKit.Brush("BgModal"),
+                BorderBrush = UiKit.Brush("AccentBorder"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = UiKit.RadWindow,
+                Margin = new Thickness(12),
+                Effect = UiKit.ShadowDialog()
+            };
+
+            var root = new DockPanel();
+            var titleBar = BuildTitleBar(win, owner, title, onClose);
+            titleBar.Height = 40;
+            DockPanel.SetDock(titleBar, Dock.Top);
+            root.Children.Add(titleBar);
+            root.Children.Add(body);
+
+            var grain = (owner as MainWindow)?.GrainTexture;
+            if (grain != null)
+            {
+                var grid = new Grid();
+                double op = Application.Current?.Resources["GrainOpacity"] is double go ? go : 0.05;
+                grid.Children.Add(new Border
+                {
+                    CornerRadius = UiKit.RadWindow, IsHitTestVisible = false, Opacity = op,
+                    Background = new ImageBrush(grain) { TileMode = TileMode.Tile, ViewportUnits = BrushMappingMode.Absolute, Viewport = new Rect(0, 0, 256, 256), Stretch = Stretch.None }
+                });
+                grid.Children.Add(root);
+                card.Child = grid;
+            }
+            else card.Child = root;
+            return card;
         }
     }
 }

@@ -482,11 +482,11 @@ namespace KillerPDF
                 var rowBtns = new Grid { Margin = new Thickness(4, 8, 4, 2) };
                 rowBtns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 rowBtns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                var createBtn = UiButtons.Make(Loc("Str_Sig_Create"), accent: true);
+                var createBtn = UiKit.Make(Loc("Str_Sig_Create"), accent: true);
                 createBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
                 createBtn.Margin = new Thickness(0, 0, 3, 0);
                 createBtn.Click += (s, e) => { HideSignaturePopup(); OpenSignatureCreator(kind); ShowSignaturePopup(); };
-                var importBtn = UiButtons.Make(Loc("Str_Sig_Import"), accent: false);
+                var importBtn = UiKit.Make(Loc("Str_Sig_Import"), accent: false);
                 importBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
                 importBtn.Margin = new Thickness(3, 0, 0, 0);
                 importBtn.Click += (s, e) => { HideSignaturePopup(); ImportImageSignature(kind); ShowSignaturePopup(); };
@@ -568,40 +568,13 @@ namespace KillerPDF
             {
                 Title = "Create Signature",
                 Width = 460,
-                SizeToContent = SizeToContent.Height,   // size to content so there's no empty padding below
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                Owner = this,
-                ResizeMode = ResizeMode.NoResize,
-                WindowStyle = WindowStyle.None,
-                AllowsTransparency = true,
-                Background = System.Windows.Media.Brushes.Transparent
+                SizeToContent = SizeToContent.Height   // size to content so there's no empty padding below
             };
-            WindowFx.EnableFadeClose(win);
-            TextOptions.SetTextFormattingMode(win, TextFormattingMode.Display);
-            TextOptions.SetTextRenderingMode(win, TextRenderingMode.Grayscale);
+            DialogChrome.Configure(win, this);
             // This separate window can't see MainWindow's ChromeCloseCorner, so the close button's
             // {DynamicResource ChromeCloseCorner} fell back to 0 (square hover). Provide it here so the
             // hover rounds the top-right corner to match the window.
             win.Resources["ChromeCloseCorner"] = new CornerRadius(0, 7, 0, 0);
-
-            // Outer chrome
-            var outerChrome = new Border
-            {
-                Background      = (SolidColorBrush)FindResource("BgModal"),
-                BorderBrush     = (SolidColorBrush)FindResource("PaneBorder"),   // 1px doc-pane frame
-                BorderThickness = new Thickness(1),
-                CornerRadius    = new CornerRadius(7),
-                Margin          = new Thickness(10),    // transparent halo so the drop shadow can render
-                Effect          = new System.Windows.Media.Effects.DropShadowEffect
-                {
-                    Color = Colors.Black, BlurRadius = 18, ShadowDepth = 3, Direction = 270, Opacity = 0.6
-                }
-            };
-            var rootStack = new StackPanel();
-
-            // Title bar: shared KillerPDF wordmark + courier suffix + red chrome close, via DialogChrome.
-            var titleBar = DialogChrome.BuildTitleBar(win, this, "KillerPDF - " + Loc("Str_Sig_Create"), () => win.Close());
-            rootStack.Children.Add(titleBar);
 
             var contentArea = new StackPanel();
 
@@ -731,7 +704,7 @@ namespace KillerPDF
                 HorizontalAlignment = HorizontalAlignment.Right
             };
 
-            var clearBtn = UiButtons.Make(Loc("Str_Sig_Clear"), accent: false);
+            var clearBtn = UiKit.Make(Loc("Str_Sig_Clear"), accent: false);
             clearBtn.Margin = new Thickness(0, 0, 8, 0);
             clearBtn.Click += (s, e) =>
             {
@@ -741,7 +714,7 @@ namespace KillerPDF
                 drawCanvas.Children.Add(placeholder);
             };
 
-            var saveBtn = UiButtons.Make(Loc("Str_Sig_SaveSig"), accent: true);
+            var saveBtn = UiKit.Make(Loc("Str_Sig_SaveSig"), accent: true);
             saveBtn.Click += (s, e) =>
             {
                 if (strokes.Count == 0)
@@ -786,21 +759,7 @@ namespace KillerPDF
             btnPanel.Margin = new Thickness(12, 4, 12, 12);
             contentArea.Children.Add(btnPanel);
 
-            rootStack.Children.Add(contentArea);
-
-            // Film grain behind everything (incl. the transparent title bar) so this window carries
-            // the same texture as the rest of the app.
-            var creatorGrid = new Grid();
-            creatorGrid.Children.Add(new Border
-            {
-                CornerRadius     = new CornerRadius(6),
-                IsHitTestVisible = false,
-                Opacity          = (double)FindResource("GrainOpacity"),
-                Background       = (System.Windows.Media.Brush)FindResource("GrainBrushShared")
-            });
-            creatorGrid.Children.Add(rootStack);
-            outerChrome.Child = creatorGrid;
-            win.Content = outerChrome;
+            win.Content = DialogChrome.Frame(win, this, "KillerPDF - " + Loc("Str_Sig_Create"), () => win.Close(), contentArea);
             win.ShowDialog();
         }
 

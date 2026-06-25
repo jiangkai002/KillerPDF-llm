@@ -84,22 +84,7 @@ namespace KillerPDF
             Height = 716;
             MinWidth  = 720;
             MinHeight = 480;
-            WindowStyle           = WindowStyle.None;
-            AllowsTransparency    = true;
-            Background            = Brushes.Transparent;
-            ResizeMode            = ResizeMode.CanResize;
-            WindowFx.EnableFadeClose(this);
-            Owner                 = owner;
-            WindowStartupLocation = owner != null
-                ? WindowStartupLocation.CenterOwner
-                : WindowStartupLocation.CenterScreen;
-
-            // Match the main window's crisp text rendering. The main window sets these in XAML;
-            // this window is built in code, so without them the text falls back to rougher
-            // defaults (the "not anti-aliased" look).
-            FontFamily = UiKit.UiFont;
-            TextOptions.SetTextFormattingMode(this, TextFormattingMode.Display);
-            TextOptions.SetTextRenderingMode(this, TextRenderingMode.ClearType);
+            DialogChrome.Configure(this, owner, resizable: true);
             UseLayoutRounding = true;
 
             // Borderless windows (WindowStyle.None) have no native resize border, so
@@ -965,7 +950,7 @@ namespace KillerPDF
             return set.Count == 0 ? [.. Enumerable.Range(0, count)] : [.. set];
         }
 
-        // Shared themed button (see UiButtons) so the print dialog matches every other dialog.
-        private static Button MakeButton(string label, bool accent) => UiButtons.Make(label, accent);
+        // Shared themed button (UiKit.Make) so the print dialog matches every other dialog.
+        private static Button MakeButton(string label, bool accent) => UiKit.Make(label, accent);
     }
 }

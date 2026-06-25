@@ -39,22 +39,9 @@ namespace KillerPDF
             {
                 Title = title,
                 Width = 380,
-                SizeToContent = SizeToContent.Height,
-                WindowStyle = WindowStyle.None,
-                AllowsTransparency = true,
-                Background = System.Windows.Media.Brushes.Transparent,
-                WindowStartupLocation = owner != null
-                    ? WindowStartupLocation.CenterOwner
-                    : WindowStartupLocation.CenterScreen,
-                Owner = owner,
-                ResizeMode = ResizeMode.NoResize
+                SizeToContent = SizeToContent.Height
             };
-            if (fadeClose) WindowFx.EnableFadeClose(win);
-            // AllowsTransparency windows can't use ClearType. Display mode pixel-snaps the (unscaled)
-            // dialog text so it stays crisp, and Grayscale gives smooth anti-aliased edges - the best
-            // combination available on a layered window.
-            TextOptions.SetTextFormattingMode(win, TextFormattingMode.Display);
-            TextOptions.SetTextRenderingMode(win, TextRenderingMode.Grayscale);
+            DialogChrome.Configure(win, owner, fade: fadeClose);
 
             var outerBorder = new Border
             {
@@ -133,8 +120,8 @@ namespace KillerPDF
             // WPF's default blue hover chrome can't override our colors.
             Button MakeBtn(string label, MessageBoxResult res, bool accent = false)
             {
-                // Shared themed button (see UiButtons) so this dialog matches the print dialog et al.
-                var btn = UiButtons.Make(label, accent);
+                // Shared themed button (UiKit.Make) so this dialog matches the print dialog et al.
+                var btn = UiKit.Make(label, accent);
                 btn.Margin = new Thickness(8, 0, 0, 0);
                 btn.Click += (_, _2) => { result = res; win.Close(); };
                 return btn;
@@ -213,17 +200,9 @@ namespace KillerPDF
             {
                 Title = title,
                 Width = 400,
-                SizeToContent = SizeToContent.Height,
-                WindowStyle = WindowStyle.None,
-                AllowsTransparency = true,
-                Background = Brushes.Transparent,
-                WindowStartupLocation = owner != null ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen,
-                Owner = owner,
-                ResizeMode = ResizeMode.NoResize
+                SizeToContent = SizeToContent.Height
             };
-            WindowFx.EnableFadeClose(win);
-            TextOptions.SetTextFormattingMode(win, TextFormattingMode.Display);
-            TextOptions.SetTextRenderingMode(win, TextRenderingMode.Grayscale);
+            DialogChrome.Configure(win, owner);
 
             var outerBorder = new Border
             {
@@ -265,7 +244,7 @@ namespace KillerPDF
             var btnPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
             Button MakeBtn(string label, MessageBoxResult res, bool accent = false)
             {
-                var btn = UiButtons.Make(label, accent);
+                var btn = UiKit.Make(label, accent);
                 btn.Margin = new Thickness(8, 0, 0, 0);
                 btn.Click += (_, _2) => { result = res; win.Close(); };
                 return btn;

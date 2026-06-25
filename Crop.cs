@@ -413,7 +413,7 @@ namespace KillerPDF
             outer.Children.Add(allRow);
 
             // Single Crop button on the right.
-            var cropBtn = CropBtn(UiButtons.Make(Loc("Str_Crop_Apply"), true));
+            var cropBtn = CropBtn(UiKit.Make(Loc("Str_Crop_Apply"), true));
             cropBtn.ToolTip = Loc("Str_TT_CropThisPage");
             cropBtn.Click += (_, _) =>
             {

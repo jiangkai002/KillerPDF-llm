@@ -490,7 +490,7 @@ namespace KillerPDF
             SolidColorBrush normal, SolidColorBrush hover, SolidColorBrush fg,
             double width = 88)
         {
-            var btn = UiButtons.Make(label, normal, hover, fg, fg);
+            var btn = UiKit.Make(label, normal, hover, fg, fg);
             btn.Width  = width;
             btn.Height = 28;
             return btn;
@@ -899,14 +899,14 @@ namespace KillerPDF
                 HorizontalAlignment = HorizontalAlignment.Right
             };
 
-            var runBtn = UiButtons.Make("Run",
+            var runBtn = UiKit.Make("Run",
                 new SolidColorBrush(Color.FromRgb(0x30, 0x30, 0x30)),
                 new SolidColorBrush(Color.FromRgb(0x16, 0x63, 0x34)),
                 Brushes.White, Brushes.White);
             runBtn.Width  = 88;
             runBtn.Margin = new Thickness(0, 0, 8, 0);
 
-            var installBtn = UiButtons.Make(alreadyInstalled ? "Update" : "Install",
+            var installBtn = UiKit.Make(alreadyInstalled ? "Update" : "Install",
                 accent,
                 new SolidColorBrush(Color.FromRgb(0x4a, 0xf0, 0x90)),
                 new SolidColorBrush(Color.FromRgb(0x0a, 0x0a, 0x0a)),
@@ -1174,7 +1174,7 @@ namespace KillerPDF
             card.Child = cardContent;
 
             // Close button
-            var okBtn = UiButtons.Make("Close",
+            var okBtn = UiKit.Make("Close",
                 new SolidColorBrush(Color.FromRgb(0x1e, 0xa5, 0x4c)),
                 new SolidColorBrush(Color.FromRgb(0x17, 0x7a, 0x38)),
                 new SolidColorBrush(Colors.White),

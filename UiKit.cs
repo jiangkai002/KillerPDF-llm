@@ -9,10 +9,8 @@ using System.Windows.Media.Effects;
 
 namespace KillerPDF
 {
-    // The single design-language kit for code-built UI. Tokens (fonts, radii, shadows) resolve from
-    // App.xaml's resource dictionary, so XAML and code share ONE source and cannot drift. The control
-    // factories (checkbox, field, labels, button rows, grain) give every dialog and tool the same look
-    // without re-implementing chrome. New tools should build from UiKit + UiButtons + DialogChrome only.
+    // Design tokens (fonts, radii, shadows) and code-built controls (buttons, checkboxes, fields, labels)
+    // for dialogs and tools. Tokens resolve from App.xaml's resource dictionary.
     internal static class UiKit
     {
         // ---- token + theme accessors -------------------------------------------------------------
@@ -253,6 +251,58 @@ namespace KillerPDF
             link.MouseLeave += (_, _2) => link.Foreground = Brush("TextSecondary");
             link.MouseLeftButtonUp += (_, _2) => onClick();
             return link;
+        }
+
+        // Dialog/popup buttons. accent==true is the primary (fills solid accent on hover); false is secondary.
+        public static Button Make(object content, bool accent)
+            => accent
+                ? Make(content, Brush("AccentDim"), Brush("Accent"),  Brush("Accent"),      AccentHoverFg(),      Brush("Accent"))
+                : Make(content, Brush("BgPanel"),   Brush("BgHover"), Brush("TextPrimary"), Brush("TextPrimary"), Brush("BorderDim"));
+
+        private static Brush AccentHoverFg()
+            => Services.ThemeManager.Current is Services.Theme.Dark or Services.Theme.Black
+                ? Brushes.White : Brush("BgModal");
+
+        // Explicit-color overload for pre-theme windows (startup/crash/About). border==null = borderless.
+        public static Button Make(object content, Brush normalBg, Brush hoverBg, Brush normalFg, Brush hoverFg, Brush? border = null)
+        {
+            var btn = new Button
+            {
+                Content = content,
+                Padding = new Thickness(18, 6, 18, 6),
+                Background = normalBg,
+                Foreground = normalFg,
+                BorderBrush = border ?? Brushes.Transparent,
+                BorderThickness = new Thickness(border == null ? 0 : 1),
+                Cursor = Cursors.Hand,
+                FontFamily = UiFont,
+                FontSize = 12,
+                FocusVisualStyle = null,
+                Template = ButtonTemplate(),
+            };
+            btn.MouseEnter += (_, _) => { btn.Background = hoverBg; btn.Foreground = hoverFg; };
+            btn.MouseLeave += (_, _) => { btn.Background = normalBg; btn.Foreground = normalFg; };
+            return btn;
+        }
+
+        private static ControlTemplate ButtonTemplate()
+        {
+            var bf = new FrameworkElementFactory(typeof(Border)) { Name = "bd" };
+            bf.SetBinding(Border.BackgroundProperty, new Binding("Background") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
+            bf.SetBinding(Border.BorderBrushProperty, new Binding("BorderBrush") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
+            bf.SetBinding(Border.BorderThicknessProperty, new Binding("BorderThickness") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
+            bf.SetBinding(Border.PaddingProperty, new Binding("Padding") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
+            bf.SetValue(Border.CornerRadiusProperty, RadControl);
+
+            var cp = new FrameworkElementFactory(typeof(ContentPresenter));
+            cp.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            cp.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+            bf.AppendChild(cp);
+            var ct = new ControlTemplate(typeof(Button)) { VisualTree = bf };
+            var dis = new Trigger { Property = UIElement.IsEnabledProperty, Value = false };
+            dis.Setters.Add(new Setter(UIElement.OpacityProperty, 0.45) { TargetName = "bd" });
+            ct.Triggers.Add(dis);
+            return ct;
         }
     }
 }

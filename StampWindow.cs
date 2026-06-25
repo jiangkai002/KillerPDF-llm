@@ -84,21 +84,12 @@ namespace KillerPDF
             _spec = existing?.Clone() ?? new StampSpec { NumbersEnabled = true };
             Result = _spec;
 
-            Owner = owner;
             Title = "KillerPDF - " + S("Str_Stamp_Suffix");
             Width = 980;
             Height = 720;
             MinWidth = 680;
             MinHeight = 480;
-            WindowStartupLocation = WindowStartupLocation.CenterOwner;
-            WindowStyle = WindowStyle.None;
-            AllowsTransparency = true;
-            Background = Brushes.Transparent;
-            ResizeMode = ResizeMode.CanResize;
-            WindowFx.EnableFadeClose(this);
-            TextOptions.SetTextFormattingMode(this, TextFormattingMode.Display);
-            TextOptions.SetTextRenderingMode(this, TextRenderingMode.Grayscale);
-            FontFamily = UiKit.UiFont;
+            DialogChrome.Configure(this, owner, resizable: true);
 
             _darkSlider = owner.TryFindResource("DarkSlider") as Style;
             _darkCombo  = owner.TryFindResource("DarkComboBox") as Style;
@@ -124,22 +115,7 @@ namespace KillerPDF
 
         private void BuildUi(Window owner)
         {
-            var outer = new Border
-            {
-                Background = R("BgModal"),
-                BorderBrush = R("AccentBorder"),
-                BorderThickness = new Thickness(1),
-                CornerRadius = UiKit.RadCard,
-                Margin = new Thickness(10),
-                Effect = UiKit.ShadowDialog()
-            };
-
             var root = new DockPanel();
-
-            var titleBar = DialogChrome.BuildTitleBar(this, Owner, "KillerPDF - " + S("Str_Stamp_Suffix"), () => { Applied = false; Close(); });
-            titleBar.Height = 40;
-            DockPanel.SetDock(titleBar, Dock.Top);
-            root.Children.Add(titleBar);
 
             // ---- Right sidebar ----
             // Small right padding so the always-on scrollbar tucks near the window edge; the footer and
@@ -155,11 +131,11 @@ namespace KillerPDF
             resetLink.Margin = new Thickness(0, 0, 0, 8);
             bottom.Children.Add(resetLink);
             var actionRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-            var cancelBtn = UiButtons.Make(S("Str_Tf_Cancel"), false);
+            var cancelBtn = UiKit.Make(S("Str_Tf_Cancel"), false);
             cancelBtn.Click += (_, _2) => { Applied = false; Close(); };
             cancelBtn.Margin = new Thickness(0, 0, 8, 0);
             actionRow.Children.Add(cancelBtn);
-            _applyBtn = UiButtons.Make(S("Str_Tf_Apply"), true);
+            _applyBtn = UiKit.Make(S("Str_Tf_Apply"), true);
             _applyBtn.Click += (_, _2) => CommitAndClose();
             actionRow.Children.Add(_applyBtn);
             bottom.Children.Add(actionRow);
@@ -200,17 +176,10 @@ namespace KillerPDF
             previewWrap.SizeChanged += (_, _2) => { SizePreviewImage(); Schedule(); };
             root.Children.Add(previewWrap);
 
-            var contentGrid = new Grid();
-            AddGrain(contentGrid, owner, 0.05, cornerRadius: 6);
-            contentGrid.Children.Add(root);
-            outer.Child = contentGrid;
-            Content = outer;
+            Content = DialogChrome.Frame(this, Owner, "KillerPDF - " + S("Str_Stamp_Suffix"), () => { Applied = false; Close(); }, root);
 
-            KeyDown += (_, e) =>
-            {
-                if (e.Key == Key.Escape) { Applied = false; Close(); }
-                else if (e.Key == Key.Enter) CommitAndClose();
-            };
+            // Esc-to-close is wired by DialogChrome.Frame; Enter commits.
+            KeyDown += (_, e) => { if (e.Key == Key.Enter) CommitAndClose(); };
         }
 
         private static void AddGrain(Grid host, Window owner, double fallback, double cornerRadius)
@@ -316,7 +285,7 @@ namespace KillerPDF
             // Image sub-panel: filename fills the left, the Choose button sits right-aligned across from it.
             _wmImagePanel = new StackPanel();
             var imgRow = new DockPanel { Margin = new Thickness(0, 0, 0, 8) };
-            var chooseBtn = UiButtons.Make(S("Str_Stamp_ChooseImage"), false);
+            var chooseBtn = UiKit.Make(S("Str_Stamp_ChooseImage"), false);
             chooseBtn.Click += (_, _2) => ChooseImage();
             DockPanel.SetDock(chooseBtn, Dock.Right);
             imgRow.Children.Add(chooseBtn);

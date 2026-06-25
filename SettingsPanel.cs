@@ -325,7 +325,7 @@ namespace KillerPDF
             // if it's open so it picks up the new theme without the user having to close and reopen it.
             if (_signaturePopup is not null) ShowSignaturePopup();
 
-            // The crop bar's buttons snapshot accent colors (UiButtons), so rebuild it in the new theme.
+            // The crop bar's buttons snapshot accent colors (UiKit), so rebuild it in the new theme.
             RebuildCropBarForLocale();
         }
 

@@ -71,20 +71,12 @@ namespace KillerPDF
             _srcH = src.PixelHeight;
             _pageWpt = pageWpt;
             _pageHpt = pageHpt;
-            Owner = owner;
             Title = "KillerPDF - " + S("Str_Tf_Suffix");
             Width = 980;
             Height = 720;
             MinWidth = 640;
             MinHeight = 460;
-            WindowStartupLocation = WindowStartupLocation.CenterOwner;
-            WindowStyle = WindowStyle.None;
-            AllowsTransparency = true;
-            Background = Brushes.Transparent;
-            ResizeMode = ResizeMode.CanResize;
-            WindowFx.EnableFadeClose(this);
-            TextOptions.SetTextFormattingMode(this, TextFormattingMode.Display);
-            TextOptions.SetTextRenderingMode(this, TextRenderingMode.Grayscale);
+            DialogChrome.Configure(this, owner, resizable: true);
 
             var darkSlider = owner?.TryFindResource("DarkSlider") as Style;
             var themeRadio = owner?.TryFindResource("ThemeRadio") as Style;
@@ -95,24 +87,7 @@ namespace KillerPDF
             _previewTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(40) };
             _previewTimer.Tick += (_, _2) => { _previewTimer.Stop(); UpdatePreview(); };
 
-            var outer = new Border
-            {
-                Background = R("BgModal"),
-                BorderBrush = R("AccentBorder"),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(6),
-                Margin = new Thickness(10),
-                Effect = new System.Windows.Media.Effects.DropShadowEffect
-                { Color = Colors.Black, BlurRadius = 18, ShadowDepth = 3, Direction = 270, Opacity = 0.6 }
-            };
-
             var root = new DockPanel();
-
-            // Title bar: shared KillerPDF wordmark + courier suffix + red chrome close, via DialogChrome.
-            var titleBar = DialogChrome.BuildTitleBar(this, Owner, "KillerPDF - " + S("Str_Tf_Suffix"), () => { Applied = false; Close(); });
-            titleBar.Height = 40;
-            DockPanel.SetDock(titleBar, Dock.Top);
-            root.Children.Add(titleBar);
 
             // ---- Right sidebar (transparent so it blends with the dark title bar, like Print Preview) ----
             var sidebar = new Border { Width = 288, Background = Brushes.Transparent, Padding = new Thickness(16, 8, 16, 14) };
@@ -134,11 +109,11 @@ namespace KillerPDF
             resetAll.MouseLeftButtonUp += (_, _2) => { _quarter = 0; _rotSlider.Value = 0; _scaleSlider.Value = 100; _resizeRadio.IsChecked = true; _flipHCheck.IsChecked = false; _flipVCheck.IsChecked = false; };
             bottom.Children.Add(resetAll);
             var actionRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 8, 0, 0) };
-            var cancelBtn = UiButtons.Make(S("Str_Tf_Cancel"), false);
+            var cancelBtn = UiKit.Make(S("Str_Tf_Cancel"), false);
             cancelBtn.Margin = new Thickness(0, 0, 8, 0);
             cancelBtn.Click += (_, _2) => { Applied = false; Close(); };
             actionRow.Children.Add(cancelBtn);
-            var applyBtn = UiButtons.Make(S("Str_Tf_Apply"), true);
+            var applyBtn = UiKit.Make(S("Str_Tf_Apply"), true);
             applyBtn.Click += (_, _2) => CommitAndClose();
             actionRow.Children.Add(applyBtn);
             bottom.Children.Add(actionRow);
@@ -150,10 +125,10 @@ namespace KillerPDF
             stack.Children.Add(SectionHeader(S("Str_Tf_Rotate")));
             // Quarter-turn buttons.
             var turnRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 6) };
-            var turnL = UiButtons.Make("↺ 90°", false);
+            var turnL = UiKit.Make("↺ 90°", false);
             turnL.Margin = new Thickness(0, 0, 6, 0);
             turnL.Click += (_, _2) => { _quarter = (_quarter + 3) % 4; UpdatePreview(); };
-            var turnR = UiButtons.Make("90° ↻", false);
+            var turnR = UiKit.Make("90° ↻", false);
             turnR.Click += (_, _2) => { _quarter = (_quarter + 1) % 4; UpdatePreview(); };
             turnRow.Children.Add(turnL);
             turnRow.Children.Add(turnR);
@@ -273,28 +248,11 @@ namespace KillerPDF
             previewWrap.SizeChanged += (_, _2) => SizePreviewImage();
             root.Children.Add(previewWrap);
 
-            // ---- Film grain over the whole surface, matching the rest of the app. ----
-            var contentGrid = new Grid();
-            var grain = (owner as MainWindow)?.GrainTexture;
-            if (grain != null)
-            {
-                double op = Application.Current.Resources["GrainOpacity"] is double go ? go : 0.05;
-                contentGrid.Children.Add(new Border
-                {
-                    CornerRadius = new CornerRadius(6), IsHitTestVisible = false, Opacity = op,
-                    Background = new ImageBrush(grain) { TileMode = TileMode.Tile, ViewportUnits = BrushMappingMode.Absolute, Viewport = new Rect(0, 0, 256, 256), Stretch = Stretch.None }
-                });
-            }
-            contentGrid.Children.Add(root);
-            outer.Child = contentGrid;
-            Content = outer;
+            Content = DialogChrome.Frame(this, Owner, "KillerPDF - " + S("Str_Tf_Suffix"), () => { Applied = false; Close(); }, root);
             UpdatePreview();   // populate the output-size readout at the original dimensions
 
-            KeyDown += (_, e) =>
-            {
-                if (e.Key == Key.Escape) { Applied = false; Close(); }
-                else if (e.Key == Key.Enter) CommitAndClose();
-            };
+            // Esc-to-close is wired by DialogChrome.Frame; Enter commits.
+            KeyDown += (_, e) => { if (e.Key == Key.Enter) CommitAndClose(); };
         }
 
         private double Total => _quarter * 90 + _fine;
@@ -424,7 +382,7 @@ namespace KillerPDF
         private DockPanel ValueRow(string label, string value, out TextBlock valueBlock, out Button reset)
         {
             var row = new DockPanel { Margin = new Thickness(0, 2, 0, 0) };
-            reset = UiButtons.Make(S("Str_Tf_Reset"), false);
+            reset = UiKit.Make(S("Str_Tf_Reset"), false);
             reset.Padding = new Thickness(8, 1, 8, 1);
             reset.FontSize = 11;
             DockPanel.SetDock(reset, Dock.Right);

@@ -44,16 +44,7 @@ namespace KillerPDF
             Title = "KillerPDF - Color";
             Width = 300;
             SizeToContent = SizeToContent.Height;
-            WindowStyle = WindowStyle.None;
-            AllowsTransparency = true;
-            Background = Brushes.Transparent;
-            ResizeMode = ResizeMode.NoResize;
-            WindowFx.EnableFadeClose(this);
-            Owner = owner;
-            WindowStartupLocation = owner != null ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen;
-            FontFamily = UiKit.UiFont;
-            TextOptions.SetTextFormattingMode(this, TextFormattingMode.Display);
-            TextOptions.SetTextRenderingMode(this, TextRenderingMode.ClearType);
+            DialogChrome.Configure(this, owner);
             UseLayoutRounding = true;
             SelectedColor = initial;
             (_h, _s, _v) = RgbToHsv(initial);

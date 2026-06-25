@@ -48,49 +48,14 @@ namespace KillerPDF
             Title = "KillerPDF - Digital Signature";
             Width = 470;
             SizeToContent = SizeToContent.Height;
-            WindowStyle = WindowStyle.None;
-            AllowsTransparency = true;
-            Background = Brushes.Transparent;
-            ResizeMode = ResizeMode.NoResize;
-            WindowFx.EnableFadeClose(this);
-            Owner = owner;
-            WindowStartupLocation = owner != null ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen;
-
-            // Match the main window's crisp text rendering (these are set in XAML on the main window;
-            // a code-built window needs them explicitly or text falls back to the rougher default).
-            FontFamily = UiKit.UiFont;
-            TextOptions.SetTextFormattingMode(this, TextFormattingMode.Display);
-            TextOptions.SetTextRenderingMode(this, TextRenderingMode.ClearType);
             UseLayoutRounding = true;
+            DialogChrome.Configure(this, owner);
             BuildUi();
         }
 
         private void BuildUi()
         {
-            // Outer surface + halo for the drop shadow - identical recipe to PrintPreviewWindow.
-            var outer = new Border
-            {
-                Background = R("BgSidebar"),
-                BorderBrush = R("BorderDim"),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(7),
-                Margin = new Thickness(12),
-                Effect = new System.Windows.Media.Effects.DropShadowEffect
-                { Color = Colors.Black, BlurRadius = 18, ShadowDepth = 3, Direction = 270, Opacity = 0.6 }
-            };
-            var root = new DockPanel();
-            var rootGrid = new Grid();
-            var grain = MakeGrainLayer();
-            if (grain != null) rootGrid.Children.Add(grain);
-            rootGrid.Children.Add(root);
-            outer.Child = rootGrid;
-            Content = outer;
-
-            root.Children.Add(BuildTitleBar());
-
             var body = new StackPanel { Margin = new Thickness(20, 6, 20, 18) };
-            DockPanel.SetDock(body, Dock.Top);
-            root.Children.Add(body);
 
             body.Children.Add(new TextBlock
             {
@@ -181,16 +146,9 @@ namespace KillerPDF
             body.Children.Add(btnRow);
 
             SyncSource();
-        }
 
-        // Themed title bar: "Killer" + green "PDF" wordmark + muted suffix, plus the chrome close
-        // button - the same construction PrintPreviewWindow uses.
-        private Border BuildTitleBar()
-        {
-            var bar = DialogChrome.BuildTitleBar(this, Owner, "KillerPDF - " + L("Str_Sign_TitleSuffix"),
-                () => { DialogResult = false; Close(); });
-            DockPanel.SetDock(bar, Dock.Top);
-            return bar;
+            Content = DialogChrome.Frame(this, Owner, "KillerPDF - " + L("Str_Sign_TitleSuffix"),
+                () => { DialogResult = false; Close(); }, body);
         }
 
         private string DefaultOutputPath()
@@ -335,18 +293,6 @@ namespace KillerPDF
             return ct;
         }
 
-        private static Button MakeButton(string label, bool accent) => UiButtons.Make(label, accent);
-
-        // Film-grain overlay matching the main window's texture/opacity, or null if not yet generated.
-        private Border? MakeGrainLayer()
-        {
-            if ((Owner as MainWindow)?.GrainTexture is not ImageSource grain) return null;
-            double op = Application.Current.TryFindResource("GrainOpacity") is double g ? g : 0.30;
-            return new Border
-            {
-                IsHitTestVisible = false,
-                Background = new ImageBrush(grain) { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, 160, 160), ViewportUnits = BrushMappingMode.Absolute, Stretch = Stretch.None, Opacity = op }
-            };
-        }
+        private static Button MakeButton(string label, bool accent) => UiKit.Make(label, accent);
     }
 }

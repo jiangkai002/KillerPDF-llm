@@ -269,7 +269,7 @@ namespace KillerPDF
                 case Key.G: case Key.D7: case Key.NumPad7: ToolSignature_Click(this, new RoutedEventArgs()); return true;
                 case Key.C: case Key.D8: case Key.NumPad8: SetTool(EditTool.Crop); return true;
                 case Key.R: case Key.D9: case Key.NumPad9: ToolRotate_Click(this, new RoutedEventArgs()); return true;
-                case Key.K: case Key.D0: case Key.NumPad0: ToolStamp_Click(this, new RoutedEventArgs()); return true;
+                case Key.S: case Key.D0: case Key.NumPad0: ToolStamp_Click(this, new RoutedEventArgs()); return true;
                 default: return false;
             }
         }
