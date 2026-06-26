@@ -396,6 +396,7 @@
     <sys:String x:Key="Str_Lbl_Ocr">OCR</sys:String>
     <sys:String x:Key="Str_Ctx_OcrPage">OCR 頁面（複製文字）</sys:String>
     <sys:String x:Key="Str_Lbl_Rotate">變形</sys:String>
+    <sys:String x:Key="Str_Lbl_Stamp">蓋章</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">變形頁面 - 旋轉／校正傾斜（縮放即將推出）</sys:String>
     <sys:String x:Key="Str_Tf_Suffix">變形</sys:String>
     <sys:String x:Key="Str_Tf_Rotate">旋轉</sys:String>

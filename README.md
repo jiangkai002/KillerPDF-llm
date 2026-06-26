@@ -1,6 +1,6 @@
 # KillerPDF
 
-PDF editor for field techs. View, annotate, merge, split, edit text, draw, sign, print, flatten, and open password-protected PDFs without an Adobe subscription or a phone-home. Install or run portable. Single Windows EXE, ~6 MB zipped, no runtime install required.
+PDF editor for field techs. View, annotate, OCR, merge, split, edit text, draw, sign, fill forms, print, flatten, and open password-protected PDFs without an Adobe subscription or a phone-home. Install or run portable. Single Windows EXE, ~6 MB zipped, no runtime install required.
 
 Landing page is hosted at [pdf.killertools.net](https://pdf.killertools.net)
 
@@ -12,28 +12,65 @@ KillerPDF is what I wanted: local-only, portable, no account, no telemetry. The 
 
 ## Features
 
+### Viewing & navigation
+
 - High-quality rendering via PDFium
-- Merge multiple PDFs and split out selected pages, drag-and-drop page reordering
+- Four view modes - Single Page, Continuous scroll, Two-Page, and Grid - that persist across sessions
+- Tabbed documents: open several PDFs at once, each restoring its page, zoom, and view mode
+- Full-text search across the whole document with highlighting; drag-select to copy text
+- Outline/bookmark navigation and clickable links, including internal cross-references and TOC back-links
+- Zoom presets with scroll-wheel sync; Fit to Width and Fit Page re-apply on resize
+
+### Annotate & edit
+
 - Inline text editing with font matching against the original document
-- Text boxes, freehand drawing, and highlight overlays with adjustable color, size, and opacity
-- Draw and save reusable signatures or import a PNG/JPG/BMP image as a signature, click to place anywhere on a page
-- Insert images onto any page as resizable annotations - drag the corner handle to scale, burned into the PDF on save
-- Crop tool with corner drag handles; Enter to apply, Escape to cancel, remove crop from one page or all pages
-- Right-click sidebar: insert blank page, rotate CW/CCW, move up/down, extract, or delete - works on multi-page selections
-- PDF form filling: text inputs, checkboxes, and radio buttons render as live controls - fill and save back to PDF
-- PDF outline (bookmark) navigation: OUTLINES tab in the sidebar displays the bookmark tree; click any entry to jump to that page
-- Clickable PDF links and internal cross-references, including TOC back-links
-- Four view modes selectable in Settings: Single Page, Continuous scroll (all pages in one vertical strip), Two-Page (side-by-side), and Grid. Choice persists across sessions.
-- Localized UI: English, Spanish, and Traditional Chinese included. Contribute a translation via `Strings/TRANSLATING.md`.
-- Six color themes: Dark, Light, Black, Blood, Greed, and Cyanotic. Switch live in Settings.
-- Zoom preset dropdown with scroll-wheel sync; Fit to Width and Fit Page re-apply on window resize
-- Page number jump box in the toolbar; type a page number and press Enter to navigate directly
-- Keyboard-driven navigation with arrow keys and middle-mouse panning, plus a full shortcut overlay (Ctrl+?)
-- Full-text search across the entire document with result highlighting, drag-select to copy text
-- Print with annotations flattened into the output, print preview is rendered in print dialog.
-- Save Flattened PDF: rasterizes every page at 150 DPI into a fully uneditable document
-- Password-protected PDF support: prompts for password instead of erroring
-- Self-installing EXE: installs per-user to %LOCALAPPDATA% (no UAC), registers as PDF file handler, adds Start Menu and optional Desktop shortcuts, uninstalls cleanly via Add/Remove Programs
+- Resizable, word-wrapping text boxes with an optional whiteout background fill
+- Freehand draw, a straight-line tool, and highlight - each with its own color, opacity, and width
+- Full RGB color picker: saturation/value square, hue strip, hex input, screen eyedropper, and editable palette
+- Select tool to move, resize, multi-select, and restyle any annotation in place
+- Insert images as resizable annotations, burned into the PDF on save
+- Page-number and watermark stamping across a page range, applied as one undo
+
+### OCR (built in, no cloud)
+
+- OCR a whole page or a dragged region straight to the clipboard
+- Make Searchable PDF: lay an invisible text layer over a scan
+- Extract All Text to a `.txt` or `.md` file
+- Tesseract bundled in the single EXE; extra languages download on demand
+
+### Organize pages
+
+- Merge multiple PDFs and split out selected pages, with drag-and-drop reordering
+- Right-click sidebar: insert blank page, rotate, move, extract, or delete - on multi-page selections
+- Crop with corner handles; remove crop from one page or all
+- Transform: rotate by 90 degrees or a fine angle, scale, flip, and straighten a crooked scan by drawing a level line - live preview, with annotations following the transform
+- Drop a folder or `.zip` onto the window to merge the PDFs and images inside into one, or open each separately
+
+### Forms & signing
+
+- Fill PDF forms (text, checkbox, radio) as live controls and save back to the PDF
+- Digital signatures with a cloud certificate (Certum SimplySign), including click-to-sign form fields
+- Draw and reuse signatures and initials, or import a PNG/JPG/BMP to place anywhere
+
+### Output
+
+- Print with annotations flattened, a real in-app preview, and scale / position / margins / pages-per-sheet / color / two-sided options, rendered at 300 DPI
+- Save Flattened PDF: rasterize every page into a fully uneditable document
+- Document Info: view and edit title, author, subject, keywords, and creator metadata
+
+### Customize
+
+- Six themes - Dark, Light, Black, Blood, Greed, Cyanotic - with per-theme accent colors, switchable live
+- Toolbar style (icon size, text placement) and a resizable sidebar that docks left or right
+- Localized UI in 8 languages (English, Spanish, Traditional and Simplified Chinese, German, French, Turkish, Bengali); contribute via `Strings/TRANSLATING.md`
+- Full keyboard shortcut overlay (Ctrl+?)
+
+### App & files
+
+- Single portable Windows EXE, ~6 MB zipped, no runtime install
+- Self-installs per-user to %LOCALAPPDATA% (no UAC), registers as a PDF handler with a branded file icon, and uninstalls cleanly via Add/Remove Programs
+- Opens password-protected PDFs (prompts instead of erroring) and repairs damaged ones
+- Local-only: no account, no telemetry, no phone-home
 
 ## Screenshots
 

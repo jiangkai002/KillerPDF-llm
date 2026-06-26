@@ -394,6 +394,7 @@ Bu işlem uygulamayı %LocalAppData%\KillerPDF konumuna kopyalar ve bir Başlat 
     <sys:String x:Key="Str_Lbl_Ocr">OCR</sys:String>
     <sys:String x:Key="Str_Ctx_OcrPage">Sayfada OCR Uygula (Metni Kopyala)</sys:String>
     <sys:String x:Key="Str_Lbl_Rotate">Dönüştür</sys:String>
+    <sys:String x:Key="Str_Lbl_Stamp">Damga</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">Sayfayı dönüştür - döndür / düzelt (ölçekleme yakında)</sys:String>
     <sys:String x:Key="Str_Tf_Suffix">Dönüştür</sys:String>
     <sys:String x:Key="Str_Tf_Rotate">DÖNDÜR</sys:String>

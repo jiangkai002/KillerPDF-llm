@@ -198,6 +198,7 @@ You can uninstall via Add/Remove Programs at any time.</sys:String>
     <sys:String x:Key="Str_Lbl_Draw">Draw</sys:String>
     <sys:String x:Key="Str_Lbl_Crop">Crop</sys:String>
     <sys:String x:Key="Str_Lbl_Rotate">Transform</sys:String>
+    <sys:String x:Key="Str_Lbl_Stamp">Stamp</sys:String>
     <sys:String x:Key="Str_Lbl_Image">Add Image</sys:String>
     <sys:String x:Key="Str_Lbl_Signature">Signature</sys:String>
     <sys:String x:Key="Str_Lbl_Undo">Undo</sys:String>

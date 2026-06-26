@@ -396,6 +396,7 @@
 
     <!-- ── Transform（旋转 / 缩放 / 翻转 / 倾斜） ──────────────────────────── -->
     <sys:String x:Key="Str_Lbl_Rotate">变换</sys:String>
+    <sys:String x:Key="Str_Lbl_Stamp">盖章</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">变换页面 - 旋转 / 校正倾斜（缩放即将推出）</sys:String>
     <sys:String x:Key="Str_Tf_Suffix">变换</sys:String>
     <sys:String x:Key="Str_Tf_Rotate">旋转</sys:String>

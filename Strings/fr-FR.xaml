@@ -409,6 +409,7 @@ Vous pourrez désinstaller le programme à tout moment via « Ajouter ou supprim
 
     <!-- Transform tool -->
     <sys:String x:Key="Str_Lbl_Rotate">Transformer</sys:String>
+    <sys:String x:Key="Str_Lbl_Stamp">Tampon</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">Transformer la page - pivoter / redresser (mise à l'échelle bientôt disponible)</sys:String>
     <sys:String x:Key="Str_Tf_Suffix">Transformer</sys:String>
     <sys:String x:Key="Str_Tf_Rotate">PIVOTER</sys:String>

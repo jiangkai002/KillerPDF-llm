@@ -367,9 +367,16 @@ namespace KillerPDF
             if (_active != null) CaptureSessionState(_active);
             _active = target;
             ApplySessionState(target);
-            if (target.Doc == null && target.DeferredPath != null) MaterializeDeferred(target);
-            else RenderActiveSession();
-            RebuildTabStrip();
+            if (target.Doc == null && target.DeferredPath != null)
+            {
+                MaterializeDeferred(target);
+                RebuildTabStrip();      // first load of a deferred tab: title/dirty may change, so rebuild
+            }
+            else
+            {
+                RenderActiveSession();
+                RestyleActiveTab();     // already loaded: restyle in place, no strip rebuild (no flicker)
+            }
         }
 
         // Load a restored-but-deferred tab's PDF the first time it is viewed (lazy tabs). The session
@@ -510,38 +517,94 @@ namespace KillerPDF
         // ============================================================
 
         private readonly List<(DocumentSession s, FrameworkElement btn, double natW)> _tabButtonList = [];
+        private readonly Dictionary<DocumentSession, FrameworkElement> _tabButtonCache = new();
         private System.Windows.Threading.DispatcherTimer? _tabReflowTimer;
         private bool _reflowingTabs;
+
+        // Reconcile TabStrip.Children to exactly `desired` (in order) with minimal churn - never a full Clear,
+        // so existing tab buttons (and the active tab's drop shadow) are not re-parented / re-rasterized. This
+        // is what stops the strip blinking on switch / drag-release / resize.
+        private void SetTabStripChildren(IList<FrameworkElement> desired)
+        {
+            if (TabStrip is null) return;
+            for (int i = TabStrip.Children.Count - 1; i >= 0; i--)
+                if (TabStrip.Children[i] is FrameworkElement fe && !desired.Contains(fe))
+                    TabStrip.Children.RemoveAt(i);
+            for (int i = 0; i < desired.Count; i++)
+            {
+                int cur = TabStrip.Children.IndexOf(desired[i]);
+                if (cur < 0) TabStrip.Children.Insert(Math.Min(i, TabStrip.Children.Count), desired[i]);
+                else if (cur != i) { TabStrip.Children.RemoveAt(cur); TabStrip.Children.Insert(Math.Min(i, TabStrip.Children.Count), desired[i]); }
+            }
+        }
+
+        // Refresh a REUSED tab button's title / dirty dot / reserved width and active styling, in place.
+        private void RefreshTabButton(FrameworkElement btn, DocumentSession s)
+        {
+            if (btn is not Border bd) return;
+            bd.ToolTip = s.OriginalFile ?? "Untitled";
+            var label = TabLabelOf(bd);
+            if (label != null)
+            {
+                string txt = (s.IsDirty ? "• " : "") + s.Title;
+                if (!string.Equals(label.Text, txt))
+                {
+                    label.Text = txt;
+                    double dip = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+                    var ft = new FormattedText(txt, System.Globalization.CultureInfo.CurrentCulture,
+                        FlowDirection.LeftToRight,
+                        new Typeface(label.FontFamily, FontStyles.Normal, FontWeights.Bold, FontStretches.Normal),
+                        label.FontSize, Brushes.Black, dip);
+                    label.MinWidth = Math.Min(183, Math.Ceiling(ft.Width) + 1);
+                    label.Tag = label.MinWidth;
+                }
+            }
+            ApplyTabButtonState(bd, label, s == _active);
+        }
 
         private void RebuildTabStrip()
         {
             if (TabStrip == null || TabStripBorder == null) return;
-            TabStrip.Children.Clear();
-            _tabButtonList.Clear();
 
             var docTabs = _sessions.Where(t => t.Doc != null || t.DeferredPath != null).ToList();
-            // Only show the strip once there's more than one document - a single open PDF
-            // doesn't need a tab bar.
+            // Only show the strip once there's more than one document - a single open PDF doesn't need tabs.
             if (docTabs.Count < 2)
             {
+                TabStrip.Children.Clear();
+                _tabButtonList.Clear();
+                _tabButtonCache.Clear();
                 TabStripBorder.Visibility = Visibility.Collapsed;
                 Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)UpdateFooterFade);
                 return;
             }
 
             TabStripBorder.Visibility = Visibility.Visible;
+
+            // Reuse one Border per session (cached) instead of recreating every tab on each rebuild. Recreating
+            // re-parented and re-rasterized the whole strip (incl. the active tab's drop shadow), which blinked.
+            foreach (var gone in _tabButtonCache.Keys.Where(k => !docTabs.Contains(k)).ToList())
+                _tabButtonCache.Remove(gone);
+
+            _tabButtonList.Clear();
             foreach (var t in docTabs)
             {
-                var btn = BuildTabButton(t);
-                // Cache each tab's natural width once (off-tree measure). Reflow uses this instead of a
-                // visible measure pass, so tabs never flash out to full width and back when squishing.
+                if (!_tabButtonCache.TryGetValue(t, out var btn))
+                {
+                    btn = BuildTabButton(t);
+                    _tabButtonCache[t] = btn;
+                }
+                else RefreshTabButton(btn, t);    // reused: update title / dirty / active styling in place
+
+                btn.RenderTransform = null;        // drop any leftover drag-slide offset
+                btn.Width = double.NaN;            // measure at natural width; ReflowTabs sets the final width
+                RestoreTabLabelWidth(btn);
                 btn.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
                 _tabButtonList.Add((t, btn, btn.DesiredSize.Width));
-                TabStrip.Children.Add(btn);
             }
 
+            // Place buttons on the strip in order without a full clear, then reflow widths / overflow.
+            SetTabStripChildren(_tabButtonList.Select(t => t.btn).ToList());
             UpdateTabStripFade();
-            // Reflow once laid out: tabs that don't fit roll into a "N more" dropdown at the end.
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)ReflowTabs);
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)UpdateFooterFade);
         }
@@ -552,7 +615,7 @@ namespace KillerPDF
             if (_tabReflowTimer is null)
             {
                 _tabReflowTimer = new System.Windows.Threading.DispatcherTimer
-                    { Interval = TimeSpan.FromMilliseconds(90) };
+                    { Interval = TimeSpan.FromMilliseconds(30) };   // cheap reflow now (reconcile, no teardown), so track resize closely
                 _tabReflowTimer.Tick += (_, _) => { _tabReflowTimer!.Stop(); ReflowTabs(); };
             }
             _tabReflowTimer.Stop();
@@ -561,6 +624,19 @@ namespace KillerPDF
 
         // Lays the tabs out to measure them, then keeps as many as fit (left to right) on the strip and
         // moves the rest into a "N more" dropdown button at the end. The active tab is always kept visible.
+        // The title TextBlock lives at bd.Child(Grid) -> DockPanel -> TextBlock. Squishing a tab clears its
+        // reserved bold width so the title trims with an ellipsis; natural-width tabs restore the reserve.
+        private static TextBlock? TabLabelOf(FrameworkElement tabBtn)
+            => ((tabBtn as Border)?.Child as Grid)?.Children.OfType<DockPanel>().FirstOrDefault()
+                 ?.Children.OfType<TextBlock>().FirstOrDefault();
+        private static void TrimTabLabel(FrameworkElement tabBtn)
+        { if (TabLabelOf(tabBtn) is { } lb) lb.MinWidth = 0; }
+        private static void RestoreTabLabelWidth(FrameworkElement tabBtn)
+        { if (TabLabelOf(tabBtn) is { } lb && lb.Tag is double r) lb.MinWidth = r; }
+
+        // Equal-width tabs (Chrome/VS style): every tab shares the available width, clamped between a min and
+        // a max, and titles ellipsis-trim. This removes per-tab width juggling and the activation jitter, and
+        // pairs with SetTabStripChildren so resize / switch / drag-release reconcile in place without a blink.
         private void ReflowTabs()
         {
             if (_reflowingTabs || TabScroll is null || TabStrip is null) return;
@@ -572,41 +648,23 @@ namespace KillerPDF
                 if (viewport <= 1) return;   // not laid out yet
 
                 int n = _tabButtonList.Count;
-                var nat = _tabButtonList.Select(t => t.natW).ToList();   // cached natural widths, no measure pass
-                double natTotal = nat.Sum();
-                const double minTab = 92;   // tab MinWidth (90) + ~margin
+                const double minTab = 110;   // narrowest a tab gets before tabs roll into the overflow menu
+                const double maxTab = 220;   // widest a tab grows to (matches the Border MaxWidth)
+                const double moreW  = 40;    // the "N v" overflow button
 
-                // Case 1: everything fits at natural width.
-                if (natTotal <= viewport)
-                {
-                    TabStrip.Children.Clear();
-                    foreach (var (_, btn, _) in _tabButtonList) { btn.Width = double.NaN; TabStrip.Children.Add(btn); }
-                    return;
-                }
-
-                // Case 2: SQUISH - shrink the tabs so they all still fit, no overflow. Only the wide tabs
-                // shrink (toward `target`); narrow ones keep their width and hand their slack over so the
-                // strip stays filled. This is what makes overflow a genuine last resort.
+                // Everything fits at >= minTab: one shared width for all, capped at maxTab.
                 if (n * minTab <= viewport)
                 {
-                    double target    = viewport / n;
-                    double narrowSum = nat.Where(w => w <= target).Sum();
-                    int    wideCount = nat.Count(w => w > target);
-                    double perWide   = wideCount > 0 ? (viewport - narrowSum) / wideCount : target;
-                    TabStrip.Children.Clear();
-                    for (int i = 0; i < n; i++)
-                    {
-                        _tabButtonList[i].btn.Width = nat[i] <= target ? double.NaN : Math.Min(nat[i], perWide);
-                        TabStrip.Children.Add(_tabButtonList[i].btn);
-                    }
+                    double w = Math.Min(maxTab, viewport / n);
+                    foreach (var (_, btn, _) in _tabButtonList) { btn.Width = w; TrimTabLabel(btn); }
+                    SetTabStripChildren(_tabButtonList.Select(t => t.btn).ToList());
                     return;
                 }
 
-                // Case 3: even squished to MinWidth they can't all fit - overflow into the dropdown.
-                const double moreW = 40;
+                // Too many to fit at minTab: show as many equal-width tabs as fit, rest into the dropdown.
                 double budget = viewport - moreW;
                 int    nFit   = Math.Max(1, (int)(budget / minTab));
-                double tabW   = budget / nFit;               // share the strip evenly among the shown tabs
+                double tabW   = Math.Min(maxTab, budget / nFit);
 
                 var visible  = _tabButtonList.Take(nFit).ToList();
                 var overflow = _tabButtonList.Skip(nFit).ToList();
@@ -624,9 +682,10 @@ namespace KillerPDF
                     visible.Add(act);
                 }
 
-                TabStrip.Children.Clear();
-                foreach (var (_, btn, _) in visible) { btn.Width = tabW; TabStrip.Children.Add(btn); }
-                TabStrip.Children.Add(BuildTabOverflowButton(overflow));
+                foreach (var (_, btn, _) in visible) { btn.Width = tabW; TrimTabLabel(btn); }
+                var children = visible.Select(t => t.btn).ToList();
+                children.Add(BuildTabOverflowButton(overflow));
+                SetTabStripChildren(children);
             }
             finally { _reflowingTabs = false; }
         }
@@ -674,6 +733,62 @@ namespace KillerPDF
             return btn;
         }
 
+        // Active vs inactive tab visuals in one place, so a tab switch can restyle the existing buttons in
+        // place (RestyleActiveTab) rather than tearing down and rebuilding the whole strip, which flickered.
+        // Both branches set every property the other touches so the state fully toggles on a live button.
+        private void ApplyTabButtonState(Border bd, TextBlock? label, bool active)
+        {
+            if (active)
+            {
+                // Front tab: takes the document PANE background (BgCanvas) with a themed accent stripe along
+                // the TOP edge and a soft drop shadow, so it reads as raised and blends into the pane below.
+                bd.SetResourceReference(Border.BackgroundProperty, "BgCanvas");
+                bd.BorderThickness = new Thickness(0, 3, 0, 0);
+                bd.SetResourceReference(Border.BorderBrushProperty, "SelectionBg");
+                bd.Effect = new System.Windows.Media.Effects.DropShadowEffect
+                { Color = Colors.Black, BlurRadius = 9, ShadowDepth = 0, Opacity = 0.45 };
+                Panel.SetZIndex(bd, 2);
+            }
+            else
+            {
+                // Opaque (matches the strip) with a single beveled trailing divider, no shadow.
+                bd.SetResourceReference(Border.BackgroundProperty, "BgSidebar");
+                bd.BorderThickness = new Thickness(0, 0, 1, 0);
+                bd.BorderBrush = MakeTabDividerBrush();
+                bd.Effect = null;
+                Panel.SetZIndex(bd, 0);
+            }
+            if (label is null) return;
+            label.SetResourceReference(TextBlock.ForegroundProperty, active ? "TextPrimary" : "TextSecondary");
+            if (active)
+            {
+                label.FontWeight = FontWeights.Bold;
+                label.RenderTransform = new TranslateTransform(0, -2);   // active title otherwise sits a hair low
+                // Title shadow strength from the theme's HeaderShadowOpacity (heavier on Blood/Greed/Cyanotic,
+                // off in Light where a dark shadow muddies the pale tab). Re-resolved on every restyle/theme change.
+                double op = TryFindResource("HeaderShadowOpacity") is double hso ? hso : 0.5;
+                label.Effect = new System.Windows.Media.Effects.DropShadowEffect
+                { Color = Colors.Black, BlurRadius = 3, ShadowDepth = 1, Direction = 270, Opacity = op };
+            }
+            else
+            {
+                label.FontWeight = FontWeights.Normal;
+                label.RenderTransform = null;
+                label.Effect = null;
+            }
+        }
+
+        // Repaint active/inactive styling on the EXISTING tab buttons (no teardown), then pull the active tab
+        // onto the strip if it was parked in the overflow dropdown. Used on a plain switch to avoid the flicker.
+        private void RestyleActiveTab()
+        {
+            foreach (var (s, btn, _) in _tabButtonList)
+                if (btn is Border b) ApplyTabButtonState(b, TabLabelOf(b), s == _active);
+            var activeBtn = _tabButtonList.FirstOrDefault(t => t.s == _active).btn;
+            if (activeBtn != null && TabStrip != null && !TabStrip.Children.Contains(activeBtn))
+                ReflowTabs();
+        }
+
         private FrameworkElement BuildTabButton(DocumentSession s)
         {
             bool active = s == _active;
@@ -683,36 +798,15 @@ namespace KillerPDF
                 CornerRadius = new CornerRadius(4, 4, 0, 0),
                 Margin = new Thickness(0, 3, 1, 0),
                 Padding = new Thickness(12, 4, 5, 5),
-                MinWidth = 90,
+                MinWidth = 0,         // ReflowTabs sets every tab's width explicitly (equal-width); don't fight it
                 MaxWidth = 220,
                 Cursor = Cursors.Hand,
                 Tag = s,
                 ToolTip = s.OriginalFile ?? "Untitled",
             };
-            if (active)
-            {
-                // Active tab takes the document PANE background (BgCanvas, what DocPaneBorder uses)
-                // and a themed accent stripe along the TOP edge, so it reads as the front tab
-                // without an always-green underline and blends into the pane below it.
-                bd.SetResourceReference(Border.BackgroundProperty, "BgCanvas");
-                bd.BorderThickness = new Thickness(0, 3, 0, 0);
-                bd.SetResourceReference(Border.BorderBrushProperty, "SelectionBg");
-                // Raise the active tab above its neighbours with a soft drop shadow on the top and sides.
-                bd.Effect = new System.Windows.Media.Effects.DropShadowEffect
-                {
-                    Color = Colors.Black, BlurRadius = 9, ShadowDepth = 0, Opacity = 0.45,
-                };
-                Panel.SetZIndex(bd, 2);
-            }
-            else
-            {
-                // Opaque (matches the strip) so the shadow gradient behind never shows through the tab.
-                bd.SetResourceReference(Border.BackgroundProperty, "BgSidebar");
-                // Single beveled divider on the trailing edge: darker at the top fading to a shade
-                // just lighter than the document pane (BgCanvas) at the bottom, for a subtle raised look.
-                bd.BorderThickness = new Thickness(0, 0, 1, 0);
-                bd.BorderBrush = MakeTabDividerBrush();
-            }
+            // Active vs inactive visuals (background, top accent stripe, shadow, title weight) are applied by
+            // ApplyTabButtonState at the end, so a plain tab switch can restyle the existing buttons in place
+            // instead of rebuilding the whole strip (the rebuild flickered).
 
             // DockPanel (not StackPanel): the close button is docked right so it stays pinned and fully
             // visible, while the label fills the remaining space and trims with an ellipsis. With a
@@ -727,7 +821,7 @@ namespace KillerPDF
                 VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis,
             };
-            label.SetResourceReference(TextBlock.ForegroundProperty, active ? "TextPrimary" : "TextSecondary");
+            // (foreground / weight / title shadow are set by ApplyTabButtonState at the end.)
             // Reserve the BOLD width on EVERY tab so activating one (which bolds its title) never widens
             // the tab and shoves its neighbours. Inactive tabs render normal weight but still claim the
             // bold width via MinWidth; capped so squished tabs still ellipsis-trim instead of clipping.
@@ -737,19 +831,7 @@ namespace KillerPDF
                 new Typeface(label.FontFamily, FontStyles.Normal, FontWeights.Bold, FontStretches.Normal),
                 label.FontSize, Brushes.Black, tabDip);
             label.MinWidth = Math.Min(183, Math.Ceiling(boldFt.Width) + 1);
-            if (active)
-            {
-                label.FontWeight = FontWeights.Bold;
-                // Clicked tabs otherwise sit a hair low; nudge the active title up 2px.
-                label.RenderTransform = new TranslateTransform(0, -2);
-                // Drop shadow under the bold title, its strength taken from the theme's HeaderShadowOpacity
-                // (same as the settings headers): heavier on Blood/Greed/Cyanotic, off in Light where a
-                // dark shadow just muddies the pale tab. Resolved here at build time; the strip is rebuilt
-                // on theme change (RebuildTabStrip in OnThemeChanged), so it tracks the theme.
-                double titleShadowOpacity = TryFindResource("HeaderShadowOpacity") is double hso ? hso : 0.5;
-                label.Effect = new System.Windows.Media.Effects.DropShadowEffect
-                { Color = Colors.Black, BlurRadius = 3, ShadowDepth = 1, Direction = 270, Opacity = titleShadowOpacity };
-            }
+            label.Tag = label.MinWidth;   // reserved bold width; ReflowTabs clears it when a tab is squished so the title ellipsis-trims instead of clipping
 
             var close = new Button
             {
@@ -785,6 +867,7 @@ namespace KillerPDF
             content.Children.Add(grain);
             content.Children.Add(sp);
             bd.Child = content;
+            ApplyTabButtonState(bd, label, active);
 
             // Middle-click closes the tab (common tabbed-UI convention). Left-click switches on mouse-UP
             // (see the drag handlers below) so a press can begin a drag without first rebuilding the strip.

@@ -396,6 +396,7 @@ Sie können das Programm jederzeit über „Programme hinzufügen oder entfernen
 
     <!-- ── Transform tool ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_Rotate">Transformieren</sys:String>
+    <sys:String x:Key="Str_Lbl_Stamp">Stempel</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">Seite transformieren - drehen / entzerren (Skalieren demnächst verfügbar)</sys:String>
     <sys:String x:Key="Str_Tf_Suffix">Transformieren</sys:String>
     <sys:String x:Key="Str_Tf_Rotate">DREHEN</sys:String>

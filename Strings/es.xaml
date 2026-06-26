@@ -394,6 +394,7 @@ Puede desinstalarla en cualquier momento desde Agregar o quitar programas.</sys:
     <sys:String x:Key="Str_Lbl_Ocr">OCR</sys:String>
     <sys:String x:Key="Str_Ctx_OcrPage">OCR de la página (copiar texto)</sys:String>
     <sys:String x:Key="Str_Lbl_Rotate">Transformar</sys:String>
+    <sys:String x:Key="Str_Lbl_Stamp">Sello</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">Transformar página - rotar / enderezar (escala próximamente)</sys:String>
     <sys:String x:Key="Str_Tf_Suffix">Transformar</sys:String>
     <sys:String x:Key="Str_Tf_Rotate">ROTAR</sys:String>

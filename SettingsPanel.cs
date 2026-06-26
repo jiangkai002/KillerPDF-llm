@@ -583,6 +583,7 @@ namespace KillerPDF
             [""] = "Str_Lbl_ZoomOut",   // boxed minus (RemoveFrom) - new zoom-out glyph
             [""] = "Str_Lbl_ZoomIn",    // boxed plus  (AddTo)      - new zoom-in glyph
             [""] = "Str_Lbl_Search",    // magnifier - toolbar search button
+            [""] = "Str_Lbl_Stamp",     // page-number / watermark stamp tool
         };
 
         // Walks LeftBar + RightBar once and records each icon button with its glyph + label key.
@@ -716,19 +717,31 @@ namespace KillerPDF
             if (_toolbarButtons.Count == 0) return;
             foreach (var (btn, glyph, key) in _toolbarButtons)
                 SetToolbarButton(btn, glyph, key, withLabel: true);
-            // Open/Save are split buttons whose dropdown chevron overlaps the icon (-6) for the connected
-            // split look in icon modes. With a caption the button widens, so the chevron must sit clear of
-            // the text instead of over its last letter; the main half also drops its hover inset (only
-            // needed when the chevron overlaps).
+            // Open / Save / OCR are split buttons (main half + overlapping dropdown chevron). Their chrome
+            // is applied from one place (ApplySplitButtonChrome) so the three never drift apart again.
             bool textMode = _toolbarStyle is ToolbarStyle.TextBeside or ToolbarStyle.TextUnder or ToolbarStyle.TextOnly;
-            var chevMargin = textMode ? new Thickness(1, 0, 0, 0) : new Thickness(-6, 0, 0, 0);
-            if (OpenRecentBtn is not null) OpenRecentBtn.Margin = chevMargin;
-            if (SaveMenuBtn   is not null) SaveMenuBtn.Margin   = chevMargin;
-            if (OpenFileBtn is not null)
-                OpenFileBtn.Style = (Style)FindResource(textMode ? "ToolbarButton" : "ToolbarSplitMain");
-            if (SaveAsBtn is not null)
-                SaveAsBtn.Style = (Style)FindResource(textMode ? "ToolbarButtonAccent" : "ToolbarSplitMainAccent");
+            ApplySplitButtonChrome(textMode);
             ReflowToolbar();
+        }
+
+        // Single source of truth for the split-button chrome shared by Open, Save, and OCR. Each entry is
+        // (main half, dropdown chevron, split style, plain style). In icon modes the chevron overlaps the
+        // main half (-6) for the connected split look; with a caption the button widens, so the chevron sits
+        // clear of the text (margin 1) and the main half drops its split (hover-inset) style.
+        private void ApplySplitButtonChrome(bool textMode)
+        {
+            var chevMargin = textMode ? new Thickness(1, 0, 0, 0) : new Thickness(-6, 0, 0, 0);
+            var splits = new (Button? Main, Button? Chevron, string Split, string Plain)[]
+            {
+                (OpenFileBtn, OpenRecentBtn, "ToolbarSplitMain",       "ToolbarButton"),
+                (SaveAsBtn,   SaveMenuBtn,   "ToolbarSplitMainAccent", "ToolbarButtonAccent"),
+                (OcrBtn,      OcrMenuBtn,    "ToolbarSplitMain",       "ToolbarButton"),
+            };
+            foreach (var s in splits)
+            {
+                if (s.Chevron is not null) s.Chevron.Margin = chevMargin;
+                if (s.Main is not null) s.Main.Style = (Style)FindResource(textMode ? s.Plain : s.Split);
+            }
         }
 
         private void ToolbarSmallRadio_Checked(object sender, RoutedEventArgs e)  => SelectToolbarStyle(ToolbarStyle.SmallIcons);

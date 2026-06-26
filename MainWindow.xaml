@@ -902,12 +902,104 @@
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="12"/>
         </Style>
+        <!-- Outline tree expander triangle: themed (muted at rest, accent on hover), rotates on expand.
+             Replaces the stock WPF toggle so no default-blue chrome bleeds through. -->
+        <Style x:Key="OutlineExpander" TargetType="ToggleButton">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Width" Value="16"/>
+            <Setter Property="Height" Value="16"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="Transparent" Width="16" Height="16">
+                            <Path x:Name="Arrow" Width="6" Height="9"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  RenderTransformOrigin="0.5,0.5"
+                                  Data="M0,0 L5,4.5 L0,9 Z"
+                                  Fill="{DynamicResource TextDim}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Arrow" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <RotateTransform Angle="90"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Arrow" Property="Fill" Value="{DynamicResource Accent}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Outline tree row: website-style accent left-bar + tinted selection, themed hover, no WPF blue. -->
         <Style x:Key="OutlineItemStyle" TargetType="TreeViewItem">
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="IsExpanded" Value="False"/>
-            <Setter Property="Padding" Value="2,3"/>
+            <Setter Property="Padding" Value="6,5"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TreeViewItem">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <!-- Header row: spans toggle + label, carries the selection fill and left accent bar.
+                                 Because it sits in row 0 only, its IsMouseOver excludes child rows (no ancestor hover). -->
+                            <Border x:Name="Bd" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                                    Background="Transparent" BorderBrush="Transparent"
+                                    BorderThickness="2,0,0,0" SnapsToDevicePixels="True">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="16"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ToggleButton x:Name="Expander" Grid.Column="0"
+                                                  Style="{StaticResource OutlineExpander}"
+                                                  IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
+                                                  ClickMode="Press"/>
+                                    <ContentPresenter x:Name="PART_Header" Grid.Column="1"
+                                                      ContentSource="Header"
+                                                      Margin="{TemplateBinding Padding}"
+                                                      HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+                            <!-- Children indented by one toggle width -->
+                            <ItemsPresenter x:Name="ItemsHost" Grid.Row="1" Grid.Column="1"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsExpanded" Value="False">
+                                <Setter TargetName="ItemsHost" Property="Visibility" Value="Collapsed"/>
+                            </Trigger>
+                            <Trigger Property="HasItems" Value="False">
+                                <Setter TargetName="Expander" Property="Visibility" Value="Hidden"/>
+                            </Trigger>
+                            <Trigger SourceName="Bd" Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BgHover}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SelectionBg}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Accent}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- General-purpose themed text button -->
@@ -1064,10 +1156,10 @@
                     <!-- Soft drop shadow: a blurred, offset copy behind the crisp wordmark -->
                     <StackPanel Orientation="Horizontal" Margin="1,2,0,0" Opacity="{DynamicResource IconShadowOpacity}">
                         <StackPanel.Effect><BlurEffect Radius="3"/></StackPanel.Effect>
-                        <TextBlock><Run Text="Killer" FontFamily="{DynamicResource WordmarkFont}" FontSize="15.5" Foreground="#D8000000"/><Run Text="PDF" FontFamily="{DynamicResource WordmarkFontPdf}" FontWeight="Bold" FontSize="19" Foreground="#D8000000"/></TextBlock>
+                        <TextBlock><Run Text="Killer" FontFamily="{DynamicResource WordmarkFont}" FontSize="16.5" Foreground="#D8000000"/><Run Text="PDF" FontFamily="{DynamicResource WordmarkFontPdf}" FontWeight="Bold" FontSize="20" Foreground="#D8000000"/></TextBlock>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock><Run Text="Killer" FontFamily="{DynamicResource WordmarkFont}" FontSize="15.5" Foreground="{DynamicResource TextPrimary}"/><Run Text="PDF" FontFamily="{DynamicResource WordmarkFontPdf}" FontWeight="Bold" FontSize="19" Foreground="{DynamicResource AccentLogo}"/></TextBlock>
+                        <TextBlock><Run Text="Killer" FontFamily="{DynamicResource WordmarkFont}" FontSize="16.5" Foreground="{DynamicResource TextPrimary}"/><Run Text="PDF" FontFamily="{DynamicResource WordmarkFontPdf}" FontWeight="Bold" FontSize="20" Foreground="{DynamicResource AccentLogo}"/></TextBlock>
                     </StackPanel>
                 </Grid>
                 <!-- File name: takes the middle space and truncates before the window buttons -->
