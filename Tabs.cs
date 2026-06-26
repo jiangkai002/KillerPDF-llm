@@ -32,6 +32,7 @@ namespace KillerPDF
             public double LastRenderZoom = 1.0;
             public FitMode Fit = FitMode.None;
             public ViewMode View = ViewMode.Continuous;
+            public int GridColumns = 3;                // grid column count; grid zoom is derived from this, so it must be per-tab too
             public EditTool Tool = EditTool.Select;   // active editing tool, remembered per document
             public int PageIndex;
             public bool IsDirty;
@@ -73,6 +74,7 @@ namespace KillerPDF
             s.LastRenderZoom = _lastRenderZoom;
             s.Fit            = _fitMode;
             s.View           = _viewMode;
+            s.GridColumns    = _gridColumns;
             s.Tool           = _currentTool;
             s.IsDirty        = _isDirty;
             s.SearchPageCursor = _searchPageCursor;
@@ -154,6 +156,7 @@ namespace KillerPDF
             _lastRenderZoom = s.LastRenderZoom;
             _fitMode        = s.Fit;
             _viewMode       = s.View;
+            _gridColumns    = s.GridColumns;
             _currentTool    = s.Tool;
             _isDirty        = s.IsDirty;
             _searchPageCursor = s.SearchPageCursor;

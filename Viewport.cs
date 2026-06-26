@@ -147,7 +147,7 @@ namespace KillerPDF
             _annotationCanvas = overlay;
         }
 
-        private void SetupContinuousView(int initialPage)
+        private void SetupContinuousView(int initialPage, bool fitDefault = true)
         {
             if (_doc is null) return;
             _continuousRenderCts?.Cancel();
@@ -172,16 +172,25 @@ namespace KillerPDF
                 double pw = pdfPage.Width.Point, ph = pdfPage.Height.Point;
                 if (_pageRotations.TryGetValue(i, out int prot) && (prot == 90 || prot == 270))
                     (pw, ph) = (ph, pw);
-                double ratio = Math.Max(0.1, ph / Math.Max(1, pw));
-                double slotH = _continuousPageW * ratio;
-
-                // Canonical render-dim space (matches single-page RenderPage: longest side -> 2048)
-                // so annotation coordinates are identical in both view modes.
-                double maxDim = Math.Max(pw, ph);
-                int rdW = Math.Max(1, (int)Math.Round(2048.0 * pw / maxDim));
-                int rdH = Math.Max(1, (int)Math.Round(2048.0 * ph / maxDim));
-                _renderDims[i] = (rdW, rdH);
-
+                // Scaffold: reuse this tab's cached render dimensions (from a prior render of this page) so
+                // the frame is built at its REAL size up front. On a tab switch the page slots are already the
+                // right shape - no dark estimate-sized box that resizes when the bitmap finally streams in.
+                // Fall back to the page-box estimate only the first time a page is laid out. Both are the same
+                // canonical render-dim space (longest side -> 2048), so annotation coordinates stay identical.
+                int rdW, rdH;
+                if (_renderDims.TryGetValue(i, out var cachedDims) && cachedDims.Item1 > 0 && cachedDims.Item2 > 0)
+                {
+                    rdW = cachedDims.Item1;
+                    rdH = cachedDims.Item2;
+                }
+                else
+                {
+                    double maxDim = Math.Max(pw, ph);
+                    rdW = Math.Max(1, (int)Math.Round(2048.0 * pw / maxDim));
+                    rdH = Math.Max(1, (int)Math.Round(2048.0 * ph / maxDim));
+                    _renderDims[i] = (rdW, rdH);
+                }
+                double slotH = _continuousPageW * rdH / (double)rdW;
                 double slotScale = _continuousPageW / rdW;
                 var overlay = BuildPageOverlay(i, rdW, rdH, new System.Windows.Media.ScaleTransform(slotScale, slotScale));
 
@@ -197,8 +206,7 @@ namespace KillerPDF
                     Width      = _continuousPageW,
                     Height     = slotH,
                     Margin     = new Thickness(0, 0, 0, 12),
-                    Background = Application.Current.TryFindResource("Background") as SolidColorBrush
-                                 ?? new SolidColorBrush(Color.FromRgb(30, 30, 30)),
+                    Background = Brushes.White,   // empty-page scaffold while the bitmap streams in (not a dark box)
                     Tag = i,
                     Child = slotGrid
                 };
@@ -215,9 +223,14 @@ namespace KillerPDF
                 if (_continuousCanvases.ContainsKey(annotPage))
                     RenderAllAnnotations(annotPage);
 
-            // Re-apply fit mode now that _continuousPageW is known; default to fit-page (one whole
-            // page in view) unless the user explicitly chose fit-width.
-            if (_fitMode == FitMode.Width) FitToWidth(); else FitToPage();
+            // Re-apply the view's zoom now that _continuousPageW is known. Honor the saved fit mode; for a
+            // custom (None) zoom, keep the exact level on a tab restore (fitDefault=false) instead of snapping
+            // to fit-page - otherwise switching tabs in continuous mode loses the user's zoom. Fresh opens and
+            // view-mode switches pass fitDefault=true and still default to fit-page.
+            if (_fitMode == FitMode.Width) FitToWidth();
+            else if (_fitMode == FitMode.Page) FitToPage();
+            else if (fitDefault) FitToPage();
+            else SetZoom(_zoomLevel);
 
             _continuousScrollTarget = initialPage;
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
@@ -508,8 +521,12 @@ namespace KillerPDF
             double availablePreZoom = (viewportW - 24) / _zoomLevel;
             // +1e-6: same floating-point underflow guard as GridZoomStep, so a zoom set for n columns
             // actually lays out n (not n-1) when the division lands a hair under the integer.
-            int pagesPerRow = _viewMode == ViewMode.TwoPage ? 2 : Math.Max(1, (int)(availablePreZoom / pageSlotW + 1e-6));
-            if (_viewMode == ViewMode.Grid) _gridColumns = pagesPerRow;   // remember it for resize column-holding
+            // Grid lays out its AUTHORITATIVE column count (set on grid zoom, restored per tab); it no longer
+            // derives columns from the zoom here - that zoom->columns->zoom round-trip lost the grid zoom on
+            // tab switches. Other modes still fit to the current zoom.
+            int pagesPerRow = _viewMode == ViewMode.TwoPage ? 2
+                            : _viewMode == ViewMode.Grid    ? Math.Max(1, _gridColumns)
+                            : Math.Max(1, (int)(availablePreZoom / pageSlotW + 1e-6));
             double panelW = pagesPerRow * pageSlotW;
             if (panelW > 0) _pageContentPanel.Width = panelW;
 
@@ -692,7 +709,7 @@ namespace KillerPDF
                 // Continuous's SelectionChanged returns early (no RenderPage call), so build its panel here.
                 if (isContinuous)
                     Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
-                        () => SetupContinuousView(page));
+                        () => SetupContinuousView(page, fitDefault: autoFit));
                 // Fit / zoom once the first page has rendered and layout has settled.
                 // DispatcherPriority.Background is lower than Loaded, so this fires after
                 // all pending RenderPage / RefreshPageView callbacks have completed.
@@ -703,7 +720,10 @@ namespace KillerPDF
                         {
                             // Grid opens to its 3-across default; other modes fit to width.
                             if (_viewMode == ViewMode.Grid)
-                                SetZoom(GridZoomForN(Math.Min(_doc?.PageCount ?? 1, 3)));
+                            {
+                                _gridColumns = Math.Min(_doc?.PageCount ?? 1, 3);
+                                SetZoom(GridZoomForN(_gridColumns));
+                            }
                             else
                                 FitToPage();
                         }
@@ -718,8 +738,13 @@ namespace KillerPDF
                         }
                         else
                         {
-                            // Tab restore: keep the document's saved zoom level.
-                            SetZoom(_zoomLevel);
+                            // Tab restore: keep the document's saved zoom. Grid's zoom is really "how many
+                            // columns" for the CURRENT window width, and its SizeChanged/settle handlers
+                            // recompute it as GridZoomForN(_gridColumns); replay the saved column count the
+                            // same way so the two agree instead of fighting (a raw saved zoom from a different
+                            // width loses). _gridColumns is restored per tab in ApplySessionState.
+                            if (_viewMode == ViewMode.Grid) SetZoom(GridZoomForN(_gridColumns));
+                            else SetZoom(_zoomLevel);
                         }
                     }));
             }
@@ -829,17 +854,16 @@ namespace KillerPDF
             double rdW = _annotationCanvas.Width > 0 ? _annotationCanvas.Width : 1583;
             double vw  = PagePreviewPanel.ActualWidth;
             if (vw <= 0 || rdW <= 0) { SetZoom(zoomOut ? _zoomLevel - ZoomStep : _zoomLevel + ZoomStep); return; }
-            // Current columns, computed the SAME way RenderAdditionalPages computes pagesPerRow.
-            // +1e-6 guards against floating-point underflow: when _zoomLevel is exactly GridZoomForN(n),
-            // (vw-24)/(z*(rdW+12)) computes as n minus a tiny epsilon and would floor to n-1, making the
-            // column count read one low - which locked zoom into a 1<->2 column toggle.
-            int curN = Math.Max(1, (int)Math.Floor((vw - 24.0) / (_zoomLevel * (rdW + 12.0)) + 1e-6));
+            // _gridColumns is the authoritative current column count (set on every grid zoom and restored
+            // per tab); step from it rather than re-deriving it from the zoom + geometry.
+            int curN = Math.Max(1, _gridColumns);
             int newN = Math.Max(1, zoomOut ? curN + 1 : curN - 1);
             // If the column count is already at the limit the clamped zoom is unchanged, so
             // skip the re-render entirely - otherwise every Ctrl+Scroll reloads all tiles
             // without changing anything.
             double target = Math.Max(ZoomMin, Math.Min(ZoomMax, GridZoomForN(newN)));
             if (Math.Abs(target - _zoomLevel) < 1e-4) return;
+            _gridColumns = newN;
             SetZoom(target);   // already clamped to [ZoomMin, ZoomMax]
         }
 
@@ -1040,10 +1064,7 @@ namespace KillerPDF
                 double rdW = _annotationCanvas.Width > 0 ? _annotationCanvas.Width : 1583;
                 double vw  = PagePreviewPanel.ActualWidth;
                 if (vw > 0 && rdW > 0)
-                {
-                    int curN = Math.Max(1, (int)Math.Round((vw - 24.0) / (Math.Max(0.01, _zoomLevel) * (rdW + 12.0))));
-                    SetZoom(GridZoomForN(curN));
-                }
+                    SetZoom(GridZoomForN(Math.Max(1, _gridColumns)));   // authoritative column count
                 else ApplyZoom();
                 return;
             }
@@ -1197,7 +1218,8 @@ namespace KillerPDF
                     // (a second render would duplicate tiles).
                     if (mode == ViewMode.Grid)
                     {
-                        SetZoom(GridZoomForN(Math.Min(_doc!.PageCount, 3)));
+                        _gridColumns = Math.Min(_doc!.PageCount, 3);
+                        SetZoom(GridZoomForN(_gridColumns));
                         // The first fit can run before the viewport width has settled (leaving the
                         // grid off-center / at the wrong zoom); re-fit once more after layout settles,
                         // and pin to the top so nothing carries over from the previous mode.
