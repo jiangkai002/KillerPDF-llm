@@ -94,6 +94,7 @@
 <a href="#zoom">Zoom &amp; interaction</a>
 <a href="#saving">Saving &amp; reload</a>
 <a href="#robust">Robustness</a>
+<a href="#install">Install &amp; data</a>
 <a href="#i18n">Localization</a>
 <a href="#specs">Constants</a>
 </nav>
@@ -124,11 +125,11 @@
 <div class="tech-sec" id="arch">
 <h2>Architecture</h2>
 <p>The entire UI is one <b>partial class MainWindow</b> decomposed across roughly forty source files - about 27,000 lines of C# on WPF / .NET Framework 4.8. Dialogs are standalone classes; cross-cutting work lives under <code>Services/</code>.</p>
-<h3>Two render pipelines</h3>
+<h3 id="two-render-pipelines">Two render pipelines</h3>
 <p>Single, Two-Page and Grid render into a primary tile via <b>RenderPage(idx)</b>; Continuous owns a separate path where <b>RenderContinuousPages</b> streams page bitmaps on a background thread. RenderPage is guarded to no-op in Continuous, so it can't repoint overlays at the hidden primary tile.</p>
-<h3>Per-tab sessions &amp; an LRU cache</h3>
+<h3 id="per-tab-sessions-an-lru-cache">Per-tab sessions &amp; an LRU cache</h3>
 <p>Each open document is a <b>DocumentSession</b> holding its zoom, fit and view mode, grid columns, tool, page, scroll offsets, and the per-document dictionaries (annotations, render dims, rotations, form values, undo stack). Switching tabs re-points the live fields at the session by reference. Each session also carries a frozen-bitmap <b>RenderCache</b> keyed by <code>(page, size-bucket, rotation)</code>, so returning to a recent tab skips PDFium entirely; whole-tab caches evict beyond the three most recent.</p>
-<h3>Canvas &amp; overlay maps</h3>
+<h3 id="canvas-overlay-maps">Canvas &amp; overlay maps</h3>
 <p>Annotations never paint onto a fixed surface - they paint onto whichever overlay <code>_pages</code> currently points at. Two maps plus one hard invariant keep that straight.</p>
 <figure class="diagram">
 <svg viewBox="0 0 740 412" xmlns="http://www.w3.org/2000/svg">
@@ -174,13 +175,13 @@
 <div class="tech-sec" id="coords">
 <h2>The coordinate space</h2>
 <p>Two numbers describe every page: where things <b>are</b> (zoom-independent) and how many pixels we <b>draw</b> (zoom-dependent). Keeping them separate is what makes annotations stay put while text stays crisp.</p>
-<h3>1. Render-dim space</h3>
+<h3 id="render-dim-space">1. Render-dim space</h3>
 <p>Every page is normalised so its longest side is exactly 2048 device-independent units. Annotation coordinates are stored here, identical at every zoom and across all four pipelines.</p>
 <div class="codeblock">maxDim = max(pageWidthPt, pageHeightPt)<br>rdW = round(2048 &times; pageWidthPt  / maxDim)<br>rdH = round(2048 &times; pageHeightPt / maxDim)   <span class="cm">// longest side -&gt; 2048</span></div>
-<h3>2. Decoupled bitmap resolution</h3>
+<h3 id="decoupled-bitmap-resolution">2. Decoupled bitmap resolution</h3>
 <p>The bitmap rasterises at a resolution that follows display DPI and zoom, so a page magnified 3&times; is drawn from 3&times; the pixels rather than upscaled. The 6144&nbsp;px ceiling bounds memory.</p>
 <div class="codeblock">scaledMax = min( 6144,  int( 2048 &times; max(dpiScaleX, dpiScaleY) &times; max(1.0, zoom) ) )</div>
-<h3>3. The coordinate Y-flip</h3>
+<h3 id="the-coordinate-y-flip">3. The coordinate Y-flip</h3>
 <p>PDF uses a bottom-left origin in points; WPF canvases a top-left origin in DIP. Every mark crosses that boundary:</p>
 <div class="codeblock">sx = renderW / pdfW      sy = renderH / pdfH<br>canvasX = left &times; sx<br>canvasY = renderH - top &times; sy   <span class="cm">// flip the vertical axis</span></div>
 <figure class="diagram">
@@ -237,9 +238,9 @@
 <tr><td>Signature</td><td>Drawn or imported vector signature</td></tr>
 <tr><td>Image</td><td>Pasted or imported raster, freely resized</td></tr>
 </table>
-<h3>One funnel, every repaint</h3>
+<h3 id="one-funnel-every-repaint">One funnel, every repaint</h3>
 <p>No commit path paints annotations directly - they all call <b>RenderAllAnnotations(page)</b>, which clears that page's overlay, repaints every annotation in <code>_annotations[page]</code>, re-adds the live form fields, then re-applies the search highlights <b>last</b>. That tail ordering is why a highlight survives every re-render, scroll and zoom instead of being painted over.</p>
-<h3>Undo</h3>
+<h3 id="undo">Undo</h3>
 <p>Edits push onto a single <code>_undoStack</code>. A linked pair (Cover + Text) goes on as one entry, so a single Ctrl+Z removes both halves together rather than leaving an orphaned cover behind.</p>
 </div>
 
@@ -272,10 +273,10 @@
 
 <div class="tech-sec" id="zoom">
 <h2>Zoom &amp; interaction</h2>
-<h3>Cursor-anchored zoom</h3>
+<h3 id="cursor-anchored-zoom">Cursor-anchored zoom</h3>
 <p>Ctrl+wheel zooms around the cursor. The cursor position and scroll offsets are captured <b>before</b> the zoom changes, then the offsets that keep that point fixed are applied once layout settles:</p>
 <div class="codeblock">ratio   = newZoom / oldZoom<br>newHOff = (oldHOff + cursorX) &times; ratio - cursorX<br>newVOff = (oldVOff + cursorY) &times; ratio - cursorY   <span class="cm">// clamped at &gt;= 0</span></div>
-<h3>Grid zoom by column count</h3>
+<h3 id="grid-zoom-by-column-count">Grid zoom by column count</h3>
 <p>Grid snaps to a whole number of columns: the count is authoritative and the zoom is derived from it, so the grid lays out exactly N pages with no leftover gap.</p>
 <div class="codeblock">GridZoomForN(n) = (viewportW - 24) / ( n &times; (rdW + 12) )</div>
 </div>
@@ -283,14 +284,14 @@
 <div class="tech-sec" id="saving">
 <h2>Saving &amp; the temp-reload dance</h2>
 <p>Saving never mutates the document on screen. KillerPDF writes a clean, annotation-free snapshot, burns <b>stamps first, then annotations</b> into a copy of it, then reopens that clean copy - so the next save starts from a pristine base and can never double-burn what it already flattened.</p>
-<h3>Why structural edits reload</h3>
+<h3 id="why-structural-edits-reload">Why structural edits reload</h3>
 <p>Rotation, page operations and decryption route through <b>SaveTempAndReload</b>. It zeroes every page's <code>/Rotate</code> entry before writing, because Docnet (PDFium) sizes the page bitmap from the <i>unrotated</i> MediaBox - leave the rotation in and the rendered content clips. The file is written flat, reopened in Modify mode, and the rotations are re-applied in memory so the page still reads right.</p>
 </div>
 
 <div class="tech-sec" id="robust">
 <h2>Robustness</h2>
 <p>KillerPDF is built to open the PDFs other viewers choke on. It tries a normal open first, then catches each kind of failure and routes it to a specific recovery. Two rules hold throughout: heavy recovery work runs off the UI thread behind the busy overlay, and a repair never edits your file - it always produces a copy.</p>
-<h3>The open fallback ladder</h3>
+<h3 id="the-open-fallback-ladder">The open fallback ladder</h3>
 <p>The open path is a chain of typed exception handlers, each rung catching one class of failure:</p>
 <table class="spec-table"><tr><th>Failure</th><th>Recovery</th></tr>
 <tr><td>Owner / permission lock, no open password</td><td>Reopen read-only so it can still be viewed and printed</td></tr>
@@ -299,18 +300,41 @@
 <tr><td>"Unexpected EOF" on a valid file</td><td>Re-save losslessly through PDFium; opens clean, no save nag</td></tr>
 <tr><td>Anything unclassified</td><td>Offer a PDFium repair, which recovers most damaged files</td></tr>
 </table>
-<h3>Encryption is stripped at open</h3>
+<h3 id="encryption-is-stripped-at-open">Encryption is stripped at open</h3>
 <p>PdfSharpCore can read an encrypted PDF but cannot re-serialize a modified one - it would write back stale encrypted bytes and fail. So when a file is encrypted, the encryption is removed at open time (PDFium, lossless, with a PdfSharpCore Import fallback). That pass is CPU-heavy, so it runs on a background thread behind the busy overlay; every later edit and save then behaves like a normal document.</p>
-<h3>Network and partial reads</h3>
+<h3 id="network-and-partial-reads">Network and partial reads</h3>
 <p>UNC shares and the WSL <code>\\wsl$</code> 9P filesystem sometimes hand back partial reads, which the parser sees as a truncated file. Before opening anything on a network path, KillerPDF copies it to a local temp with a single read-to-EOF, then opens the complete copy - while keeping your original path for display and Save.</p>
-<h3>Repair works on a copy</h3>
+<h3 id="repair-works-on-a-copy">Repair works on a copy</h3>
 <p>When recovery falls through to a repair, the file is piped through PDFium, which has aggressive error recovery and rewrites a correct cross-reference table into a brand-new file. The original on disk is never touched. Repaired copies can lose bookmarks, forms and other interactive features, and the dialog says so before proceeding.</p>
+</div>
+
+<div class="tech-sec" id="install">
+<h2>Install, folders &amp; data</h2>
+<p>KillerPDF is portable first - the single exe runs from anywhere with nothing to install. Installing is opt-in, per-user, and needs no administrator rights: it never writes to Program Files or HKLM.</p>
+<h3 id="what-the-installer-does">What the installer does</h3>
+<p>It copies the running exe to <code>%LOCALAPPDATA%\Programs\KillerPDF\</code>, drops a Start Menu shortcut (and an optional desktop one), registers itself as a per-user PDF handler, and writes an Add/Remove Programs entry so Windows can uninstall it cleanly. Uninstalling (<code>KillerPDF.exe /uninstall</code>) removes the folder, shortcuts, and registry keys.</p>
+<h3 id="where-things-live">Where things live</h3>
+<table class="spec-table"><tr><th>Location</th><th>Holds</th></tr>
+<tr><td><code>%LOCALAPPDATA%\Programs\KillerPDF\</code></td><td>the installed exe and its PDF-file icon</td></tr>
+<tr><td><code>%LOCALAPPDATA%\KillerPDF\Temp\</code></td><td>session working files - decrypted copies, repaired files, rotation snapshots</td></tr>
+<tr><td><code>%LOCALAPPDATA%\KillerPDF\tessdata\</code></td><td>OCR language data (see below)</td></tr>
+<tr><td><code>%LOCALAPPDATA%\KillerPDF\ocr\&lt;version&gt;\x64\</code></td><td>OCR native engine libraries</td></tr>
+<tr><td><code>%LOCALAPPDATA%\KillerPDF\Logs\</code></td><td>crash logs</td></tr>
+<tr><td><code>HKCU\Software\KillerPDF\Settings</code></td><td>your settings - in the registry, not a file</td></tr>
+</table>
+<p>Everything sits under <code>%LOCALAPPDATA%</code> on purpose: it is per-user (no admin), user-private, and not indexed by Windows Search - so temporary copies of your documents never surface in search or another account.</p>
+<h3 id="where-ocr-files-go">Where OCR files go</h3>
+<p>OCR is bundled in the exe but unpacks on first use. The Tesseract <b>native libraries</b> extract to a per-version cache at <code>%LOCALAPPDATA%\KillerPDF\ocr\&lt;version&gt;\x64\</code> (version-stamped, so an update gets fresh binaries). The <b>language data</b> lives in <code>%LOCALAPPDATA%\KillerPDF\tessdata\</code>: English ships inside the exe and is written there the first time you OCR, and any extra languages you pick are downloaded into that same folder. It is version-independent, so downloaded languages survive app updates. Both are read from these locations on every OCR run.</p>
+<h3 id="temp-files">Temp files</h3>
+<p>Working files are written as <code>killerpdf_&lt;tag&gt;_&lt;guid&gt;.pdf</code> and tracked for the session. They are deleted when you close the app; anything a crash leaves behind is swept on the next launch (both the current Temp folder and the legacy <code>%TEMP%</code> location). Files still open in another instance are skipped and cleared later.</p>
+<h3 id="clear-all-data">Clear all data</h3>
+<p>The <b>Clear all Data</b> link in the About window wipes everything KillerPDF has stored: the registry settings, the downloaded OCR languages and native cache, and the temp folder. It is best-effort - anything locked by the running session (a loaded native DLL, say) is skipped and clears on the next restart. Your actual PDFs are never touched.</p>
 </div>
 
 <div class="tech-sec" id="i18n">
 <h2>Localization</h2>
 <p>Every visible string lives in a per-locale <code>ResourceDictionary</code> under <code>Strings/</code> - eight locales, one XAML file each. Nothing hard-codes text; code and XAML resolve a key through <code>Loc("Str_...")</code> or a <code>DynamicResource</code>, so switching language reflows the whole UI live, no restart.</p>
-<h3>Captions and tooltips are separate strings</h3>
+<h3 id="captions-and-tooltips-are-separate-strings">Captions and tooltips are separate strings</h3>
 <p>A toolbar button carries two independent strings: the hover <b>tooltip</b> (<code>Str_TT_*</code>) and the text <b>caption</b> under or beside the icon (<code>Str_Lbl_*</code>, mapped per glyph). Because they are localized separately, the toolbar can shed captions to save width while every tooltip stays intact.</p>
 </div>
 
