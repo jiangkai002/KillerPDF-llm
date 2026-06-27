@@ -92,8 +92,16 @@ KillerPDF is what I wanted: local-only, portable, no account, no telemetry. The 
 
 ## Download
 
+WinGet:
+
 ```powershell
 winget install killerpdf
+```
+
+Chocolatey:
+
+```powershell
+choco install killerpdf
 ```
 
 - Prebuilt binary: <https://github.com/SteveTheKiller/KillerPDF/releases/latest/download/KillerPDF.exe>
