@@ -883,6 +883,34 @@ namespace KillerPDF
                     }
                 }
             }
+            // Tiled views (continuous / grid / two-page): resolve link clicks by a position bounds-check
+            // against the page's stored rects. A per-link overlay can't be used here - it swallows the click
+            // but its own handler never fires - so no overlay exists; _continuousLinks is the source of truth.
+            // (Single-page view is handled by the _linkOverlays check above.)
+            if (_currentTool == EditTool.Select && _viewMode != ViewMode.Single)
+            {
+                var cpos = e.GetPosition(_activeCanvas);
+                int cpage = _activeCanvas.Tag is int cltp ? cltp : PageList.SelectedIndex;
+                bool cOnAnnot = _annotations.TryGetValue(cpage, out var clal)
+                                && clal.Any(a => HitTestAnnotation(a, cpos, out _));
+                if (!cOnAnnot && _continuousLinks.TryGetValue(cpage, out var clinks))
+                {
+                    const double pad = 20;   // render-dim units (~5 screen px): makes thin link strips (a one-line text URL) easier to hit
+                    foreach (var lnk in clinks)
+                    {
+                        if (cpos.X >= lnk.Cx - pad && cpos.X <= lnk.Cx + lnk.Cw + pad &&
+                            cpos.Y >= lnk.Cy - pad && cpos.Y <= lnk.Cy + lnk.Ch + pad)
+                        {
+                            if (lnk.Tag is int ctp)
+                                PageList.SelectedIndex = ctp;
+                            else if (lnk.Tag is string cu)
+                                try { Process.Start(new ProcessStartInfo(cu) { UseShellExecute = true }); } catch { }
+                            e.Handled = true;
+                            return;
+                        }
+                    }
+                }
+            }
             var pos = e.GetPosition(_activeCanvas);
             int pageIdx = _activeCanvas.Tag is int tagPage ? tagPage : PageList.SelectedIndex;
             if (pageIdx < 0) return;
@@ -1254,6 +1282,19 @@ namespace KillerPDF
             // Don't interfere with mouse interaction inside form field overlays.
             if (e.OriginalSource is DependencyObject moveSrc && IsFormFieldElement(moveSrc))
                 return;
+
+            // Tiled views: show the hand cursor over a link. Links have no clickable overlay here (see
+            // Canvas_MouseLeftButtonDown), so the hover affordance is provided by hit-testing the stored
+            // link rects (same 20px pad as the click).
+            if (_currentTool == EditTool.Select && _viewMode != ViewMode.Single && sender is Canvas linkHoverCv)
+            {
+                int hpage = linkHoverCv.Tag is int htp ? htp : -1;
+                var hpos = e.GetPosition(linkHoverCv);
+                bool overLink = hpage >= 0 && _continuousLinks.TryGetValue(hpage, out var hlinks)
+                    && hlinks.Any(l => hpos.X >= l.Cx - 20 && hpos.X <= l.Cx + l.Cw + 20 &&
+                                       hpos.Y >= l.Cy - 20 && hpos.Y <= l.Cy + l.Ch + 20);
+                linkHoverCv.Cursor = overLink ? System.Windows.Input.Cursors.Hand : null;
+            }
 
             // Brush cursor: with the Draw tool active and no button down, show a circle the size of the
             // brush (ink or eraser) at the pointer so it's obvious where the next stroke will land.

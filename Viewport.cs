@@ -158,6 +158,7 @@ namespace KillerPDF
             _continuousPanel.Children.Clear();
             _continuousTops.Clear();
             _continuousCanvases.Clear();
+            _continuousLinks.Clear();
             _pages.Clear();
 
             // Use the PDF's natural page width in WPF DIPs (96 DIP/inch, 72 pt/inch).
@@ -204,6 +205,9 @@ namespace KillerPDF
                 var slotGrid = new Grid();
                 slotGrid.Children.Add(pageImg);
                 slotGrid.Children.Add(overlay);
+                // Record this page's links so they're clickable in continuous view (resolved by the
+                // bounds-check in Canvas_MouseLeftButtonDown). Without this, links never work in scrolling view.
+                AddSecondaryPageLinks(i, rdW, rdH);
 
                 var placeholder = new Border
                 {
@@ -834,7 +838,7 @@ namespace KillerPDF
             var pageGrid = new Grid();
             pageGrid.Children.Add(img);
             pageGrid.Children.Add(overlay);
-            AddSecondaryPageLinks(pi, pageGrid, pageDipW, pageDipH);
+            AddSecondaryPageLinks(pi, pageDipW, pageDipH);
 
             var tile = new Border
             {

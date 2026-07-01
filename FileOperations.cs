@@ -216,6 +216,7 @@ namespace KillerPDF
             _originalFile = displayPath;
             FileNameLabel.Text = System.IO.Path.GetFileName(displayPath);
             _annotations.Clear();
+            _continuousLinks.Clear();   // drop the previous document's cached link rects
             _undoStack.Clear();
             _renderDims.Clear();
             _formTextValues.Clear();

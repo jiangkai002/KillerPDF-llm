@@ -29,6 +29,12 @@ namespace KillerPDF
 
         private readonly record struct LinkInfo(double Cx, double Cy, double Cw, double Ch, object Tag, string Tip, int AnnotIndex);
 
+        // Per-page link rects for the tiled views (continuous / grid / two-page), keyed by page index.
+        // Clicks and the hover cursor are resolved by bounds-testing these in Canvas_MouseLeftButtonDown
+        // and Canvas_MouseMove: a per-link overlay swallows the click in the tiled layout but its own
+        // handler never fires, so no visual overlay is created - these rects are the source of truth.
+        private readonly Dictionary<int, List<LinkInfo>> _continuousLinks = [];
+
         /// <summary>
         /// Carries the link target (page index or URI string) plus the annotation's location in
         /// the PDF so the overlay can be used to remove the native annotation on demand.
@@ -107,7 +113,154 @@ namespace KillerPDF
                     links.Add(new LinkInfo(cx, cy, cw, ch, tag, tip, i));
                 }
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"GetPageLinks: {ex}"); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"GetPageLinks (PdfSharpCore): {ex}"); }
+
+            // PdfSharpCore cannot dereference link annotations stored in object streams (common in
+            // linearized / PDF 1.5+ files): it sees the /Annots references but resolves them to null,
+            // yielding zero links. PDFium reads object streams natively, so when PdfSharpCore found no
+            // links here, fall back to it. The early "no /Annots" return above means this only runs on
+            // pages that actually declare annotations, so link-free pages never pay the PDFium cost.
+            if (links.Count == 0)
+            {
+                try
+                {
+                    var viaPdfium = GetPageLinksViaPdfium(pageIndex, bitmapW, bitmapH);
+                    if (viaPdfium.Count > 0) return viaPdfium;
+                }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"GetPageLinks (PDFium fallback): {ex}"); }
+            }
+            return links;
+        }
+
+        // ============================================================
+        // PDFium link extraction (fallback for object-stream PDFs)
+        //
+        // PdfSharpCore silently drops link annotations stored in object streams (linearized /
+        // PDF 1.5+). PDFium - already shipped with Docnet and used elsewhere for security
+        // stripping - resolves them natively. FPDF_LoadDocument / FPDF_LoadPage / FPDF_ClosePage /
+        // FPDF_CloseDocument are declared in FileOperations.cs; only the link + page-size entry
+        // points are added here.
+        // ============================================================
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct FS_RECTF { public float left, top, right, bottom; }
+
+        private const int PDFACTION_GOTO = 1;
+        private const int PDFACTION_URI  = 3;
+
+        [DllImport("pdfium.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern double FPDF_GetPageWidth(IntPtr page);
+        [DllImport("pdfium.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern double FPDF_GetPageHeight(IntPtr page);
+        [DllImport("pdfium.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool FPDFLink_Enumerate(IntPtr page, ref int startPos, out IntPtr linkAnnot);
+        [DllImport("pdfium.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool FPDFLink_GetAnnotRect(IntPtr linkAnnot, out FS_RECTF rect);
+        [DllImport("pdfium.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr FPDFLink_GetDest(IntPtr document, IntPtr link);
+        [DllImport("pdfium.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr FPDFLink_GetAction(IntPtr link);
+        [DllImport("pdfium.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern uint FPDFAction_GetType(IntPtr action);
+        [DllImport("pdfium.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr FPDFAction_GetDest(IntPtr document, IntPtr action);
+        [DllImport("pdfium.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern uint FPDFAction_GetURIPath(IntPtr document, IntPtr action, byte[]? buffer, uint buflen);
+        [DllImport("pdfium.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern int FPDFDest_GetDestPageIndex(IntPtr document, IntPtr dest);
+
+        /// <summary>
+        /// Reads a page's link annotations via PDFium (handles object-stream PDFs that PdfSharpCore
+        /// cannot). Returns the same canvas-space LinkInfo list as GetPageLinks, with AnnotIndex = -1
+        /// because the native annotation isn't addressable through PdfSharpCore's /Annots array - so
+        /// "Remove Link from PDF" is not offered for these.
+        /// </summary>
+        private List<LinkInfo> GetPageLinksViaPdfium(int pageIndex, int bitmapW, int bitmapH)
+        {
+            var links = new List<LinkInfo>();
+            if (_currentFile is null) return links;
+
+            // Docnet initialises PDFium lazily; force it before calling pdfium.dll directly.
+            try { _ = DocLib.Instance; } catch { }
+
+            IntPtr doc = FPDF_LoadDocument(_currentFile, null);
+            if (doc == IntPtr.Zero) return links;
+            try
+            {
+                IntPtr page = FPDF_LoadPage(doc, pageIndex);
+                if (page == IntPtr.Zero) return links;
+                try
+                {
+                    double pageWidthPt  = FPDF_GetPageWidth(page);
+                    double pageHeightPt = FPDF_GetPageHeight(page);
+                    if (pageWidthPt  <= 0) pageWidthPt  = 595.28;
+                    if (pageHeightPt <= 0) pageHeightPt = 841.89;
+
+                    int startPos = 0;
+                    while (FPDFLink_Enumerate(page, ref startPos, out IntPtr link))
+                    {
+                        if (!FPDFLink_GetAnnotRect(link, out FS_RECTF r)) continue;
+
+                        // PDFium may report top/bottom in either order; normalise to min/max so the
+                        // mapping matches GetPageLinks (PDF origin is bottom-left, y up).
+                        double rx1 = Math.Min(r.left, r.right);
+                        double rx2 = Math.Max(r.left, r.right);
+                        double ry1 = Math.Min(r.top,  r.bottom);
+                        double ry2 = Math.Max(r.top,  r.bottom);
+
+                        double cx = rx1 / pageWidthPt  * bitmapW;
+                        double cy = (pageHeightPt - ry2) / pageHeightPt * bitmapH;
+                        double cw = (rx2 - rx1) / pageWidthPt  * bitmapW;
+                        double ch = (ry2 - ry1) / pageHeightPt * bitmapH;
+                        if (cw < 1 || ch < 1) continue;
+
+                        int? targetPage = null;
+                        string? uri = null;
+
+                        IntPtr dest = FPDFLink_GetDest(doc, link);
+                        if (dest != IntPtr.Zero)
+                        {
+                            int t = FPDFDest_GetDestPageIndex(doc, dest);
+                            if (t >= 0) targetPage = t;
+                        }
+                        else
+                        {
+                            IntPtr action = FPDFLink_GetAction(link);
+                            if (action != IntPtr.Zero)
+                            {
+                                uint at = FPDFAction_GetType(action);
+                                if (at == PDFACTION_URI)
+                                {
+                                    uint len = FPDFAction_GetURIPath(doc, action, null, 0);
+                                    if (len > 1)
+                                    {
+                                        var buf = new byte[len];
+                                        FPDFAction_GetURIPath(doc, action, buf, len);
+                                        uri = System.Text.Encoding.UTF8.GetString(buf, 0, (int)len - 1);
+                                    }
+                                }
+                                else if (at == PDFACTION_GOTO)
+                                {
+                                    IntPtr d2 = FPDFAction_GetDest(doc, action);
+                                    if (d2 != IntPtr.Zero)
+                                    {
+                                        int t = FPDFDest_GetDestPageIndex(doc, d2);
+                                        if (t >= 0) targetPage = t;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (targetPage is null && string.IsNullOrEmpty(uri)) continue;
+
+                        object tag = targetPage.HasValue ? (object)targetPage.Value : uri!;
+                        string tip = targetPage.HasValue ? $"Go to page {targetPage.Value + 1}" : uri!;
+                        links.Add(new LinkInfo(cx, cy, cw, ch, tag, tip, -1));
+                    }
+                }
+                finally { FPDF_ClosePage(page); }
+            }
+            finally { FPDF_CloseDocument(doc); }
             return links;
         }
 
@@ -146,9 +299,12 @@ namespace KillerPDF
                         Clipboard.SetText(uriTag["mailto:".Length..])));
                 else if (lnk.Tag is string httpTag)
                     cm.Items.Add(MakeMenuItem("Copy URL", (_, _) => Clipboard.SetText(httpTag)));
-                cm.Items.Add(MakeMenuItem("Remove Link from PDF", (_, _) =>
-                    RemoveLinkAnnotation(info.PageIndex, info.AnnotIndex)));
-                overlay.ContextMenu = cm;
+                // PDFium-sourced links (AnnotIndex < 0) aren't addressable in PdfSharpCore's /Annots
+                // array, so native removal only applies to PdfSharpCore-sourced links.
+                if (info.AnnotIndex >= 0)
+                    cm.Items.Add(MakeMenuItem("Remove Link from PDF", (_, _) =>
+                        RemoveLinkAnnotation(info.PageIndex, info.AnnotIndex)));
+                if (cm.Items.Count > 0) overlay.ContextMenu = cm;
 
                 _annotationCanvas.Children.Add(overlay);
                 _linkOverlays.Add(overlay);
@@ -164,7 +320,7 @@ namespace KillerPDF
         /// </summary>
         private void RemoveLinkAnnotation(int pageIndex, int annotIndex)
         {
-            if (_doc is null || pageIndex >= _doc.PageCount) return;
+            if (_doc is null || pageIndex >= _doc.PageCount || annotIndex < 0) return;
             try
             {
                 var pdfPage = _doc.Pages[pageIndex];
@@ -244,74 +400,14 @@ namespace KillerPDF
         }
 
         /// <summary>
-        /// Adds link overlays to a secondary-page Grid so PDF links within that page are
-        /// clickable even when the page is visible only in the multi-page grid view.
-        ///
-        /// Canvas.SetLeft/Top attached properties ONLY take effect when the element's
-        /// direct parent is a Canvas.  Adding link elements straight into the Grid (as
-        /// siblings of the page-nav overlay) would leave them all at (0,0), causing every
-        /// click to hit the wrong element.  Instead we create a transparent Canvas
-        /// container the same size as the page and use it as the coordinate space.
-        ///
-        /// The container uses Background=null so non-link areas are hit-test-transparent
-        /// and clicks fall through to the full-page nav overlay beneath it.  Link
-        /// overlays inside the container use Background=Transparent so they ARE hit-
-        /// testable and receive clicks.  The container is added last -> topmost z-order.
+        /// Records a page's link rectangles for the tiled views (continuous, grid, two-page). No
+        /// clickable overlay is created: in the tiled layout a per-link overlay swallows the click
+        /// but its own handler never fires, so clicks and the hover cursor are resolved by bounds-
+        /// testing these rects in Canvas_MouseLeftButtonDown and Canvas_MouseMove instead.
         /// </summary>
-        private void AddSecondaryPageLinks(int pageIndex, Grid pageGrid, int bitmapW, int bitmapH)
+        private void AddSecondaryPageLinks(int pageIndex, int bitmapW, int bitmapH)
         {
-            var links = GetPageLinks(pageIndex, bitmapW, bitmapH);
-            if (links.Count == 0) return;
-
-            // Container: not hit-testable itself (Background=null), but its children are.
-            var linkCanvas = new Canvas { Width = bitmapW, Height = bitmapH, Background = null };
-
-            foreach (var lnk in links)
-            {
-                var lo = new Canvas
-                {
-                    Width            = lnk.Cw,
-                    Height           = lnk.Ch,
-                    Background       = Brushes.Transparent,   // must be non-null to be hittable
-                    Cursor           = Cursors.Hand,
-                    ToolTip          = lnk.Tip,
-                    IsHitTestVisible = true,
-                };
-                Canvas.SetLeft(lo, lnk.Cx);   // works because parent IS a Canvas
-                Canvas.SetTop(lo, lnk.Cy);
-
-                var capturedTag = lnk.Tag;
-                lo.PreviewMouseLeftButtonDown += (_snd, args) =>
-                {
-                    // Links only follow with the Select tool, and never when the click is on an
-                    // annotation. Otherwise forward to the page overlay so tools/selection work over a
-                    // link region instead of the link eating the click (those orphan-scan PDFs embed a
-                    // page-spanning site link).
-                    var annCanvas = _continuousCanvases.TryGetValue(pageIndex, out var ac) ? ac : null;
-                    bool follow = _currentTool == EditTool.Select;
-                    if (follow && annCanvas is not null)
-                    {
-                        var pt = args.GetPosition(annCanvas);
-                        if (_annotations.TryGetValue(pageIndex, out var al) && al.Any(a => HitTestAnnotation(a, pt, out _)))
-                            follow = false;
-                    }
-                    if (!follow)
-                    {
-                        if (annCanvas is not null) Canvas_MouseLeftButtonDown(annCanvas, args);
-                        return;
-                    }
-                    if (capturedTag is int tp)
-                        PageList.SelectedIndex = tp;
-                    else if (capturedTag is string u)
-                        try { Process.Start(new ProcessStartInfo(u) { UseShellExecute = true }); } catch { }
-                    args.Handled = true;
-                };
-
-                linkCanvas.Children.Add(lo);
-            }
-
-            // Add container last so it is topmost in z-order; non-link areas fall through.
-            pageGrid.Children.Add(linkCanvas);
+            _continuousLinks[pageIndex] = GetPageLinks(pageIndex, bitmapW, bitmapH);
         }
 
         /// <summary>
