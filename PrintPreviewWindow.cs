@@ -886,7 +886,10 @@ namespace KillerPDF
             {
                 var pd = new PrintDialog { PrintQueue = _queue };
                 var ticket = pd.PrintTicket;
-                ticket.CopyCount      = copies;
+                // Copies are produced by replicating the page sequence in the FixedDocument below
+                // (see the outer copy loop), so the ticket itself only ever requests a single copy.
+                // Relying on PrintTicket.CopyCount produced an extra copy on some printers (issue #83).
+                ticket.CopyCount      = 1;
                 ticket.PageOrientation = _landscape ? PageOrientation.Landscape : PageOrientation.Portrait;
                 if (_duplex) ticket.Duplexing = Duplexing.TwoSidedLongEdge;
                 ticket.OutputColor = _grayscale ? OutputColor.Grayscale : OutputColor.Color;
@@ -918,21 +921,41 @@ namespace KillerPDF
                 var fixedDoc = new FixedDocument();
                 // Group the selected pages into sheets of _nUp and compose each sheet (margins +
                 // alignment + scale are all handled inside ComposeSheet, shared with the preview).
-                for (int start = 0; start < indices.Count; start += _nUp)
+                // The whole sheet sequence is emitted `copies` times so the app controls the copy
+                // count directly rather than trusting PrintTicket.CopyCount (issue #83).
+                // Under two-sided printing an odd-sheet copy would leave the next copy starting on the
+                // back of this copy's last sheet. Pad each copy (bar the last) with a blank sheet so every
+                // copy begins on a fresh front side.
+                int sheetsPerCopy = (indices.Count + _nUp - 1) / _nUp;
+                bool padForDuplex = _duplex && copies > 1 && (sheetsPerCopy % 2 == 1);
+                for (int copy = 0; copy < copies; copy++)
                 {
-                    var chunk = indices.Skip(start).Take(_nUp).ToList();
+                    for (int start = 0; start < indices.Count; start += _nUp)
+                    {
+                        var chunk = indices.Skip(start).Take(_nUp).ToList();
 
-                    var fp = new FixedPage { Width = aw, Height = ah };
-                    var sheet = ComposeSheet(chunk, aw, ah, hiPages, hiW, hiH);
-                    FixedPage.SetLeft(sheet, 0);
-                    FixedPage.SetTop(sheet, 0);
-                    fp.Children.Add(sheet);
-                    fp.Measure(new Size(aw, ah));
-                    fp.Arrange(new Rect(new Point(), new Size(aw, ah)));
+                        var fp = new FixedPage { Width = aw, Height = ah };
+                        var sheet = ComposeSheet(chunk, aw, ah, hiPages, hiW, hiH);
+                        FixedPage.SetLeft(sheet, 0);
+                        FixedPage.SetTop(sheet, 0);
+                        fp.Children.Add(sheet);
+                        fp.Measure(new Size(aw, ah));
+                        fp.Arrange(new Rect(new Point(), new Size(aw, ah)));
 
-                    var pc = new PageContent();
-                    ((IAddChild)pc).AddChild(fp);
-                    fixedDoc.Pages.Add(pc);
+                        var pc = new PageContent();
+                        ((IAddChild)pc).AddChild(fp);
+                        fixedDoc.Pages.Add(pc);
+                    }
+
+                    if (padForDuplex && copy < copies - 1)
+                    {
+                        var blank = new FixedPage { Width = aw, Height = ah };
+                        blank.Measure(new Size(aw, ah));
+                        blank.Arrange(new Rect(new Point(), new Size(aw, ah)));
+                        var bpc = new PageContent();
+                        ((IAddChild)bpc).AddChild(blank);
+                        fixedDoc.Pages.Add(bpc);
+                    }
                 }
 
                 pd.PrintDocument(fixedDoc.DocumentPaginator, "KillerPDF");
