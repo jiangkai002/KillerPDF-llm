@@ -168,8 +168,8 @@ namespace KillerPDF
             RebuildSavedRow();
             // OK / Cancel
             var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 14, 0, 0) };
-            var cancel = MakeButton("Cancel", false); cancel.Click += (_, _) => { DialogResult = false; Close(); };
-            var ok = MakeButton("OK", true); ok.Margin = new Thickness(8, 0, 0, 0); ok.Click += (_, _) => Accept();
+            var cancel = MakeButton("Cancel", false); cancel.Click += (_, _) => { DialogResult = false; Close(); }; cancel.IsCancel = true;
+            var ok = MakeButton("OK", true); ok.Margin = new Thickness(8, 0, 0, 0); ok.Click += (_, _) => Accept(); ok.IsDefault = true;
             btnRow.Children.Add(cancel); btnRow.Children.Add(ok);
             panel.Children.Add(btnRow);
         }

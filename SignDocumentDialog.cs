@@ -138,9 +138,11 @@ namespace KillerPDF
             var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
             var sign = MakeButton(L("Str_Sign_Sign"), true);
             sign.Click += (_, _) => DoSign();
+            sign.IsDefault = true;    // Enter
             var cancel = MakeButton(L("Str_Sign_Cancel"), false);
             cancel.Margin = new Thickness(8, 0, 0, 0);
             cancel.Click += (_, _) => { DialogResult = false; Close(); };
+            cancel.IsCancel = true;   // Esc
             btnRow.Children.Add(sign);
             btnRow.Children.Add(cancel);
             body.Children.Add(btnRow);

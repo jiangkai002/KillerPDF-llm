@@ -583,8 +583,10 @@ namespace KillerPDF
             var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
             var cancel = MakeButton(S("Str_Stamp_Cancel"), false);
             cancel.Click += (_, _) => { DialogResult = false; Close(); };
+            cancel.IsCancel = true;          // Esc cancels the dialog
             var print = MakeButton(S("Str_Ctx_Print"), true);
             print.Click += (_, _) => DoPrint();
+            print.IsDefault = true;          // Enter prints
             print.IsEnabled = !_isLoading;   // enabled once all pages have rendered
             _printBtn = print;
             cancel.Margin = new Thickness(8, 0, 0, 0);   // gap; Cancel sits to the right of Print

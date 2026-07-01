@@ -141,10 +141,12 @@ namespace KillerPDF
             var actionRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
             var cancelBtn = UiKit.Make(S("Str_Tf_Cancel"), false);
             cancelBtn.Click += (_, _2) => { Applied = false; Close(); };
+            cancelBtn.IsCancel = true;   // Esc
             cancelBtn.Margin = new Thickness(0, 0, 8, 0);
             actionRow.Children.Add(cancelBtn);
             _applyBtn = UiKit.Make(S("Str_Tf_Apply"), true);
             _applyBtn.Click += (_, _2) => CommitAndClose();
+            _applyBtn.IsDefault = true;   // Enter
             actionRow.Children.Add(_applyBtn);
             bottom.Children.Add(actionRow);
             DockPanel.SetDock(bottom, Dock.Bottom);

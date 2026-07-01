@@ -112,9 +112,11 @@ namespace KillerPDF
             var cancelBtn = UiKit.Make(S("Str_Tf_Cancel"), false);
             cancelBtn.Margin = new Thickness(0, 0, 8, 0);
             cancelBtn.Click += (_, _2) => { Applied = false; Close(); };
+            cancelBtn.IsCancel = true;   // Esc
             actionRow.Children.Add(cancelBtn);
             var applyBtn = UiKit.Make(S("Str_Tf_Apply"), true);
             applyBtn.Click += (_, _2) => CommitAndClose();
+            applyBtn.IsDefault = true;   // Enter
             actionRow.Children.Add(applyBtn);
             bottom.Children.Add(actionRow);
             DockPanel.SetDock(bottom, Dock.Bottom);

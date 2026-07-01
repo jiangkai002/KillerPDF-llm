@@ -48,8 +48,10 @@ namespace KillerPDF
 
             var cancel = UiKit.Make(L("Str_DocInfo_Cancel"), accent: false);
             cancel.Click += (_, _2) => { DialogResult = false; Close(); };
+            cancel.IsCancel = true;   // Esc
             var save = UiKit.Make(L("Str_DocInfo_Save"), accent: true);
             save.Click += (_, _2) => SaveAndClose();
+            save.IsDefault = true;    // Enter
             var row = UiKit.ButtonRow(cancel, save);
             row.Margin = new Thickness(0, 16, 0, 0);
             body.Children.Add(row);

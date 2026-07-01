@@ -141,6 +141,8 @@ namespace KillerPDF
                 // Shared themed button (UiKit.Make) so this dialog matches the print dialog et al.
                 var btn = UiKit.Make(label, accent);
                 btn.Margin = new Thickness(8, 0, 0, 0);
+                btn.IsDefault = accent;                           // Enter triggers the primary action
+                btn.IsCancel  = res == MessageBoxResult.Cancel;   // Esc triggers Cancel where there is one
                 btn.Click += (_, _2) => { result = res; win.Close(); };
                 return btn;
             }
