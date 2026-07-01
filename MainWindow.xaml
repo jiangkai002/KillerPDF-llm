@@ -1090,11 +1090,11 @@
                     <Button Content="&#xE7C3;" Style="{StaticResource ToolbarButton}" Click="New_Click" ToolTip="{DynamicResource Str_TT_NewBlank}"/>
                     <Button x:Name="CloseFileBtn" Content="&#xE711;" Style="{StaticResource ToolbarButton}" Click="CloseFile_Click" ToolTip="{DynamicResource Str_TT_CloseFile}" IsEnabled="False"/>
                     <Button x:Name="OpenFileBtn" Content="&#xE8DA;" Style="{StaticResource ToolbarSplitMain}" Click="Open_Click" ToolTip="{DynamicResource Str_TT_Open}"/>
-                    <Button x:Name="OpenRecentBtn" Content="&#xF08E;" FontSize="10" Width="13" Padding="0" Margin="-6,0,0,0" Style="{StaticResource ToolbarButton}" Click="OpenRecent_Click" ToolTip="Recent files"/>
+                    <Button x:Name="OpenRecentBtn" Content="&#xE70D;" FontSize="10" Width="13" Padding="0" Margin="-6,0,0,0" Style="{StaticResource ToolbarButton}" Click="OpenRecent_Click" ToolTip="Recent files"/>
                     <Button x:Name="SaveAsBtn" Content="&#xE74E;" Style="{StaticResource ToolbarSplitMainAccent}" Click="Save_Click" ToolTip="{DynamicResource Str_TT_Save}"/>
-                    <Button x:Name="SaveMenuBtn" Content="&#xF08E;" FontSize="10" Width="13" Padding="0" Margin="-6,0,0,0" Style="{StaticResource ToolbarButton}" Click="SaveMenu_Click" ToolTip="Save options"/>
+                    <Button x:Name="SaveMenuBtn" Content="&#xE70D;" FontSize="10" Width="13" Padding="0" Margin="-6,0,0,0" Style="{StaticResource ToolbarButton}" Click="SaveMenu_Click" ToolTip="Save options"/>
                     <Button x:Name="OcrBtn" Content="&#xEE6F;" Style="{StaticResource ToolbarSplitMain}" Click="Ocr_Click" ToolTip="{DynamicResource Str_TT_Ocr}"/>
-                    <Button x:Name="OcrMenuBtn" Content="&#xF08E;" FontSize="10" Width="13" Padding="0" Margin="-6,0,0,0" Style="{StaticResource ToolbarButton}" Click="OcrMenu_Click" ToolTip="OCR options"/>
+                    <Button x:Name="OcrMenuBtn" Content="&#xE70D;" FontSize="10" Width="13" Padding="0" Margin="-6,0,0,0" Style="{StaticResource ToolbarButton}" Click="OcrMenu_Click" ToolTip="OCR options"/>
                     <Button Content="&#xE8B9;" Style="{StaticResource ToolbarButton}" Click="SaveFlattened_Click" ToolTip="{DynamicResource Str_TT_SaveFlattened}"/>
                     <Button Content="&#xE749;" Style="{StaticResource ToolbarButton}" Click="Print_Click" ToolTip="{DynamicResource Str_TT_Print}"/>
                     <StackPanel x:Name="GrpPageOps" Orientation="Horizontal">
