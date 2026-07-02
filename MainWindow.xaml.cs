@@ -360,7 +360,7 @@ namespace KillerPDF
             ApplyGrainTexture();
             ApplyToolNumberTooltips();   // append the 1-9 toolbar positions to the tool tooltips
             SourceInitialized += MainWindow_SourceInitialized;
-            Closed += (_, _) => { _continuousRenderCts?.Cancel(); _doc?.Close(); App.CleanupSessionTemps(); };
+            Closed += (_, _) => { _continuousRenderCts?.Cancel(); _doc?.Close(); CloseLinkPdfiumDoc(); App.CleanupSessionTemps(); };
 
             // Open a file passed via command-line / file association (e.g. double-clicking a .pdf)
             // Also show the portable badge when running outside the install location.

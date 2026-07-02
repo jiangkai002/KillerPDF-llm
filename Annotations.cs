@@ -874,10 +874,7 @@ namespace KillerPDF
                         clickPos.Y >= ly && clickPos.Y <= ly + lo.Height)
                     {
                         var lTarget = lo.Tag is LinkAnnotInfo lai ? lai.Target : lo.Tag;
-                        if (lTarget is int tp)
-                            PageList.SelectedIndex = tp;
-                        else if (lTarget is string u && ConfirmOpenLink(u))
-                            try { Process.Start(new ProcessStartInfo(u) { UseShellExecute = true }); } catch { }
+                        FollowLinkTarget(lTarget);
                         e.Handled = true;
                         return;
                     }
@@ -901,10 +898,7 @@ namespace KillerPDF
                         if (cpos.X >= lnk.Cx - pad && cpos.X <= lnk.Cx + lnk.Cw + pad &&
                             cpos.Y >= lnk.Cy - pad && cpos.Y <= lnk.Cy + lnk.Ch + pad)
                         {
-                            if (lnk.Tag is int ctp)
-                                PageList.SelectedIndex = ctp;
-                            else if (lnk.Tag is string cu && ConfirmOpenLink(cu))
-                                try { Process.Start(new ProcessStartInfo(cu) { UseShellExecute = true }); } catch { }
+                            FollowLinkTarget(lnk.Tag);
                             e.Handled = true;
                             return;
                         }

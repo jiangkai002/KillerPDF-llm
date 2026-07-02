@@ -54,6 +54,79 @@ namespace KillerPDF
             return true;
         }
 
+        // Schemes we will hand to the OS shell when a PDF link is clicked. A PDF can embed ANY URI, and
+        // Process.Start(UseShellExecute=true) would happily launch file:// paths, UNC shares, javascript:,
+        // or registered protocol handlers (ms-msdt:/search-ms: - real malware vectors). Anything outside
+        // this allow-list is refused. http/https = web links; mailto = email links.
+        private static readonly HashSet<string> AllowedLinkSchemes =
+            new(StringComparer.OrdinalIgnoreCase) { "http", "https", "mailto" };
+
+        // True only for an absolute URI in an allowed scheme. Rejects scheme-less / relative URIs (a bare
+        // "www.example.com" is a Tier 2 follow-up), plus file:, javascript:, and custom protocol handlers.
+        private static bool IsAllowedLinkUri(string url) =>
+            Uri.TryCreate(url, UriKind.Absolute, out var uri) && AllowedLinkSchemes.Contains(uri.Scheme);
+
+        /// <summary>
+        /// Follows a resolved link target: an int page index navigates within the document; a string URI
+        /// is scheme-checked, confirmed, then opened via the shell. Single choke point for both the
+        /// single-page (_linkOverlays) and tiled (_continuousLinks) click paths, so the safety checks
+        /// can't be bypassed by one route and a failed open is always reported instead of silent.
+        /// </summary>
+        private void FollowLinkTarget(object? target)
+        {
+            if (target is int pageIndex)
+            {
+                if (_doc != null && pageIndex >= 0 && pageIndex < _doc.PageCount)
+                    PageList.SelectedIndex = pageIndex;
+                return;
+            }
+
+            if (target is not string url || string.IsNullOrWhiteSpace(url)) return;
+
+            if (!IsAllowedLinkUri(url))
+            {
+                SetStatus($"Blocked link (unsupported type): {url}");
+                return;
+            }
+
+            if (!ConfirmOpenLink(url)) return;
+
+            try
+            {
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Open link failed: {ex}");
+                SetStatus("Couldn't open link");
+            }
+        }
+
+        // Builds the right-click actions for a link onto `menu`: Open Link (via the safe FollowLinkTarget
+        // path), Copy Link Address / Copy Email Address, and - only for PdfSharpCore-sourced links
+        // (annotIndex >= 0) - Remove Link from PDF. Shared by the single-page overlay menu and the tiled-
+        // view canvas menu so both views offer the same actions.
+        private void AddLinkMenuItems(ContextMenu menu, object target, int annotIndex, int pageIndex)
+        {
+            menu.Items.Add(MakeMenuItem("Open Link", (_, _) => FollowLinkTarget(target)));
+            if (target is string uri)
+            {
+                if (uri.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
+                    menu.Items.Add(MakeMenuItem("Copy Email Address", (_, _) => TrySetClipboard(uri["mailto:".Length..])));
+                else
+                    menu.Items.Add(MakeMenuItem("Copy Link Address", (_, _) => TrySetClipboard(uri)));
+            }
+            if (annotIndex >= 0)
+                menu.Items.Add(MakeMenuItem("Remove Link from PDF", (_, _) => RemoveLinkAnnotation(pageIndex, annotIndex)));
+        }
+
+        // Clipboard COM calls throw when another app is holding the clipboard open; swallow so a copy
+        // never crashes the app (the worst case is the copy silently not happening).
+        private static void TrySetClipboard(string text)
+        {
+            try { Clipboard.SetText(text); } catch { }
+        }
+
         // Status-bar hover feedback: shows the hovered link's target, restoring the prior status on exit.
         private string? _preHoverStatus;
         private void ShowLinkHoverStatus(string? target)
@@ -204,6 +277,46 @@ namespace KillerPDF
         [DllImport("pdfium.dll", CallingConvention = CallingConvention.Cdecl)]
         private static extern int FPDFDest_GetDestPageIndex(IntPtr document, IntPtr dest);
 
+        // Cached PDFium document handle for link extraction. Object-stream PDFs take the PDFium fallback
+        // on every annotated page; without this we'd FPDF_LoadDocument (re-parse the whole file) once per
+        // page during a render sweep. Keyed by path so it self-heals when the working file changes
+        // (SaveTempAndReload swaps in a new temp). _currentFile is a TEMP working copy - the user's real
+        // file is _originalFile - so holding this open never locks the user's document. Only touched from
+        // UI-thread render paths (RenderPageLinks / AddSecondaryPageLinks), so no locking is needed.
+        private IntPtr _linkPdfiumDoc = IntPtr.Zero;
+        private string? _linkPdfiumDocPath;
+
+        /// <summary>Returns the cached PDFium handle for the current file, (re)opening it if the file
+        /// changed or it isn't open yet. Returns IntPtr.Zero if there is no file or the load fails.</summary>
+        private IntPtr EnsureLinkPdfiumDoc()
+        {
+            if (_currentFile is null) { CloseLinkPdfiumDoc(); return IntPtr.Zero; }
+            if (_linkPdfiumDoc != IntPtr.Zero && _linkPdfiumDocPath == _currentFile)
+                return _linkPdfiumDoc;
+
+            CloseLinkPdfiumDoc();
+            try { _ = DocLib.Instance; } catch { }   // force Docnet to init PDFium before direct pdfium.dll calls
+            IntPtr doc = FPDF_LoadDocument(_currentFile, null);
+            if (doc != IntPtr.Zero)
+            {
+                _linkPdfiumDoc     = doc;
+                _linkPdfiumDocPath = _currentFile;
+            }
+            return doc;
+        }
+
+        /// <summary>Closes the cached PDFium link handle if open. Called when the document changes or
+        /// closes; the path check in EnsureLinkPdfiumDoc is the backstop for anything not closed here.</summary>
+        private void CloseLinkPdfiumDoc()
+        {
+            if (_linkPdfiumDoc != IntPtr.Zero)
+            {
+                try { FPDF_CloseDocument(_linkPdfiumDoc); } catch { }
+                _linkPdfiumDoc = IntPtr.Zero;
+            }
+            _linkPdfiumDocPath = null;
+        }
+
         /// <summary>
         /// Reads a page's link annotations via PDFium (handles object-stream PDFs that PdfSharpCore
         /// cannot). Returns the same canvas-space LinkInfo list as GetPageLinks, with AnnotIndex = -1
@@ -213,89 +326,86 @@ namespace KillerPDF
         private List<LinkInfo> GetPageLinksViaPdfium(int pageIndex, int bitmapW, int bitmapH)
         {
             var links = new List<LinkInfo>();
-            if (_currentFile is null) return links;
 
-            // Docnet initialises PDFium lazily; force it before calling pdfium.dll directly.
-            try { _ = DocLib.Instance; } catch { }
-
-            IntPtr doc = FPDF_LoadDocument(_currentFile, null);
+            // Reuse the PDFium handle cached per document (EnsureLinkPdfiumDoc) instead of reloading the
+            // whole file on every annotated page - object-stream PDFs take this path on every page, so a
+            // per-call FPDF_LoadDocument would re-parse the file once per page during a render sweep. The
+            // page itself is still loaded/closed per call; only the document handle is shared.
+            IntPtr doc = EnsureLinkPdfiumDoc();
             if (doc == IntPtr.Zero) return links;
+
+            IntPtr page = FPDF_LoadPage(doc, pageIndex);
+            if (page == IntPtr.Zero) return links;
             try
             {
-                IntPtr page = FPDF_LoadPage(doc, pageIndex);
-                if (page == IntPtr.Zero) return links;
-                try
+                double pageWidthPt  = FPDF_GetPageWidth(page);
+                double pageHeightPt = FPDF_GetPageHeight(page);
+                if (pageWidthPt  <= 0) pageWidthPt  = 595.28;
+                if (pageHeightPt <= 0) pageHeightPt = 841.89;
+
+                int startPos = 0;
+                while (FPDFLink_Enumerate(page, ref startPos, out IntPtr link))
                 {
-                    double pageWidthPt  = FPDF_GetPageWidth(page);
-                    double pageHeightPt = FPDF_GetPageHeight(page);
-                    if (pageWidthPt  <= 0) pageWidthPt  = 595.28;
-                    if (pageHeightPt <= 0) pageHeightPt = 841.89;
+                    if (!FPDFLink_GetAnnotRect(link, out FS_RECTF r)) continue;
 
-                    int startPos = 0;
-                    while (FPDFLink_Enumerate(page, ref startPos, out IntPtr link))
+                    // PDFium may report top/bottom in either order; normalise to min/max so the
+                    // mapping matches GetPageLinks (PDF origin is bottom-left, y up).
+                    double rx1 = Math.Min(r.left, r.right);
+                    double rx2 = Math.Max(r.left, r.right);
+                    double ry1 = Math.Min(r.top,  r.bottom);
+                    double ry2 = Math.Max(r.top,  r.bottom);
+
+                    double cx = rx1 / pageWidthPt  * bitmapW;
+                    double cy = (pageHeightPt - ry2) / pageHeightPt * bitmapH;
+                    double cw = (rx2 - rx1) / pageWidthPt  * bitmapW;
+                    double ch = (ry2 - ry1) / pageHeightPt * bitmapH;
+                    if (cw < 1 || ch < 1) continue;
+
+                    int? targetPage = null;
+                    string? uri = null;
+
+                    IntPtr dest = FPDFLink_GetDest(doc, link);
+                    if (dest != IntPtr.Zero)
                     {
-                        if (!FPDFLink_GetAnnotRect(link, out FS_RECTF r)) continue;
-
-                        // PDFium may report top/bottom in either order; normalise to min/max so the
-                        // mapping matches GetPageLinks (PDF origin is bottom-left, y up).
-                        double rx1 = Math.Min(r.left, r.right);
-                        double rx2 = Math.Max(r.left, r.right);
-                        double ry1 = Math.Min(r.top,  r.bottom);
-                        double ry2 = Math.Max(r.top,  r.bottom);
-
-                        double cx = rx1 / pageWidthPt  * bitmapW;
-                        double cy = (pageHeightPt - ry2) / pageHeightPt * bitmapH;
-                        double cw = (rx2 - rx1) / pageWidthPt  * bitmapW;
-                        double ch = (ry2 - ry1) / pageHeightPt * bitmapH;
-                        if (cw < 1 || ch < 1) continue;
-
-                        int? targetPage = null;
-                        string? uri = null;
-
-                        IntPtr dest = FPDFLink_GetDest(doc, link);
-                        if (dest != IntPtr.Zero)
+                        int t = FPDFDest_GetDestPageIndex(doc, dest);
+                        if (t >= 0) targetPage = t;
+                    }
+                    else
+                    {
+                        IntPtr action = FPDFLink_GetAction(link);
+                        if (action != IntPtr.Zero)
                         {
-                            int t = FPDFDest_GetDestPageIndex(doc, dest);
-                            if (t >= 0) targetPage = t;
-                        }
-                        else
-                        {
-                            IntPtr action = FPDFLink_GetAction(link);
-                            if (action != IntPtr.Zero)
+                            uint at = FPDFAction_GetType(action);
+                            if (at == PDFACTION_URI)
                             {
-                                uint at = FPDFAction_GetType(action);
-                                if (at == PDFACTION_URI)
+                                uint len = FPDFAction_GetURIPath(doc, action, null, 0);
+                                if (len > 1)
                                 {
-                                    uint len = FPDFAction_GetURIPath(doc, action, null, 0);
-                                    if (len > 1)
-                                    {
-                                        var buf = new byte[len];
-                                        FPDFAction_GetURIPath(doc, action, buf, len);
-                                        uri = System.Text.Encoding.UTF8.GetString(buf, 0, (int)len - 1);
-                                    }
+                                    var buf = new byte[len];
+                                    FPDFAction_GetURIPath(doc, action, buf, len);
+                                    uri = System.Text.Encoding.UTF8.GetString(buf, 0, (int)len - 1);
                                 }
-                                else if (at == PDFACTION_GOTO)
+                            }
+                            else if (at == PDFACTION_GOTO)
+                            {
+                                IntPtr d2 = FPDFAction_GetDest(doc, action);
+                                if (d2 != IntPtr.Zero)
                                 {
-                                    IntPtr d2 = FPDFAction_GetDest(doc, action);
-                                    if (d2 != IntPtr.Zero)
-                                    {
-                                        int t = FPDFDest_GetDestPageIndex(doc, d2);
-                                        if (t >= 0) targetPage = t;
-                                    }
+                                    int t = FPDFDest_GetDestPageIndex(doc, d2);
+                                    if (t >= 0) targetPage = t;
                                 }
                             }
                         }
-
-                        if (targetPage is null && string.IsNullOrEmpty(uri)) continue;
-
-                        object tag = targetPage.HasValue ? (object)targetPage.Value : uri!;
-                        string tip = targetPage.HasValue ? $"Go to page {targetPage.Value + 1}" : uri!;
-                        links.Add(new LinkInfo(cx, cy, cw, ch, tag, tip, -1));
                     }
+
+                    if (targetPage is null && string.IsNullOrEmpty(uri)) continue;
+
+                    object tag = targetPage.HasValue ? (object)targetPage.Value : uri!;
+                    string tip = targetPage.HasValue ? $"Go to page {targetPage.Value + 1}" : uri!;
+                    links.Add(new LinkInfo(cx, cy, cw, ch, tag, tip, -1));
                 }
-                finally { FPDF_ClosePage(page); }
             }
-            finally { FPDF_CloseDocument(doc); }
+            finally { FPDF_ClosePage(page); }
             return links;
         }
 
@@ -325,20 +435,11 @@ namespace KillerPDF
                 Canvas.SetLeft(overlay, lnk.Cx);
                 Canvas.SetTop(overlay, lnk.Cy);
 
-                // Right-click context menu: remove the native PDF annotation or copy the URL.
+                // Right-click menu: same actions as the tiled-view canvas menu, from the shared builder.
                 var cm = new ContextMenu();
                 TextOptions.SetTextFormattingMode(cm, TextFormattingMode.Display);
                 TextOptions.SetTextRenderingMode(cm, TextRenderingMode.Grayscale);
-                if (lnk.Tag is string uriTag && uriTag.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
-                    cm.Items.Add(MakeMenuItem("Copy Email Address", (_, _) =>
-                        Clipboard.SetText(uriTag["mailto:".Length..])));
-                else if (lnk.Tag is string httpTag)
-                    cm.Items.Add(MakeMenuItem("Copy URL", (_, _) => Clipboard.SetText(httpTag)));
-                // PDFium-sourced links (AnnotIndex < 0) aren't addressable in PdfSharpCore's /Annots
-                // array, so native removal only applies to PdfSharpCore-sourced links.
-                if (info.AnnotIndex >= 0)
-                    cm.Items.Add(MakeMenuItem("Remove Link from PDF", (_, _) =>
-                        RemoveLinkAnnotation(info.PageIndex, info.AnnotIndex)));
+                AddLinkMenuItems(cm, lnk.Tag, lnk.AnnotIndex, pageIndex);
                 if (cm.Items.Count > 0) overlay.ContextMenu = cm;
 
                 _annotationCanvas.Children.Add(overlay);

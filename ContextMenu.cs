@@ -101,6 +101,10 @@ namespace KillerPDF
                 }
                 AddAnnotationMenuItems(hit);
             }
+            // Tiled views (continuous/grid/two-page) have no clickable link overlay, so resolve a link
+            // under the cursor by bounds-check and offer the same menu the single-page overlay carries.
+            else if (LinkAt(pt, pageIdx) is { } lk)
+                AddLinkMenuItems(_ctxMenu, lk.target, lk.annotIndex, pageIdx);
             else AddPageMenuItems(pt, pageIdx);
         }
 
@@ -111,6 +115,20 @@ namespace KillerPDF
             if (pageIdx < 0 || !_annotations.TryGetValue(pageIdx, out var list)) return null;
             for (int i = list.Count - 1; i >= 0; i--)
                 if (IsDraggable(list[i]) && HitTestAnnotation(list[i], pt, out _)) return list[i];
+            return null;
+        }
+
+        // Link under pt on the given page, resolved by the same padded bounds-check the click/hover use.
+        // Tiled views (continuous/grid/two-page) have no clickable link overlay, so _continuousLinks is the
+        // source of truth there; single-page links carry their own overlay ContextMenu and never reach here.
+        private (object target, int annotIndex)? LinkAt(Point pt, int pageIdx)
+        {
+            if (!_continuousLinks.TryGetValue(pageIdx, out var links)) return null;
+            const double pad = 20;   // matches the click/hover pad so the menu targets the same links
+            foreach (var l in links)
+                if (pt.X >= l.Cx - pad && pt.X <= l.Cx + l.Cw + pad &&
+                    pt.Y >= l.Cy - pad && pt.Y <= l.Cy + l.Ch + pad)
+                    return (l.Tag, l.AnnotIndex);
             return null;
         }
 

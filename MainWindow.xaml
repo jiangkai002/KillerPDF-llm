@@ -1000,6 +1000,50 @@
             </Setter>
         </Style>
 
+        <!-- Settings toggle checkbox: mirrors ThemeRadio (same ring/accent language) but square with a
+             checkmark, for independent on/off switches rather than exclusive picks. -->
+        <Style x:Key="ThemeCheck" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Border x:Name="bd" Background="Transparent" CornerRadius="3"
+                                Margin="-8,0,2,0" Padding="10,4,10,4">
+                            <DockPanel LastChildFill="True" Background="Transparent">
+                                <Grid Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,8,0" DockPanel.Dock="Left">
+                                    <Border x:Name="box" Width="14" Height="14" CornerRadius="3"
+                                            BorderBrush="{DynamicResource TextDim}" BorderThickness="1.5"
+                                            Background="Transparent"/>
+                                    <TextBlock x:Name="tick" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets"
+                                               FontSize="10" Foreground="{DynamicResource RadioAccent}"
+                                               Visibility="Collapsed"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Grid>
+                                <ContentPresenter VerticalAlignment="Center"/>
+                            </DockPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="tick" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource RadioAccent}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource RadioAccent}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource RadioAccent}"/>
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource BgHover}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Form-field text box: a minimal template so the field shows OUR border/fill (transparent
              at rest, accent on focus) instead of the stock WPF blue focus chrome. -->
         <Style x:Key="FormFieldTextBox" TargetType="TextBox">
@@ -2323,6 +2367,14 @@
                                                  Style="{StaticResource ThemeRadio}"
                                                  Checked="ViewGridRadio_Checked"/>
                         </StackPanel>
+
+                    <!-- Links: behaviour toggles for PDF hyperlinks. Plain checkboxes (not the picker
+                         accordion the other sections use) since these are independent on/off switches;
+                         more toggles drop straight in under this subheader. -->
+                    <TextBlock Text="Links" Style="{StaticResource SettingsSubheader}" Margin="0,12,0,8"/>
+                    <CheckBox x:Name="LinkConfirmCheck" Content="Confirm before opening links"
+                              Style="{StaticResource ThemeCheck}"
+                              Checked="LinkConfirmCheck_Toggled" Unchecked="LinkConfirmCheck_Toggled"/>
                 </StackPanel>
                 </ScrollViewer>
                 </Grid>

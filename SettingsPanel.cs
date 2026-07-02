@@ -70,6 +70,8 @@ namespace KillerPDF
             SidebarLeftRadio.IsChecked   = !_sidebarRight;
             SidebarRightRadio.IsChecked  = _sidebarRight;
             SidebarCurrentLabel.Text     = Loc(_sidebarRight ? "Str_Sidebar_Right" : "Str_Sidebar_Left");
+            // Sync the Links section: confirm is ON unless the user has opted out ("Don't ask again").
+            LinkConfirmCheck.IsChecked = App.GetSetting(SkipLinkConfirmSetting) != "1";
             PositionSettingsPanel();
             SettingsOverlay.Visibility = Visibility.Visible;
             SlideSettingsOpen();
@@ -308,6 +310,16 @@ namespace KillerPDF
 
         private void SettingsOverlayClose_Click(object sender, RoutedEventArgs e)
             => SlideSettingsClosed();
+
+        // Links section. The checkbox is the re-armable inverse of the "Don't ask again" opt-out from the
+        // open-link confirmation dialog: checked = confirm before opening (default), unchecked = skip it.
+        // Reads/writes the same SkipLinkConfirm setting ConfirmOpenLink checks, so it takes effect on the
+        // next link click with no restart.
+        private void LinkConfirmCheck_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (LinkConfirmCheck.IsChecked == true) App.RemoveSetting(SkipLinkConfirmSetting);
+            else                                    App.SetSetting(SkipLinkConfirmSetting, "1");
+        }
 
         private void OnThemeChanged()
         {

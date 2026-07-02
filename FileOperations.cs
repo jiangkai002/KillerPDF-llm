@@ -217,6 +217,7 @@ namespace KillerPDF
             FileNameLabel.Text = System.IO.Path.GetFileName(displayPath);
             _annotations.Clear();
             _continuousLinks.Clear();   // drop the previous document's cached link rects
+            CloseLinkPdfiumDoc();       // and release the cached PDFium link handle for the old file
             _undoStack.Clear();
             _renderDims.Clear();
             _formTextValues.Clear();
@@ -717,6 +718,7 @@ namespace KillerPDF
             _doc.Close();
             _doc = null;
             _currentFile = null;
+            CloseLinkPdfiumDoc();   // release the cached PDFium link handle for the closed file
             App.RemoveSetting("LastFile");   // don't reopen a manually-closed file on next launch (Issue #75)
             _activeTextBox = null;   // cancel any in-progress typewriter edit before canvas clear
             RemoveTextEditHandles();

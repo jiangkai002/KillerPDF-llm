@@ -30,6 +30,9 @@ namespace KillerPDF
         private void SaveTempAndReload(bool keepAnnotations = false, bool preserveZoom = false)
         {
             if (_doc is null || _currentFile is null) return;
+            // We're about to replace the working file with a fresh temp; release the cached PDFium link
+            // handle for the outgoing file now (it reopens for the new temp on the post-reload re-render).
+            CloseLinkPdfiumDoc();
             // Overlay annotations are unsaved, still-editable user work. Callers that don't change
             // page identity (crop) pass keepAnnotations:true so annotations on other pages survive
             // the reload and stay selectable/movable; they are re-rendered after the doc reopens.
