@@ -124,7 +124,7 @@ namespace KillerPDF
         private (object target, int annotIndex)? LinkAt(Point pt, int pageIdx)
         {
             if (!_continuousLinks.TryGetValue(pageIdx, out var links)) return null;
-            const double pad = 20;   // matches the click/hover pad so the menu targets the same links
+            const double pad = LinkHitPad;   // matches the click/hover pad so the menu targets the same links
             foreach (var l in links)
                 if (pt.X >= l.Cx - pad && pt.X <= l.Cx + l.Cw + pad &&
                     pt.Y >= l.Cy - pad && pt.Y <= l.Cy + l.Ch + pad)

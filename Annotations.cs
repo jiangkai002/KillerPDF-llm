@@ -892,7 +892,7 @@ namespace KillerPDF
                                 && clal.Any(a => HitTestAnnotation(a, cpos, out _));
                 if (!cOnAnnot && _continuousLinks.TryGetValue(cpage, out var clinks))
                 {
-                    const double pad = 20;   // render-dim units (~5 screen px): makes thin link strips (a one-line text URL) easier to hit
+                    const double pad = LinkHitPad;   // shared with hover + the single-page overlay so all views match
                     foreach (var lnk in clinks)
                     {
                         if (cpos.X >= lnk.Cx - pad && cpos.X <= lnk.Cx + lnk.Cw + pad &&
@@ -1291,8 +1291,8 @@ namespace KillerPDF
                 string? hoverTarget = null;
                 if (hpage >= 0 && _continuousLinks.TryGetValue(hpage, out var hlinks))
                     foreach (var l in hlinks)
-                        if (hpos.X >= l.Cx - 20 && hpos.X <= l.Cx + l.Cw + 20 &&
-                            hpos.Y >= l.Cy - 20 && hpos.Y <= l.Cy + l.Ch + 20)
+                        if (hpos.X >= l.Cx - LinkHitPad && hpos.X <= l.Cx + l.Cw + LinkHitPad &&
+                            hpos.Y >= l.Cy - LinkHitPad && hpos.Y <= l.Cy + l.Ch + LinkHitPad)
                         { hoverTarget = l.Tip; break; }
                 linkHoverCv.Cursor = hoverTarget != null ? System.Windows.Input.Cursors.Hand : null;
                 ShowLinkHoverStatus(hoverTarget);

@@ -35,6 +35,12 @@ namespace KillerPDF
         // handler never fires, so no visual overlay is created - these rects are the source of truth.
         private readonly Dictionary<int, List<LinkInfo>> _continuousLinks = [];
 
+        // Small hit-slop (render-dim units) added around a link rect for click / hover / right-click
+        // hit-testing so thin one-line link strips are easy to hit without over-reaching neighbours.
+        // Applied identically in single-page (grows the overlay in RenderPageLinks) and tiled views
+        // (bounds-checks) so both feel the same.
+        private const double LinkHitPad = 5;
+
         // Persisted opt-out key for the click-safety confirmation prompt.
         private const string SkipLinkConfirmSetting = "SkipLinkConfirm";
 
@@ -66,6 +72,36 @@ namespace KillerPDF
         private static bool IsAllowedLinkUri(string url) =>
             Uri.TryCreate(url, UriKind.Absolute, out var uri) && AllowedLinkSchemes.Contains(uri.Scheme);
 
+        // A PDF can store a scheme-less link like "www.example.com" or "example.com/page". Treat a domain-
+        // shaped target as https so it still opens; anything with an explicit scheme, a backslash (UNC/path),
+        // or whitespace is left untouched (and thus refused by IsAllowedLinkUri unless it's http/https/mailto).
+        private static string NormalizeLinkUri(string raw)
+        {
+            raw = raw.Trim();
+            if (raw.Length == 0) return raw;
+            if (raw.Contains('\\') || raw.Contains(' ')) return raw;    // Windows path / UNC / junk - don't touch
+            if (raw.Contains("://")) return raw;                        // already scheme://...
+            int colon = raw.IndexOf(':');
+            int slash = raw.IndexOf('/');
+            if (colon >= 0 && (slash < 0 || colon < slash)) return raw; // "scheme:" (mailto:, file:, C:) - don't touch
+            string host = slash >= 0 ? raw[..slash] : raw;              // host part before any path
+            return host.Contains('.') ? "https://" + raw : raw;         // dotted host => assume https
+        }
+
+        // Maps a PDF rectangle (points, origin bottom-left, already min/max-normalised) to a canvas-space
+        // rectangle (pixels, origin top-left) for a page rendered at bitmapW x bitmapH. Shared by the
+        // PdfSharpCore and PDFium link readers so the two stay pixel-identical.
+        private static (double x, double y, double w, double h) PdfRectToCanvas(
+            double rx1, double ry1, double rx2, double ry2,
+            double pageWidthPt, double pageHeightPt, int bitmapW, int bitmapH)
+        {
+            double x = rx1 / pageWidthPt * bitmapW;
+            double y = (pageHeightPt - ry2) / pageHeightPt * bitmapH;
+            double w = (rx2 - rx1) / pageWidthPt * bitmapW;
+            double h = (ry2 - ry1) / pageHeightPt * bitmapH;
+            return (x, y, w, h);
+        }
+
         /// <summary>
         /// Follows a resolved link target: an int page index navigates within the document; a string URI
         /// is scheme-checked, confirmed, then opened via the shell. Single choke point for both the
@@ -81,11 +117,13 @@ namespace KillerPDF
                 return;
             }
 
-            if (target is not string url || string.IsNullOrWhiteSpace(url)) return;
+            if (target is not string raw || string.IsNullOrWhiteSpace(raw)) return;
 
+            // Scheme-less but domain-shaped targets (e.g. "www.example.com") become https:// here.
+            string url = NormalizeLinkUri(raw);
             if (!IsAllowedLinkUri(url))
             {
-                SetStatus($"Blocked link (unsupported type): {url}");
+                SetStatus($"Blocked link (unsupported type): {raw}");
                 return;
             }
 
@@ -191,10 +229,7 @@ namespace KillerPDF
                     if (rx1 > rx2) (rx1, rx2) = (rx2, rx1);
                     if (ry1 > ry2) (ry1, ry2) = (ry2, ry1);
 
-                    double cx = rx1 / pageWidthPt  * bitmapW;
-                    double cy = (pageHeightPt - ry2) / pageHeightPt * bitmapH;
-                    double cw = (rx2 - rx1) / pageWidthPt  * bitmapW;
-                    double ch = (ry2 - ry1) / pageHeightPt * bitmapH;
+                    var (cx, cy, cw, ch) = PdfRectToCanvas(rx1, ry1, rx2, ry2, pageWidthPt, pageHeightPt, bitmapW, bitmapH);
                     if (cw < 1 || ch < 1) continue;
 
                     int? targetPage = null;
@@ -355,10 +390,7 @@ namespace KillerPDF
                     double ry1 = Math.Min(r.top,  r.bottom);
                     double ry2 = Math.Max(r.top,  r.bottom);
 
-                    double cx = rx1 / pageWidthPt  * bitmapW;
-                    double cy = (pageHeightPt - ry2) / pageHeightPt * bitmapH;
-                    double cw = (rx2 - rx1) / pageWidthPt  * bitmapW;
-                    double ch = (ry2 - ry1) / pageHeightPt * bitmapH;
+                    var (cx, cy, cw, ch) = PdfRectToCanvas(rx1, ry1, rx2, ry2, pageWidthPt, pageHeightPt, bitmapW, bitmapH);
                     if (cw < 1 || ch < 1) continue;
 
                     int? targetPage = null;
@@ -422,18 +454,21 @@ namespace KillerPDF
             foreach (var lnk in links)
             {
                 var info = new LinkAnnotInfo(lnk.Tag, pageIndex, lnk.AnnotIndex);
+                // Grow the overlay by LinkHitPad on every side so the hand cursor, right-click menu, and the
+                // click bounds-check all share the padded hit area the tiled views use - thin one-line link
+                // strips are easy to hit in single-page view too.
                 var overlay = new Canvas
                 {
-                    Width            = lnk.Cw,
-                    Height           = lnk.Ch,
+                    Width            = lnk.Cw + LinkHitPad * 2,
+                    Height           = lnk.Ch + LinkHitPad * 2,
                     Background       = Brushes.Transparent,
                     Cursor           = Cursors.Hand,
                     ToolTip          = lnk.Tip,
                     Tag              = info,
                     IsHitTestVisible = true,
                 };
-                Canvas.SetLeft(overlay, lnk.Cx);
-                Canvas.SetTop(overlay, lnk.Cy);
+                Canvas.SetLeft(overlay, lnk.Cx - LinkHitPad);
+                Canvas.SetTop(overlay, lnk.Cy - LinkHitPad);
 
                 // Right-click menu: same actions as the tiled-view canvas menu, from the shared builder.
                 var cm = new ContextMenu();
