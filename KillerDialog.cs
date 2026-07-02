@@ -35,7 +35,8 @@ namespace KillerPDF
             MessageBoxButton buttons = MessageBoxButton.OK,
             MessageBoxImage image = MessageBoxImage.None,
             bool fadeClose = true,
-            string? checkboxText = null)
+            string? checkboxText = null,
+            MessageBoxResult? defaultResult = null)
 #pragma warning restore IDE0060
         {
             var result = MessageBoxResult.OK;
@@ -138,10 +139,14 @@ namespace KillerPDF
             // WPF's default blue hover chrome can't override our colors.
             Button MakeBtn(string label, MessageBoxResult res, bool accent = false)
             {
+                // Enter triggers the primary action. Normally that's the accent button; a caller can
+                // override which button is the default (e.g. the quit prompt makes the safe "No" the
+                // default), and the accent highlight follows so the Enter target is obvious.
+                bool isDefault = defaultResult is MessageBoxResult dr ? res == dr : accent;
                 // Shared themed button (UiKit.Make) so this dialog matches the print dialog et al.
-                var btn = UiKit.Make(label, accent);
+                var btn = UiKit.Make(label, isDefault);
                 btn.Margin = new Thickness(8, 0, 0, 0);
-                btn.IsDefault = accent;                           // Enter triggers the primary action
+                btn.IsDefault = isDefault;
                 btn.IsCancel  = res == MessageBoxResult.Cancel;   // Esc triggers Cancel where there is one
                 btn.Click += (_, _2) => { result = res; win.Close(); };
                 return btn;
@@ -305,9 +310,10 @@ namespace KillerPDF
             string message,
             string checkboxText,
             string title = "KillerPDF",
-            MessageBoxButton buttons = MessageBoxButton.OKCancel)
+            MessageBoxButton buttons = MessageBoxButton.OKCancel,
+            MessageBoxResult? defaultResult = null)
         {
-            var result = Show(owner, message, title, buttons, checkboxText: checkboxText);
+            var result = Show(owner, message, title, buttons, checkboxText: checkboxText, defaultResult: defaultResult);
             return (result, _lastCheckboxChecked);
         }
 

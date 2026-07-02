@@ -680,7 +680,7 @@
                                                IsHitTestVisible="False"/>
                                     <!-- Invisible toggle over the whole control -->
                                     <ToggleButton Grid.Column="0" Grid.ColumnSpan="2"
-                                                  Style="{DynamicResource DarkComboToggle}"
+                                                  Style="{StaticResource DarkComboToggle}"
                                                   IsChecked="{Binding IsDropDownOpen, Mode=TwoWay,
                                                               RelativeSource={RelativeSource TemplatedParent}}"/>
                                 </Grid>
@@ -2619,4 +2619,4 @@
     </Grid>
     </Border>
     </Grid>
-</Window>
+</Window>

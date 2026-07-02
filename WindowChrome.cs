@@ -551,7 +551,8 @@ namespace KillerPDF
                     var (remRes, remember) = KillerDialog.ShowWithCheckbox(this,
                         closeMsg,
                         Loc("Str_Dlg_RememberChoice"),
-                        Loc("Str_Dlg_AppTitle"), MessageBoxButton.YesNo);
+                        Loc("Str_Dlg_AppTitle"), MessageBoxButton.YesNo,
+                        defaultResult: MessageBoxResult.No);   // Enter = No (close but reopen next launch), the non-destructive choice
                     if (remRes == MessageBoxResult.Yes || remRes == MessageBoxResult.No)
                     {
                         App.SetSetting("RememberOpenFiles", remRes == MessageBoxResult.Yes ? "0" : "1");
