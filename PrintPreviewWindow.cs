@@ -297,7 +297,12 @@ namespace KillerPDF
             _ => (1, 1)
         };
 
-        private int SheetCount() => _pages.Length == 0 ? 0 : (_pages.Length + _nUp - 1) / _nUp;
+        // The page indices the preview walks AND the Print button sends - whatever range is typed in the
+        // Pages box (blank or unparseable falls back to every page, matching ParseRange). Driving the
+        // preview off this keeps it showing exactly the pages that will print (type "6" -> preview page 6).
+        private List<int> SelectedIndices() => ParseRange(_pagesBox.Text, _pages.Length);
+
+        private int SheetCount() => _pages.Length == 0 ? 0 : (SelectedIndices().Count + _nUp - 1) / _nUp;
 
         // Builds one sheet (aw x ah DIPs, white) holding the given source pages. 1-up honours the
         // scale mode + alignment + margin; N-up fits each page into its grid cell. Shared by the
@@ -639,6 +644,8 @@ namespace KillerPDF
                 Padding      = new Thickness(6, 4, 6, 4)
             };
             StyleTextBox(_pagesBox);
+            // Typing a range re-filters the preview to just those pages (jump back to the first one).
+            _pagesBox.TextChanged += (_, _) => { _previewIndex = 0; UpdatePreview(); };
             panel.Children.Add(_pagesBox);
             panel.Children.Add(new TextBlock
             {
@@ -830,20 +837,22 @@ namespace KillerPDF
             _previewHost.Children.Clear();
             if (_pages.Length == 0) { _pageLabel.Text = S("Str_Print_NoPages"); _renderLabel.Visibility = Visibility.Collapsed; return; }
 
-            int sheets = SheetCount();
+            var selected = SelectedIndices();
+            int sheets = Math.Max(1, (selected.Count + _nUp - 1) / _nUp);
             int sheet = Math.Max(0, Math.Min(_previewIndex, sheets - 1));
             _previewIndex = sheet;
 
-            // Source pages on this sheet (one for 1-up, up to _nUp for N-up).
+            // Source pages on this sheet, taken from the SELECTED set (one for 1-up, up to _nUp for N-up).
             var idxs = new System.Collections.Generic.List<int>();
-            for (int i = sheet * _nUp; i < Math.Min(_pages.Length, sheet * _nUp + _nUp); i++)
-                idxs.Add(i);
+            for (int i = sheet * _nUp; i < Math.Min(selected.Count, sheet * _nUp + _nUp); i++)
+                idxs.Add(selected[i]);
 
             // Page/sheet nav label is always shown; the "Rendering X / Y" line above it appears only while
-            // pages are still streaming in.
+            // pages are still streaming in. 1-up shows the real page number (so a filtered preview reads
+            // "Page 6 of 108"); N-up shows the sheet position within the selected set.
             _pageLabel.Text = _nUp > 1
                 ? $"Sheet {sheet + 1} of {sheets}"
-                : string.Format(S("Str_PageOf"), sheet + 1, _pages.Length);
+                : string.Format(S("Str_PageOf"), idxs.Count > 0 ? idxs[0] + 1 : 1, _pages.Length);
             UpdateRenderLabel();
 
             // If any page on this sheet hasn't rendered yet, show a spinner instead of composing.
@@ -1052,6 +1061,7 @@ namespace KillerPDF
                 // copy begins on a fresh front side.
                 int sheetsPerCopy = (indices.Count + _nUp - 1) / _nUp;
                 bool padForDuplex = _duplex && copies > 1 && (sheetsPerCopy % 2 == 1);
+                int composed = 0;   // yield to the dispatcher every so often so the spinner keeps turning
                 for (int copy = 0; copy < copies; copy++)
                 {
                     for (int start = 0; start < indices.Count; start += _nUp)
@@ -1069,6 +1079,11 @@ namespace KillerPDF
                         var pc = new PageContent();
                         ((IAddChild)pc).AddChild(fp);
                         fixedDoc.Pages.Add(pc);
+
+                        // Composing many high-res sheets can block long enough to stall the animation;
+                        // hand the UI thread a render pass every dozen sheets to keep the scrim alive.
+                        if (++composed % 12 == 0)
+                            await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
                     }
 
                     if (padForDuplex && copy < copies - 1)
@@ -1082,9 +1097,28 @@ namespace KillerPDF
                     }
                 }
 
-                pd.PrintDocument(fixedDoc.DocumentPaginator, "KillerPDF");
-                PrintedPageCount = indices.Count;
-                DialogResult = true;
+                // Spool ASYNCHRONOUSLY so the UI thread stays free and the spinner keeps turning while the
+                // job serializes to the spooler. PrintDialog.PrintDocument does this synchronously, which
+                // froze the animation until the printer had the whole document. The FixedDocument already
+                // carries the copy/duplex layout and `ticket` the orientation/color/duplex, so the output
+                // is identical to the old path (issue #83 copy handling unchanged - ticket.CopyCount stays 1).
+                var writer = PrintQueue.CreateXpsDocumentWriter(_queue);
+                var spooled = new TaskCompletionSource<bool>();
+                writer.WritingCompleted += (_, ev) =>
+                {
+                    if (ev.Error is not null)  spooled.TrySetException(ev.Error);
+                    else if (ev.Cancelled)     spooled.TrySetResult(false);
+                    else                       spooled.TrySetResult(true);
+                };
+                // Write the FixedDocument itself, NOT its DocumentPaginator: the paginator path makes the
+                // XPS serializer wrap each page's Visual in a fresh FixedPage, but the Visual already IS a
+                // FixedPage - "FixedPage cannot contain another FixedPage". The FixedDocument overload
+                // serializes the existing FixedPages directly.
+                writer.WriteAsync(fixedDoc, ticket);
+                bool ok = await spooled.Task;
+
+                PrintedPageCount = ok ? indices.Count : 0;
+                DialogResult = ok;
                 Close();
             }
             catch (Exception ex)
