@@ -133,6 +133,23 @@ namespace KillerPDF
             else if (e.Key == Key.F8) { SetViewMode(ViewMode.Grid);       e.Handled = true; }
             else if (e.Key == Key.F11) { ToggleFullScreen(); e.Handled = true; }
             else if (e.Key == Key.Escape && _fullScreen) { ToggleFullScreen(); e.Handled = true; }
+            // PgDn / PgUp navigate to the next / previous page - they never reorder pages (that's the
+            // toolbar Move Up/Down buttons). Handled at the window level with e.Handled so it behaves the
+            // same whether the page canvas or a sidebar thumbnail has focus; without this, a focused
+            // PageList (ListBox) would page its own selection instead. The TextBox guard at the top of this
+            // handler already exempts typing in a form field / typewriter box.
+            else if (e.Key == Key.PageDown && Keyboard.Modifiers == ModifierKeys.None)
+            {
+                if (PageList.Items.Count > 0)
+                    PageList.SelectedIndex = Math.Min(PageList.SelectedIndex + 1, PageList.Items.Count - 1);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.PageUp && Keyboard.Modifiers == ModifierKeys.None)
+            {
+                if (PageList.Items.Count > 0)
+                    PageList.SelectedIndex = Math.Max(PageList.SelectedIndex - 1, 0);
+                e.Handled = true;
+            }
             else if (e.Key == Key.P && Keyboard.Modifiers == ModifierKeys.Control)
             {
                 Print_Click(this, e);

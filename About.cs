@@ -216,7 +216,10 @@ namespace KillerPDF
                 http.DefaultRequestHeaders.UserAgent.ParseAdd("KillerPDF-UpdateCheck");
 
                 var exeUrl  = $"https://github.com/SteveTheKiller/KillerPDF/releases/download/{tag}/KillerPDF.exe";
-                var sumsUrl = $"https://raw.githubusercontent.com/SteveTheKiller/KillerPDF/{tag}/SHA256SUMS.txt";
+                // Read the checksums from the release ASSET next to the exe, not from raw.githubusercontent
+                // at the tag. Both files are uploaded to the release together, so the hash can never drift
+                // from the exe the way a repo-committed file does when the tag/commit order gets muddled.
+                var sumsUrl = $"https://github.com/SteveTheKiller/KillerPDF/releases/download/{tag}/SHA256SUMS.txt";
 
                 var exeBytes = await http.GetByteArrayAsync(exeUrl);
                 var sumsTxt  = await http.GetStringAsync(sumsUrl);

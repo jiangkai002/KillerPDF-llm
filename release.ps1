@@ -244,7 +244,9 @@ if ($srcZip) {
 }
 
 # ── 6. Write SHA256SUMS.txt ──────────────────────────────────────────────────
-$sumsPath = Join-Path $PSScriptRoot "SHA256SUMS.txt"
+# Written into the publish folder next to KillerPDF.exe and the -src.zip, so every file you
+# upload to the GitHub release is in one place. The updater reads this from the release assets.
+$sumsPath = Join-Path $publishDir "SHA256SUMS.txt"
 $lines    = [System.Collections.Generic.List[string]]::new()
 $lines.Add("KillerPDF.exe           $exeHash")
 if ($pdfiumPath) { $lines.Add("pdfium.dll              $pdfiumHash") }

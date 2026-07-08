@@ -6,6 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.6.2] - unreleased
 
+### Added
+- Page Up / Page Down navigate to the previous / next page, consistently regardless of what has focus (a focused sidebar thumbnail no longer pages its own selection instead). Page reordering stays on the toolbar Move Up / Move Down buttons (#117).
+
+### Fixed
+- The in-app self-updater now reads `SHA256SUMS.txt` from the release assets instead of from the repo at the release tag. The checksum file and the exe are uploaded to the release together, so the hash can no longer drift from the binary when tag/commit order varies, which was causing the update to fail its checksum and quietly fall back to the releases page.
+
 ## [1.6.1] - 2026-07-01
 
 ### Added

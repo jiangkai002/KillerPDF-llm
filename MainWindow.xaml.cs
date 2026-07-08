@@ -359,6 +359,7 @@ namespace KillerPDF
             SetTool(EditTool.Select);
             ApplyGrainTexture();
             ApplyToolNumberTooltips();   // append the 1-9 toolbar positions to the tool tooltips
+            BuildShortcutsOverlay();     // generate the shortcuts card from the single-source table (ShortcutsOverlay.cs)
             SourceInitialized += MainWindow_SourceInitialized;
             Closed += (_, _) => { _continuousRenderCts?.Cancel(); _doc?.Close(); CloseLinkPdfiumDoc(); App.CleanupSessionTemps(); };
 
