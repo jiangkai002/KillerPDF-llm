@@ -1,6 +1,6 @@
 # KillerPDF
 
-Free and open-source PDF editor for Windows. View, annotate, OCR, merge, split, edit text, draw, sign, fill forms, print, flatten, and open password-protected PDFs without an Adobe subscription or a phone-home. Install or run portable. Single Windows EXE, ~14.6 MB (ZIPs to 10.2MB), no runtime install required.
+Free and open-source PDF editor for Windows. View, annotate, OCR, merge, split, edit text, draw, sign, fill forms, print, flatten, and open password-protected PDFs without an Adobe subscription or a phone-home. Install or run portable. Self-contained Windows EXE, no runtime install required.
 
 Landing page is hosted at [KillerPDF.net](https://killerpdf.net)
 
@@ -38,7 +38,8 @@ KillerPDF is what I wanted: local-only, portable, no account, no telemetry. The 
 - OCR a whole page or a dragged region straight to the clipboard
 - Make Searchable PDF: lay an invisible text layer over a scan
 - Extract All Text to a `.txt` or `.md` file
-- Tesseract bundled in the single EXE; extra languages download on demand
+- PP-OCRv5/ONNX is the default for high-quality Chinese, English and mixed-language recognition
+- Tesseract remains available as an alternate engine; extra Tesseract languages download on demand
 
 ### Organize pages
 
@@ -69,7 +70,7 @@ KillerPDF is what I wanted: local-only, portable, no account, no telemetry. The 
 
 ### App & files
 
-- Single portable Windows EXE, ~14.62 MB, no runtime install
+- Single portable, self-contained Windows EXE (~115 MiB with PP-OCRv5), no runtime install
 - Self-installs per-user to %LOCALAPPDATA% (no UAC), registers as a PDF handler with a branded file icon, and uninstalls cleanly via Add/Remove Programs
 - Opens password-protected PDFs (prompts instead of erroring) and repairs damaged ones
 - Local-only: no account, no telemetry, no phone-home
@@ -88,7 +89,7 @@ KillerPDF is what I wanted: local-only, portable, no account, no telemetry. The 
 ## Requirements
 
 - Windows 10 or 11 (x64)
-- No runtime install. Everything needed is inside the EXE (targets .NET Framework 4.8, which ships with every supported Windows release).
+- No runtime install. The self-contained .NET 8 Windows Desktop runtime and native dependencies are bundled into the EXE.
 
 ## Download
 
@@ -115,9 +116,9 @@ cd KillerPDF
 dotnet publish -c Release
 ```
 
-Output lands in `bin/Release/net48/publish/`. The publish step produces a single Costura-bundled `KillerPDF.exe` plus a versioned `KillerPDF-<version>-src.zip` for GPL3 source distribution.
+Output lands in `bin/Release/net8.0-windows/win-x64/publish/`. The publish step uses .NET's native self-contained single-file bundler and produces `KillerPDF.exe` plus a versioned `KillerPDF-<version>-src.zip` for GPL3 source distribution.
 
-Requires the .NET 8 SDK or later to build (even though the output targets .NET Framework 4.8).
+Requires the .NET 8 SDK or later to build. End users do not need to install the .NET runtime.
 
 ## Changelog
 

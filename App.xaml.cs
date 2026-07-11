@@ -678,6 +678,7 @@ namespace KillerPDF
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "KillerPDF");
             TryDeleteDir(Path.Combine(localKp, "tessdata"));   // downloaded language packs + bundled English
             TryDeleteDir(Path.Combine(localKp, "ocr"));        // native Tesseract cache
+            TryDeleteDir(Path.Combine(localKp, "MarkdownMath")); // rendered LaTeX formula cache
             TryDeleteDir(TempDir);                              // temp working files
 
             // Legacy temp PDFs that may linger in %TEMP%.
@@ -1244,8 +1245,9 @@ namespace KillerPDF
         // ── pdfium.dll integrity check ───────────────────────────────────────
 
         /// <summary>
-        /// Finds the Costura-embedded pdfium resource, decompresses it in-memory,
-        /// and compares its SHA256 to BuildInfo.PdfiumSha256.
+        /// Compares a side-by-side development copy of pdfium.dll to the release hash.
+        /// In a .NET 8 single-file release, the signed app bundle is the integrity boundary and the
+        /// native app host extracts PDFium into a content-addressed cache before managed startup.
         /// Returns false (and shows a message box) only on a confirmed mismatch.
         /// Fails-open if the check cannot complete (dev builds, missing resource, I/O error).
         /// </summary>
@@ -1254,21 +1256,16 @@ namespace KillerPDF
             if (string.Equals(BuildInfo.PdfiumSha256, BuildInfo.PdfiumSha256Disabled, StringComparison.Ordinal))
                 return true; // disabled for this build (dev / SkipSign)
 
-            var asm = Assembly.GetExecutingAssembly();
-            var resourceName = Array.Find(asm.GetManifestResourceNames(),
-                n => n.IndexOf("pdfium", StringComparison.OrdinalIgnoreCase) >= 0
-                     && n.EndsWith(".compressed", StringComparison.OrdinalIgnoreCase));
-
-            if (resourceName == null)
-                return true; // not bundled via Costura (dev build running from bin/)
+            string pdfiumPath = Path.Combine(AppContext.BaseDirectory, "pdfium.dll");
+            if (!File.Exists(pdfiumPath))
+                return true; // single-file bundle: Authenticode protects the bundle as a whole
 
             try
             {
                 string actual;
-                using (var rs      = asm.GetManifestResourceStream(resourceName)!)
-                using (var deflate = new DeflateStream(rs, CompressionMode.Decompress))
-                using (var sha     = SHA256.Create())
-                    actual = BitConverter.ToString(sha.ComputeHash(deflate)).Replace("-", "");
+                using (var fs = File.OpenRead(pdfiumPath))
+                using (var sha = SHA256.Create())
+                    actual = BitConverter.ToString(sha.ComputeHash(fs)).Replace("-", "");
 
                 if (!string.Equals(actual, BuildInfo.PdfiumSha256,
                         StringComparison.OrdinalIgnoreCase))

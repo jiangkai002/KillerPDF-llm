@@ -4,6 +4,13 @@ using Tesseract;
 
 namespace KillerPDF.Services
 {
+    internal interface IOcrEngine : IDisposable
+    {
+        OcrResult RecognizeImageFile(string imagePath);
+        OcrResult RecognizeImageBytes(byte[] encodedImage);
+        OcrResult RecognizeBgra(byte[] bgra, int width, int height);
+    }
+
     /// <summary>A single recognized word with its confidence and pixel box (top-left origin, OCR image space).</summary>
     internal sealed class OcrWord
     {
@@ -28,7 +35,7 @@ namespace KillerPDF.Services
     /// exe; the native engine loads language data by path. A TesseractEngine is NOT thread-safe, so run
     /// OCR off the UI thread and create a fresh OcrService per operation (or serialize calls). Dispose when done.
     /// </summary>
-    internal sealed class OcrService : IDisposable
+    internal sealed class OcrService : IOcrEngine
     {
         private readonly TesseractEngine _engine;
 

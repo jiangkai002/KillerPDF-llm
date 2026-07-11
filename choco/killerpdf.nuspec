@@ -33,7 +33,7 @@
 - Clickable PDF links and internal cross-references
 - Full-text search across the entire document with result highlighting
 - Keyboard shortcut overlay (Ctrl+?)
-- Single Windows EXE, ~6 MB, no runtime install required
+- Self-contained Windows EXE, no runtime install required
 - GPLv3, local-only, no account, no telemetry
     </description>
     <releaseNotes>https://github.com/SteveTheKiller/KillerPDF/releases/tag/vREPLACE_VERSION</releaseNotes>

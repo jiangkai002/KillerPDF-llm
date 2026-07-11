@@ -6,7 +6,7 @@ namespace KillerPDF
     internal static class BuildInfo
     {
         /// <summary>
-        /// SHA256 of pdfium.dll (original bytes, before Costura compression).
+        /// SHA256 of pdfium.dll before it is included in the .NET single-file bundle.
         /// Updated by release.ps1 immediately before each build.
         /// All-zeros means the check is disabled (dev / SkipSign builds).
         /// </summary>

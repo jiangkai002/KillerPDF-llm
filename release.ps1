@@ -5,7 +5,7 @@
 .DESCRIPTION
     1. Locates pdfium.dll in the NuGet cache, hashes it, and writes BuildInfo.cs so the
        embedded integrity check at startup knows the expected value.
-    2. Publishes using FolderProfile1 (net48, win-x64); bundle-source.ps1 also runs.
+    2. Publishes using FolderProfile1 (.NET 8, self-contained win-x64 single file); bundle-source.ps1 also runs.
     3. Signs KillerPDF.exe. Prefers CertThumbprint (exact match) over CertName (CN match).
        Retries the timestamp across three TSA endpoints if the first attempt fails.
     4. Runs "signtool verify /pa /v" as a post-sign gate — aborts if the cert chain
@@ -43,7 +43,7 @@ Set-StrictMode -Version Latest
 
 $proj         = Join-Path $PSScriptRoot "KillerPDF.csproj"
 $buildInfoPath = Join-Path $PSScriptRoot "BuildInfo.cs"
-$publishDir   = Join-Path $PSScriptRoot "bin\Release\net48\publish"
+$publishDir   = Join-Path $PSScriptRoot "bin\Release\net8.0-windows\win-x64\publish"
 $exe          = Join-Path $publishDir "KillerPDF.exe"
 
 # TSA endpoints — tried in order; first success wins.
@@ -77,7 +77,7 @@ $pdfiumNuget = Get-ChildItem "$nugetCache\docnet.core\*\runtimes\win-x64\native\
                Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
 
 # Also check the build output as a fallback
-$pdfiumBuild = Join-Path $PSScriptRoot "bin\Release\net48\win-x64\pdfium.dll"
+$pdfiumBuild = Join-Path $PSScriptRoot "bin\Release\net8.0-windows\win-x64\pdfium.dll"
 
 $pdfiumPath = $null
 if ($pdfiumNuget -and (Test-Path $pdfiumNuget)) {
@@ -112,7 +112,7 @@ namespace KillerPDF
     internal static class BuildInfo
     {
         /// <summary>
-        /// SHA256 of pdfium.dll (original bytes, before Costura compression).
+        /// SHA256 of pdfium.dll before it is included in the .NET single-file bundle.
         /// Updated by release.ps1 immediately before each build.
         /// All-zeros means the check is disabled (dev / SkipSign builds).
         /// </summary>
@@ -126,7 +126,7 @@ namespace KillerPDF
 Write-Host "    BuildInfo.cs updated." -ForegroundColor Green
 
 # ── 2. Build / Publish ──────────────────────────────────────────────────────
-Write-Host "`n==> Building (Release, net48, win-x64)..." -ForegroundColor Cyan
+Write-Host "`n==> Building (Release, .NET 8, self-contained win-x64 single file)..." -ForegroundColor Cyan
 
 $msbuild = $null
 $vsWhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"

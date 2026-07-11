@@ -4,13 +4,14 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:KillerPDF"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         mc:Ignorable="d"
         Title="KillerPDF" Height="700" Width="1000" MinHeight="480" MinWidth="620"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         ResizeMode="CanResize"
         Background="{DynamicResource BgDark}"
-        FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"
+        FontFamily="Microsoft YaHei UI, Segoe UI, Microsoft JhengHei UI, Nirmala UI"
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType"
         UseLayoutRounding="True"
@@ -1174,6 +1175,7 @@
                         <Button Content="&#xED62;" Style="{StaticResource ToolbarButtonDanger}" Click="ClearAllAnnotations_Click" ToolTip="{DynamicResource Str_TT_ClearAnnotations}"/>
                         <Rectangle Width="1" Fill="{DynamicResource BorderDim}" Margin="4,6"/>
                         <Button x:Name="SearchBtn" Content="&#xE721;" Style="{StaticResource ToolbarButton}" Click="Search_Click" ToolTip="{DynamicResource Str_TT_Search}"/>
+                        <Button x:Name="AiChatBtn" Content="&#xE8BD;" Style="{StaticResource ToolbarButtonAccent}" Click="AiChat_Click" ToolTip="AI PDF assistant"/>
                     </StackPanel>
                     <!-- 10px left gap so the zoom cluster reads as separate from the Search button. -->
                     <Button x:Name="ZoomOutBtn" Content="&#xECC9;" Style="{StaticResource ToolbarButton}"
@@ -1767,6 +1769,81 @@
                     Height="1" VerticalAlignment="Bottom" IsHitTestVisible="False" Panel.ZIndex="60"
                     Background="{DynamicResource DragLine}"/>
         </Grid>
+
+        <!-- AI assistant slides over the document without changing page layout or zoom. -->
+        <Border x:Name="AiChatPanel" Grid.Row="2" Grid.RowSpan="2" Panel.ZIndex="5000"
+                Width="360" HorizontalAlignment="Right" Visibility="Collapsed"
+                Background="{DynamicResource BgModal}" BorderBrush="{DynamicResource AccentBorder}"
+                BorderThickness="1,0,0,0">
+            <Border.Resources>
+                <ResourceDictionary>
+                    <ResourceDictionary.MergedDictionaries>
+                        <ui:ThemesDictionary Theme="Dark"/>
+                        <ui:ControlsDictionary/>
+                    </ResourceDictionary.MergedDictionaries>
+                </ResourceDictionary>
+            </Border.Resources>
+            <Border.Effect><DropShadowEffect Color="Black" BlurRadius="18" ShadowDepth="5" Direction="180" Opacity="0.45"/></Border.Effect>
+            <Grid Margin="16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid>
+                    <TextBlock Text="AI PDF Assistant" FontFamily="Consolas" FontSize="16" FontWeight="SemiBold"
+                               Foreground="{DynamicResource HeaderAccent}" VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <ui:Button Appearance="Secondary" Icon="{ui:SymbolIcon Settings24}" Margin="0,0,6,0"
+                                   Click="AiModelSettings_Click" ToolTip="Model configurations"/>
+                        <ui:Button Appearance="Secondary" Icon="{ui:SymbolIcon Dismiss24}"
+                                   Click="AiChatClose_Click" ToolTip="Close"/>
+                    </StackPanel>
+                </Grid>
+                <TextBlock Grid.Row="1" Text="Ask questions about your document" Foreground="{DynamicResource TextSecondary}"
+                           FontSize="11" Margin="0,3,0,8"/>
+                <ScrollViewer x:Name="AiMessagesScroll" Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="AiMessagesPanel" Margin="0,4,0,8"/>
+                </ScrollViewer>
+                <Border x:Name="AiCaptureCard" Grid.Row="3" Visibility="Collapsed" Background="{DynamicResource BgPanel}"
+                        BorderBrush="{DynamicResource BorderDim}" BorderThickness="1" CornerRadius="5" Padding="8" Margin="0,0,0,8">
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="72"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <Image x:Name="AiCaptureImage" Width="64" Height="48" Stretch="UniformToFill"/>
+                        <TextBlock x:Name="AiCaptureText" Grid.Column="1" Margin="8,0" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                                   MaxHeight="48" Foreground="{DynamicResource TextSecondary}" FontSize="11"/>
+                        <ui:Button Grid.Column="2" Appearance="Secondary" Icon="{ui:SymbolIcon Dismiss20}"
+                                   Width="32" Height="32" Click="AiClearCapture_Click" ToolTip="Remove screenshot"/>
+                    </Grid>
+                </Border>
+                <Grid Grid.Row="4">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBox x:Name="AiPromptBox" MinHeight="64" MaxHeight="120" AcceptsReturn="True" TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto" KeyDown="AiPromptBox_KeyDown"/>
+                    <Grid Grid.Row="1" Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="Model" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <ComboBox x:Name="AiModelPicker" Grid.Column="1" MinHeight="38"
+                                  Foreground="{DynamicResource TextPrimary}"
+                                  VerticalContentAlignment="Center" SelectionChanged="AiModelPicker_SelectionChanged"
+                                  ToolTip="Select the model used for this conversation"/>
+                    </Grid>
+                    <Grid Grid.Row="2" Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <ui:Button Grid.Column="0" Content="Screenshot &amp; OCR" Appearance="Secondary" Icon="{ui:SymbolIcon Scan24}"
+                                   HorizontalAlignment="Stretch" Padding="8,6" Click="AiCapture_Click" ToolTip="Drag over an area in the PDF"/>
+                        <ui:Button x:Name="AiSaveNoteBtn" Grid.Column="2" Content="Save note" Appearance="Secondary" Icon="{ui:SymbolIcon DocumentSave24}"
+                                   HorizontalAlignment="Stretch" Padding="8,6" Click="AiSaveNote_Click"
+                                   ToolTip="Ask the selected model to summarize the conversation as a Markdown note"/>
+                    </Grid>
+                    <ui:Button x:Name="AiSendBtn" Grid.Row="3" Content="Send" Appearance="Primary" Icon="{ui:SymbolIcon Send24}"
+                               Background="#0D9488" Foreground="White" BorderBrush="#2DD4BF"
+                               HorizontalAlignment="Stretch" Margin="0,8,0,0" Padding="16,7" Click="AiSend_Click"/>
+                </Grid>
+            </Grid>
+        </Border>
 
         <!-- Status bar -->
         <Border Grid.Row="4" x:Name="FooterBorder" Background="{DynamicResource BgSidebar}" CornerRadius="0,0,7,7">

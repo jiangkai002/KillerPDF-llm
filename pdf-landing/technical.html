@@ -115,13 +115,13 @@
 <h2 data-i18n="pt_16">Tech stack</h2>
 <p data-i18n="pt_17">KillerPDF is a native Windows app. There is no Electron, no browser engine, and no runtime to install. It relies on a small set of focused libraries, each handling one job:</p>
 <table class="spec-table"><tr><th data-i18n="pt_18">Component</th><th data-i18n="pt_19">Library</th></tr>
-<tr><td data-i18n="pt_20">UI</td><td data-i18n="pt_21">WPF on .NET Framework 4.8 (net48), x64, custom window chrome</td></tr>
+<tr><td data-i18n="pt_20">UI</td><td data-i18n="pt_21">WPF on .NET 8 (net8.0-windows), x64, custom window chrome</td></tr>
 <tr><td data-i18n="pt_22">Rendering</td><td data-i18n="pt_23">PDFium via Docnet.Core 2.6 - every page bitmap and thumbnail</td></tr>
 <tr><td data-i18n="pt_24">Text</td><td data-i18n="pt_25">PdfPig 0.1.14 - search, selection, font sniffing</td></tr>
 <tr><td data-i18n="pt_26">Write engine</td><td data-i18n="pt_27">PdfSharpCore 1.3 - save, page ops, annotation / stamp flattening</td></tr>
 <tr><td data-i18n="pt_28">Signing</td><td data-i18n="pt_29">PDFsharp 6.2 (separate namespace) - CMS / SHA-256 signatures</td></tr>
 <tr><td data-i18n="pt_30">OCR</td><td data-i18n="pt_31">Tesseract 5.2 - native libs embedded, language packs on demand</td></tr>
-<tr><td data-i18n="pt_32">Packaging</td><td data-i18n="pt_33">Costura.Fody - one self-contained .exe</td></tr>
+<tr><td data-i18n="pt_32">Packaging</td><td data-i18n="pt_33">.NET native single-file publishing - one self-contained .exe</td></tr>
 </table>
 </div>
 
@@ -150,7 +150,7 @@
 
 <div class="tech-sec" id="arch">
 <h2 data-i18n="pt_54">Architecture</h2>
-<p data-i18n="pt_55">The whole interface is built as one large class (<b>MainWindow</b>) split across roughly forty source files, about 27,000 lines of C# on WPF and .NET Framework 4.8. Each pop-up dialog is its own class, and shared background work lives under <code>Services/</code>.</p>
+<p data-i18n="pt_55">The whole interface is built as one large class (<b>MainWindow</b>) split across roughly forty source files, about 27,000 lines of C# on WPF and .NET 8. Each pop-up dialog is its own class, and shared background work lives under <code>Services/</code>.</p>
 <h3 id="two-render-pipelines" data-i18n="pt_56">Two render pipelines</h3>
 <p data-i18n="pt_57">KillerPDF draws pages in two different ways depending on the view you are in. Single, Two-Page and Grid views draw into one main tile (<b>RenderPage</b>). Continuous scrolling uses a separate path (<b>RenderContinuousPages</b>) that streams page images in the background as you scroll. RenderPage is deliberately switched off during Continuous so the two systems never fight over the same tile.</p>
 <h3 id="per-tab-sessions-an-lru-cache" data-i18n="pt_58">Per-tab sessions &amp; an LRU cache</h3>
@@ -366,7 +366,7 @@
 <tr><td data-i18n="pt_158">Annotation</td><td data-i18n="pt_159">Anything you add on top of a PDF: a highlight, text box, drawn line, signature, or image. It sits on the overlay, separate from the original page, and only becomes part of the file when you save (see Flatten).</td></tr>
 <tr><td data-i18n="pt_160">Bitmap</td><td data-i18n="pt_161">A grid of colored pixels. To display a page, KillerPDF draws (rasterizes) it into a bitmap at a resolution chosen from your zoom and screen density.</td></tr>
 <tr><td data-i18n="pt_162">CMS signature</td><td data-i18n="pt_163">Cryptographic Message Syntax, the standard format for a digital signature embedded in a PDF. KillerPDF signs using SHA-256 over the whole file.</td></tr>
-<tr><td data-i18n="pt_164">Costura (Costura.Fody)</td><td data-i18n="pt_165">A build-time tool that packs every library the app needs inside the single .exe, so there is nothing extra to install.</td></tr>
+<tr><td data-i18n="pt_164">.NET single-file publisher</td><td data-i18n="pt_165">The .NET 8 app host packs the Windows Desktop runtime and application libraries inside the single .exe, so there is nothing extra to install.</td></tr>
 <tr><td data-i18n="pt_166">Cover / cover-pair</td><td data-i18n="pt_167">A Cover is an opaque box that hides the original words on a page. To edit existing PDF text, KillerPDF lays a Cover over the old text and a Text box on top holding your replacement; the two are locked together as a cover-pair.</td></tr>
 <tr><td data-i18n="pt_168">Cross-reference table (xref)</td><td data-i18n="pt_169">The index near the end of a PDF that records where every internal object is stored. If it is damaged, many readers fail to open the file, so KillerPDF has recovery paths that rebuild it.</td></tr>
 <tr><td data-i18n="pt_170">Device-independent pixel (DIP)</td><td data-i18n="pt_171">The unit KillerPDF's drawing surface uses. One DIP is a fixed physical size regardless of how dense the screen is, so layouts look the same across monitors.</td></tr>
@@ -377,7 +377,7 @@
 <tr><td data-i18n="pt_180">Ink</td><td data-i18n="pt_181">A freehand drawn stroke. The Line tool is stored as ink as well.</td></tr>
 <tr><td data-i18n="pt_182">Linearized PDF</td><td data-i18n="pt_183">A PDF arranged so a viewer can start showing the first page before the whole file has loaded (sometimes called "fast web view"). These files often keep their structure in object streams.</td></tr>
 <tr><td data-i18n="pt_184">LRU cache (least recently used)</td><td data-i18n="pt_185">A memory-saving rule that keeps the most recently used items and drops the oldest. KillerPDF keeps the drawn-page cache for only the three most recent tabs.</td></tr>
-<tr><td data-i18n="pt_186">.NET Framework 4.8 (net48)</td><td data-i18n="pt_187">The version of Microsoft's .NET platform KillerPDF is built for. It ships with every supported version of Windows, so users install no separate runtime.</td></tr>
+<tr><td data-i18n="pt_186">.NET 8 (net8.0-windows)</td><td data-i18n="pt_187">The version of Microsoft's .NET platform KillerPDF is built for. It is included in the self-contained executable, so users install no separate runtime.</td></tr>
 <tr><td data-i18n="pt_188">Object stream</td><td data-i18n="pt_189">A compressed container inside modern PDFs (version 1.5 and later) that bundles many of the file's internal objects together. Some libraries cannot read them, which is why KillerPDF falls back to PDFium for certain jobs.</td></tr>
 <tr><td data-i18n="pt_190">OCR (optical character recognition)</td><td data-i18n="pt_191">Reading the actual text out of a scanned image so it can be searched, selected, or copied. KillerPDF uses Tesseract.</td></tr>
 <tr><td data-i18n="pt_192">Overlay</td><td data-i18n="pt_193">The transparent sheet drawn directly on top of a page image, where your annotations are painted. The page image underneath is never changed.</td></tr>

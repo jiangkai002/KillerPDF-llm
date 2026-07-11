@@ -18,7 +18,7 @@ namespace KillerPDF
     public partial class MainWindow
     {
         // ============================================================
-        // OCR (Tesseract) - extract text from a rendered page
+        // OCR (PP-OCRv5 default, Tesseract optional) - extract text from a rendered page
         // ============================================================
 
         // Longest-side pixel budget for the OCR render. ~300 DPI on a Letter page, which is the sweet
@@ -50,6 +50,26 @@ namespace KillerPDF
         // ============================================================
         // OCR languages (multi-select, on-demand download)
         // ============================================================
+
+        // PP-OCRv5 is the default after the .NET 8 migration. Tesseract stays available for users who
+        // prefer its smaller English-focused pipeline or need one of its extra language packs.
+        private static bool UsePaddleOcr => App.GetSetting("OcrEngine") != "Tesseract";
+
+        private static IOcrEngine CreateOcrEngine(string language) => UsePaddleOcr
+            ? new PaddleOcrService()
+            : new OcrService(language: language);
+
+        private MenuItem BuildOcrEngineMenu()
+        {
+            var root = new MenuItem { Header = "OCR engine" };
+            var paddle = new MenuItem { Header = "PP-OCRv5 (Chinese + English)", IsCheckable = true, IsChecked = UsePaddleOcr };
+            var tesseract = new MenuItem { Header = "Tesseract", IsCheckable = true, IsChecked = !UsePaddleOcr };
+            paddle.Click += (_, _) => { App.SetSetting("OcrEngine", "Paddle"); SetStatus("OCR engine: PP-OCRv5"); };
+            tesseract.Click += (_, _) => { App.SetSetting("OcrEngine", "Tesseract"); SetStatus("OCR engine: Tesseract"); };
+            root.Items.Add(paddle);
+            root.Items.Add(tesseract);
+            return root;
+        }
 
         // Tesseract code -> display name, covering KillerPDF's 8 UI locales. English is bundled; the rest
         // are downloaded on demand into OcrNativeBootstrap.TessDataDir.
@@ -361,6 +381,8 @@ namespace KillerPDF
         // dialog. Returns true only when every required model is installed and OCR may proceed.
         private async Task<bool> EnsureOcrModelsReadyAsync()
         {
+            if (UsePaddleOcr) return true; // PP-OCRv5 models are embedded and require no download.
+
             // Desired languages from the persisted setting (default English), regardless of install state.
             var desired = new List<string>(
                 (App.GetSetting("OcrLanguages") ?? "eng").Split(['+'], StringSplitOptions.RemoveEmptyEntries));
@@ -445,7 +467,7 @@ namespace KillerPDF
                     // Temp file has /Rotate stripped, so rotate the pixel buffer to the page's visual orientation.
                     if (rot != 0) (bgra, w, h) = RotateBitmap(bgra, w, h, rot);
 
-                    using var ocr = new OcrService(language: lang);   // engine is not thread-safe: one per operation
+                    using var ocr = CreateOcrEngine(lang);   // engines are not thread-safe: one per operation
                     return ocr.RecognizeBgra(bgra, w, h);
                 });
 
@@ -494,7 +516,11 @@ namespace KillerPDF
             if (pageIdx < 0 || pageIdx >= _doc.PageCount) return;
             if (!_renderDims.TryGetValue(pageIdx, out var rd) || rd.w <= 0 || rd.h <= 0) return;
             if (canvasBounds.Width < 4 || canvasBounds.Height < 4) { SetStatus("OCR region too small"); return; }
-            if (!await EnsureOcrModelsReadyAsync()) return;
+            if (!await EnsureOcrModelsReadyAsync())
+            {
+                if (_aiCaptureMode) { _aiCaptureMode = false; AiChatPanel.Visibility = Visibility.Visible; }
+                return;
+            }
 
             string file = _currentFile;
             int rot = _pageRotations.TryGetValue(pageIdx, out var r) ? r : 0;
@@ -506,7 +532,7 @@ namespace KillerPDF
             var busy = ShowBusyOverlay("Recognizing region...");
             try
             {
-                OcrResult result = await Task.Run(() =>
+                var captured = await Task.Run(() =>
                 {
                     using var docReader = DocLib.Instance.GetDocReader(file, new PageDimensions(OcrRenderMax, OcrRenderMax));
                     using var pageReader = docReader.GetPageReader(pageIdx);
@@ -521,20 +547,34 @@ namespace KillerPDF
                         (int)Math.Round(cb.Width * sx), (int)Math.Round(cb.Height * sy),
                         out int cw, out int chh);
 
-                    using var ocr = new OcrService(language: lang);
-                    return ocr.RecognizeBgra(crop, cw, chh);
+                    using var ocr = CreateOcrEngine(lang);
+                    return (Result: ocr.RecognizeBgra(crop, cw, chh), Pixels: crop, Width: cw, Height: chh);
                 });
+                OcrResult result = captured.Result;
 
                 HideBusyOverlay(busy);
-                if (ct.IsCancellationRequested) { SetStatus("OCR cancelled"); return; }
+                if (ct.IsCancellationRequested)
+                {
+                    SetStatus("OCR cancelled");
+                    if (_aiCaptureMode) { _aiCaptureMode = false; AiChatPanel.Visibility = Visibility.Visible; }
+                    return;
+                }
 
                 string text = result.Text.Trim();
+                if (_aiCaptureMode)
+                {
+                    _aiCaptureMode = false;
+                    SetAiCapture(captured.Pixels, captured.Width, captured.Height, text);
+                    return;
+                }
                 if (text.Length == 0) { SetStatus("OCR: no text found in the selected region"); return; }
                 Clipboard.SetText(text);
                 SetStatus($"OCR: copied {text.Length} chars from the region ({result.MeanConfidence:P0} confidence)");
             }
             catch (Exception ex)
             {
+                _aiCaptureMode = false;
+                if (AiChatPanel is not null) AiChatPanel.Visibility = Visibility.Visible;
                 HideBusyOverlay(busy);
                 KillerDialog.Show(this, $"OCR failed:\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -578,7 +618,11 @@ namespace KillerPDF
                 menu.Items.Add(MakeMenuItem(Loc("Str_Ocr_SearchablePdf"), (_, _) => MakeSearchablePdf()));
                 menu.Items.Add(MakeMenuItem(Loc("Str_Ocr_ExtractText"), (_, _) => ExtractAllText()));
                 menu.Items.Add(new Separator());
-                menu.Items.Add(BuildLanguageMenu());
+                menu.Items.Add(BuildOcrEngineMenu());
+                var languages = BuildLanguageMenu();
+                languages.Header = "Tesseract languages";
+                languages.IsEnabled = !UsePaddleOcr;
+                menu.Items.Add(languages);
             }
             menu.PlacementTarget = (UIElement)sender;
             menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
@@ -673,7 +717,7 @@ namespace KillerPDF
             var invisible = new XSolidBrush(XColor.FromArgb(0, 0, 0, 0));
 
             using var docReader = DocLib.Instance.GetDocReader(src, new PageDimensions(OcrRenderMax, OcrRenderMax));
-            using var ocr = new OcrService(language: language);   // one engine reused across the whole document (single-threaded here)
+            using var ocr = CreateOcrEngine(language);   // one engine reused across the whole document (single-threaded here)
 
             var outDoc = PdfReader.Open(src, PdfDocumentOpenMode.Modify);
             int pages = outDoc.PageCount;
@@ -786,7 +830,7 @@ namespace KillerPDF
             string nl = Environment.NewLine;
             var sb = new StringBuilder();
             using var docReader = DocLib.Instance.GetDocReader(src, new PageDimensions(OcrRenderMax, OcrRenderMax));
-            using var ocr = new OcrService(language: language);
+            using var ocr = CreateOcrEngine(language);
 
             for (int i = 0; i < pageCount; i++)
             {
