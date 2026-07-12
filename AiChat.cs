@@ -330,7 +330,7 @@ namespace KillerPDF
             string model = profile.ModelName.Trim();
             string content = prompt;
             if (!string.IsNullOrWhiteSpace(_aiCapturedText))
-                content += "\n\nThe following text was OCR-recognized from the user's selected PDF screenshot. Use it as document context:\n---\n" + _aiCapturedText + "\n---";
+                content += "\n\nThe following text was OCR-recognized from the user's selected PDF screenshot. Treat it as the source passage for the question. Explain what the user asks about instead of merely summarizing or repeating the passage:\n---\n" + _aiCapturedText + "\n---";
             _aiHistory.Add(("user", content));
             AddAiBubble("user", prompt + (!string.IsNullOrWhiteSpace(_aiCapturedText) ? "\n[PDF screenshot attached]" : ""));
             AiPromptBox.Clear();
@@ -344,7 +344,7 @@ namespace KillerPDF
             {
                 using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(90) };
                 client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key);
-                var messages = new List<object> { new { role = "system", content = "You are a concise PDF reading assistant. Answer from supplied document context when available, and clearly say when the context is insufficient. Format responses as Markdown, but never wrap the entire response in a ```markdown or ```md code fence. Use fenced code blocks only for actual source code." } };
+                var messages = new List<object> { new { role = "system", content = "You are a helpful PDF reading and teaching assistant. Directly answer and explain the user's question. Use the supplied document passage as the primary context, then use your general domain knowledge to clarify concepts, mechanisms, examples, and background that the passage does not spell out. Do not respond merely that the context does not explain something when you can provide a reliable explanation yourself. Clearly distinguish document claims from your supplementary explanation when that distinction matters. Mention insufficient information only when the answer genuinely depends on missing document-specific facts that cannot be inferred. Match the user's language. Format responses as Markdown, but never wrap the entire response in a ```markdown or ```md code fence. Use fenced code blocks only for actual source code." } };
                 foreach (var m in _aiHistory) messages.Add(new { role = m.role, content = m.content });
                 string json = JsonSerializer.Serialize(new { model, messages, stream = true });
                 using var request = new HttpRequestMessage(HttpMethod.Post, endpoint + "/chat/completions")
@@ -363,9 +363,13 @@ namespace KillerPDF
                 using (var stream = await response.Content.ReadAsStreamAsync())
                 using (var reader = new StreamReader(stream))
                 {
-                    while (!reader.EndOfStream)
+                    const int renderIntervalMs = 80;
+                    long lastRenderAt = 0;
+                    int chunksSinceYield = 0;
+                    while (true)
                     {
                         string? line = await reader.ReadLineAsync();
+                        if (line is null) break;
                         if (string.IsNullOrWhiteSpace(line) || !line.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) continue;
                         string data = line.Substring(5).Trim();
                         if (data == "[DONE]") break;
@@ -379,12 +383,25 @@ namespace KillerPDF
                             string token = contentPart.GetString() ?? "";
                             if (token.Length == 0) continue;
                             answerBuilder.Append(token);
-                            answerBlock.Content = PrepareMarkdownForDisplay(answerBuilder.ToString());
-                            AiMessagesScroll.ScrollToEnd();
-                            // A buffered network stream can complete many ReadLineAsync calls synchronously.
-                            // Yield briefly so WPF gets a render frame between chunks instead of painting only
-                            // after the entire SSE response has already been consumed.
-                            await Task.Delay(12);
+                            long now = Environment.TickCount64;
+                            if (now - lastRenderAt >= renderIntervalMs)
+                            {
+                                // Rendering a FlowDocument for every token overwhelms WPF's UI thread.
+                                // Render a batched snapshot at roughly 12 FPS and defer formula bitmap
+                                // generation until the response is complete.
+                                answerBlock.Content = PrepareMarkdownForStreaming(answerBuilder.ToString());
+                                AiMessagesScroll.ScrollToEnd();
+                                lastRenderAt = now;
+                                chunksSinceYield = 0;
+                                await Task.Yield();
+                            }
+                            else if (++chunksSinceYield >= 32)
+                            {
+                                // Some providers deliver many already-buffered SSE lines synchronously.
+                                // Give input and painting work a chance even between visual refreshes.
+                                chunksSinceYield = 0;
+                                await Task.Yield();
+                            }
                         }
                         catch (JsonException) { /* ignore keep-alive or provider-specific SSE metadata */ }
                     }
@@ -431,8 +448,9 @@ namespace KillerPDF
                 VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
             };
+            markdownView.Focusable = true;
             markdownView.RenderCompleted += (_, _) =>
-                Dispatcher.BeginInvoke(new Action(() => ConstrainRenderedMathImages(markdownView)));
+                Dispatcher.BeginInvoke(new Action(() => ConfigureRenderedMarkdown(markdownView)));
             var bubble = new Border
             {
                 Background = user ? (Brush)(TryFindResource("SelectionBg") ?? Brushes.DimGray) : (Brush)(TryFindResource("BgPanel") ?? Brushes.DimGray),
@@ -449,12 +467,18 @@ namespace KillerPDF
         // MarkdView treats every Markdown image as a general-purpose content image. Inside its
         // FlowDocument an InlineUIContainer can consequently arrange a tiny formula across the
         // available line width. Restore the bitmap's DPI-aware natural size after each render.
-        private static void ConstrainRenderedMathImages(DependencyObject root)
+        private static void ConfigureRenderedMarkdown(DependencyObject root)
         {
             int childCount = VisualTreeHelper.GetChildrenCount(root);
             for (int i = 0; i < childCount; i++)
             {
                 DependencyObject child = VisualTreeHelper.GetChild(root, i);
+                if (child is FlowDocumentScrollViewer documentViewer)
+                {
+                    documentViewer.IsSelectionEnabled = true;
+                    documentViewer.Focusable = true;
+                    documentViewer.Cursor = Cursors.IBeam;
+                }
                 if (child is System.Windows.Controls.Image image &&
                     image.Tag is string sourceUrl && IsRenderedMathImage(sourceUrl) &&
                     image.Source is BitmapSource bitmap)
@@ -472,7 +496,7 @@ namespace KillerPDF
                     image.Stretch = Stretch.Uniform;
                     image.Margin = new Thickness(0, 2, 0, 2);
                 }
-                ConstrainRenderedMathImages(child);
+                ConfigureRenderedMarkdown(child);
             }
         }
 
@@ -489,7 +513,15 @@ namespace KillerPDF
         // Some models wrap the whole answer in ```markdown ... ```. A renderer correctly treats that
         // as source code, so remove only this explicit document-level wrapper before handing text to
         // MarkdView. Real fenced code blocks inside the answer are left untouched.
-        private static string PrepareMarkdownForDisplay(string markdown)
+        private static string PrepareMarkdownForDisplay(string markdown) =>
+            MarkdownMathPreprocessor.Process(NormalizeMarkdownDocument(markdown));
+
+        // During SSE streaming, avoid WpfMath and its PNG/cache work. The final response is passed
+        // through PrepareMarkdownForDisplay once, which replaces all complete formulas normally.
+        private static string PrepareMarkdownForStreaming(string markdown) =>
+            NormalizeMarkdownDocument(markdown);
+
+        private static string NormalizeMarkdownDocument(string markdown)
         {
             string value = (markdown ?? "").TrimStart();
             string? fence = null;
@@ -497,7 +529,7 @@ namespace KillerPDF
             else if (value.StartsWith("```md", StringComparison.OrdinalIgnoreCase)) fence = "```";
             else if (value.StartsWith("~~~markdown", StringComparison.OrdinalIgnoreCase)) fence = "~~~";
             else if (value.StartsWith("~~~md", StringComparison.OrdinalIgnoreCase)) fence = "~~~";
-            if (fence is null) return MarkdownMathPreprocessor.Process(markdown ?? "");
+            if (fence is null) return markdown ?? "";
 
             int firstLineEnd = value.IndexOf('\n');
             if (firstLineEnd < 0) return "";
@@ -509,7 +541,7 @@ namespace KillerPDF
                 if (closing == 0 || trimmed[closing - 1] == '\n')
                     trimmed = trimmed.Substring(0, closing).TrimEnd();
             }
-            return MarkdownMathPreprocessor.Process(trimmed);
+            return trimmed;
         }
     }
 }
