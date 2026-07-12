@@ -11,7 +11,7 @@
         WindowStyle="None"
         ResizeMode="CanResize"
         Background="{DynamicResource BgDark}"
-        FontFamily="Microsoft YaHei UI, Segoe UI, Microsoft JhengHei UI, Nirmala UI"
+        FontFamily="{DynamicResource UiFont}"
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType"
         UseLayoutRounding="True"
@@ -61,7 +61,7 @@
         <!-- Settings current-value labels (English, Dark, ...): accent-coloured, with a depth shadow so the
              accent stays legible on every theme background. -->
         <Style x:Key="SettingsAccentValue" TargetType="TextBlock">
-            <Setter Property="FontFamily" Value="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Foreground" Value="{DynamicResource HeaderAccent}"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -449,7 +449,7 @@
             <Setter Property="BorderBrush" Value="{DynamicResource AccentBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="HasDropShadow" Value="False"/>
             <Setter Property="Template">
@@ -483,7 +483,7 @@
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="Padding" Value="8,6,10,6"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -777,7 +777,7 @@
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
             <Setter Property="FontSize" Value="10"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="2,2,8,2"/>
@@ -804,7 +804,7 @@
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
             <Setter Property="FontSize" Value="12"/>
         </Style>
         <!-- Outline tree expander triangle: themed (muted at rest, accent on hover), rotates on expand.
@@ -844,7 +844,7 @@
         <!-- Outline tree row: website-style accent left-bar + tinted selection, themed hover, no WPF blue. -->
         <Style x:Key="OutlineItemStyle" TargetType="TreeViewItem">
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="IsExpanded" Value="False"/>
             <Setter Property="Padding" Value="6,5"/>
@@ -955,7 +955,7 @@
 
         <Style x:Key="ThemeRadio" TargetType="RadioButton">
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -1005,7 +1005,7 @@
              checkmark, for independent on/off switches rather than exclusive picks. -->
         <Style x:Key="ThemeCheck" TargetType="CheckBox">
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -1411,7 +1411,7 @@
                                                    RenderOptions.BitmapScalingMode="HighQuality"/>
                                         </Border>
                                         <TextBlock Text="{Binding Label}"
-                                                   FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"
+                                                   FontFamily="{DynamicResource UiFont}"
                                                    FontSize="10"
                                                    HorizontalAlignment="Center"
                                                    Margin="0,2,0,0">
@@ -1690,9 +1690,9 @@
                                     HorizontalAlignment="Center" VerticalAlignment="Center"
                                     Background="Transparent" Style="{x:Null}">
                                 <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="{DynamicResource Str_Drop_Title}" FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI" FontSize="20"
+                                    <TextBlock Text="{DynamicResource Str_Drop_Title}" FontFamily="{DynamicResource UiFont}" FontSize="20"
                                                Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="{DynamicResource Str_Drop_Sub}" FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI" FontSize="13"
+                                    <TextBlock Text="{DynamicResource Str_Drop_Sub}" FontFamily="{DynamicResource UiFont}" FontSize="13"
                                                Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center" Margin="0,8,0,0"/>
                                 </StackPanel>
                             </Border>
@@ -1705,7 +1705,7 @@
                                     <Border Background="{DynamicResource GrainBrushShared}" IsHitTestVisible="False"
                                             Opacity="{DynamicResource GrainOpacity}"/>
                                     <DockPanel Margin="18,22,12,16">
-                                        <TextBlock DockPanel.Dock="Top" Text="RECENT" FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"
+                                        <TextBlock DockPanel.Dock="Top" Text="RECENT" FontFamily="{DynamicResource UiFont}"
                                                    FontSize="11" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource Accent}" Margin="2,0,0,10"/>
                                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -1787,12 +1787,17 @@
             <Grid Margin="16">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/><RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <Grid>
                     <TextBlock Text="AI PDF Assistant" FontFamily="Consolas" FontSize="16" FontWeight="SemiBold"
                                Foreground="{DynamicResource HeaderAccent}" VerticalAlignment="Center"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <ui:Button Appearance="Secondary" Icon="{ui:SymbolIcon Save24}" Margin="0,0,6,0"
+                                   Click="AiSaveConversation_Click" ToolTip="Save this conversation locally"/>
+                        <ui:Button Appearance="Secondary" Icon="{ui:SymbolIcon History24}" Margin="0,0,6,0"
+                                   Click="AiConversationHistory_Click" ToolTip="Open saved conversations"/>
                         <ui:Button Appearance="Secondary" Icon="{ui:SymbolIcon Settings24}" Margin="0,0,6,0"
                                    Click="AiModelSettings_Click" ToolTip="Model configurations"/>
                         <ui:Button Appearance="Secondary" Icon="{ui:SymbolIcon Dismiss24}"
@@ -1804,7 +1809,18 @@
                 <ScrollViewer x:Name="AiMessagesScroll" Grid.Row="2" VerticalScrollBarVisibility="Auto">
                     <StackPanel x:Name="AiMessagesPanel" Margin="0,4,0,8"/>
                 </ScrollViewer>
-                <Border x:Name="AiCaptureCard" Grid.Row="3" Visibility="Collapsed" Background="{DynamicResource BgPanel}"
+                <Border x:Name="AiProgressPanel" Grid.Row="3" Visibility="Collapsed"
+                        Background="{DynamicResource BgPanel}" BorderBrush="{DynamicResource BorderDim}"
+                        BorderThickness="1" CornerRadius="5" Padding="10,8" Margin="0,0,0,8">
+                    <StackPanel>
+                        <TextBlock x:Name="AiProgressText" Text="正在思考中…"
+                                   FontFamily="{DynamicResource UiFont}" FontSize="12"
+                                   Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,7"/>
+                        <ProgressBar x:Name="AiProgressBar" Height="4" IsIndeterminate="True"
+                                     Foreground="#2DD4BF" Background="{DynamicResource BorderDim}"/>
+                    </StackPanel>
+                </Border>
+                <Border x:Name="AiCaptureCard" Grid.Row="4" Visibility="Collapsed" Background="{DynamicResource BgPanel}"
                         BorderBrush="{DynamicResource BorderDim}" BorderThickness="1" CornerRadius="5" Padding="8" Margin="0,0,0,8">
                     <Grid>
                         <Grid.ColumnDefinitions><ColumnDefinition Width="72"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -1815,7 +1831,7 @@
                                    Width="32" Height="32" Click="AiClearCapture_Click" ToolTip="Remove screenshot"/>
                     </Grid>
                 </Border>
-                <Grid Grid.Row="4">
+                <Grid Grid.Row="5">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
@@ -1861,7 +1877,7 @@
             <Grid Margin="16,0">
                 <TextBlock x:Name="StatusText" Text="{DynamicResource Str_Ready}"
                            Foreground="{DynamicResource FilenameBrush}"
-                           FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI" FontSize="11" VerticalAlignment="Center"/>
+                           FontFamily="{DynamicResource UiFont}" FontSize="11" VerticalAlignment="Center"/>
                 <!-- Portable mode indicator (hidden when installed) -->
                 <StackPanel x:Name="PortableBadge" Orientation="Horizontal"
                             HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -1871,7 +1887,7 @@
                                VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <Button x:Name="InstallBtn" Content="{DynamicResource Str_InstallBtn}"
                             Click="Install_Click"
-                            FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI" FontSize="11" FontWeight="SemiBold"
+                            FontFamily="{DynamicResource UiFont}" FontSize="11" FontWeight="SemiBold"
                             Foreground="White"
                             Background="{DynamicResource InstallBtnBg}"
                             BorderThickness="0"
@@ -2049,7 +2065,7 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="English" VerticalAlignment="Center"
-                                                       FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
+                                                       FontFamily="{DynamicResource UiFont}"/>
                                             <TextBlock Grid.Column="1" Text="en-US" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
                                                        Foreground="{DynamicResource TextSecondary}"/>
                                         </Grid>
@@ -2062,7 +2078,7 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="বাংলা" VerticalAlignment="Center"
-                                                       FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
+                                                       FontFamily="{DynamicResource UiFont}"/>
                                             <TextBlock Grid.Column="1" Text="bn" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
                                                        Foreground="{DynamicResource TextSecondary}"/>
                                         </Grid>
@@ -2075,7 +2091,7 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="Deutsch" VerticalAlignment="Center"
-                                                       FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
+                                                       FontFamily="{DynamicResource UiFont}"/>
                                             <TextBlock Grid.Column="1" Text="de-DE" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
                                                        Foreground="{DynamicResource TextSecondary}"/>
                                         </Grid>
@@ -2088,7 +2104,7 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="Español" VerticalAlignment="Center"
-                                                       FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
+                                                       FontFamily="{DynamicResource UiFont}"/>
                                             <TextBlock Grid.Column="1" Text="es" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
                                                        Foreground="{DynamicResource TextSecondary}"/>
                                         </Grid>
@@ -2101,7 +2117,7 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="Français" VerticalAlignment="Center"
-                                                       FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
+                                                       FontFamily="{DynamicResource UiFont}"/>
                                             <TextBlock Grid.Column="1" Text="fr-FR" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
                                                        Foreground="{DynamicResource TextSecondary}"/>
                                         </Grid>
@@ -2114,7 +2130,7 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="Türkçe" VerticalAlignment="Center"
-                                                       FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
+                                                       FontFamily="{DynamicResource UiFont}"/>
                                             <TextBlock Grid.Column="1" Text="tr-TR" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
                                                        Foreground="{DynamicResource TextSecondary}"/>
                                         </Grid>
@@ -2127,7 +2143,7 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="中文 (简体)" VerticalAlignment="Center"
-                                                       FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
+                                                       FontFamily="{DynamicResource UiFont}"/>
                                             <TextBlock Grid.Column="1" Text="zh-CN" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
                                                        Foreground="{DynamicResource TextSecondary}"/>
                                         </Grid>
@@ -2140,7 +2156,7 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="中文 (繁體)" VerticalAlignment="Center"
-                                                       FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
+                                                       FontFamily="{DynamicResource UiFont}"/>
                                             <TextBlock Grid.Column="1" Text="zh-TW" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
                                                        Foreground="{DynamicResource TextSecondary}"/>
                                         </Grid>
@@ -2595,22 +2611,22 @@
                         <StackPanel>
                             <StackPanel Margin="0,0,0,10">
                                 <TextBlock Text="{DynamicResource Str_About_Version}" Foreground="{DynamicResource TextSecondary}"
-                                           FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI" FontSize="11" Margin="0,0,0,2"/>
+                                           FontFamily="{DynamicResource UiFont}" FontSize="11" Margin="0,0,0,2"/>
                                 <TextBlock x:Name="AboutVersionBlock"
-                                           FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI" FontSize="12"
+                                           FontFamily="{DynamicResource UiFont}" FontSize="12"
                                            Foreground="{DynamicResource Accent}"
                                            Cursor="Hand"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,0,10">
                                 <TextBlock Text="{DynamicResource Str_About_Publisher}" Foreground="{DynamicResource TextSecondary}"
-                                           FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI" FontSize="11" Margin="0,0,0,2"/>
+                                           FontFamily="{DynamicResource UiFont}" FontSize="11" Margin="0,0,0,2"/>
                                 <TextBlock x:Name="AboutPublisherBlock"
-                                           FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI" FontSize="12"
+                                           FontFamily="{DynamicResource UiFont}" FontSize="12"
                                            Foreground="{DynamicResource TextPrimary}"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,0,10">
                                 <TextBlock Text="{DynamicResource Str_About_Thumbprint}" Foreground="{DynamicResource TextSecondary}"
-                                           FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI" FontSize="11" Margin="0,0,0,2"/>
+                                           FontFamily="{DynamicResource UiFont}" FontSize="11" Margin="0,0,0,2"/>
                                 <TextBlock x:Name="AboutThumbprintBlock"
                                            FontFamily="Consolas" FontSize="11"
                                            Foreground="{DynamicResource TextPrimary}"
@@ -2618,7 +2634,7 @@
                             </StackPanel>
                             <StackPanel Margin="0,0,0,10">
                                 <TextBlock Text="{DynamicResource Str_About_ExeSha}" Foreground="{DynamicResource TextSecondary}"
-                                           FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI" FontSize="11" Margin="0,0,0,2"/>
+                                           FontFamily="{DynamicResource UiFont}" FontSize="11" Margin="0,0,0,2"/>
                                 <TextBlock x:Name="AboutSha256Block"
                                            FontFamily="Consolas" FontSize="11"
                                            Foreground="{DynamicResource TextPrimary}"
@@ -2647,7 +2663,7 @@
                             </ControlTemplate>
                         </Button.Template>
                         <TextBlock x:Name="AboutUpdateText" Text="Update available"
-                                   FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI" FontSize="12" FontWeight="SemiBold"
+                                    FontFamily="{DynamicResource UiFont}" FontSize="12" FontWeight="SemiBold"
                                    Foreground="{DynamicResource Accent}"/>
                     </Button>
                     <!-- Tiny destructive footer link, bottom-right like the main-window footer, red on hover. -->

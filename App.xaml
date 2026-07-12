@@ -24,7 +24,7 @@
                  ============================================================================ -->
 
             <!-- Type families -->
-            <FontFamily x:Key="UiFont">Segoe UI, Microsoft JhengHei UI, Nirmala UI</FontFamily>
+            <FontFamily x:Key="UiFont">Microsoft YaHei, Microsoft YaHei UI, Segoe UI</FontFamily>
             <!-- The "KillerPDF" wordmark fonts (embedded, subset to the wordmark letters). "Killer" and "PDF"
                  can use different faces. One place to change the logo typefaces everywhere. -->
             <FontFamily x:Key="WordmarkFont">/KillerPDF;component/Fonts/#Typewriter A602</FontFamily>
@@ -50,7 +50,7 @@
                 <Setter Property="BorderBrush" Value="{DynamicResource AccentBorder}"/>
                 <Setter Property="BorderThickness" Value="1"/>
                 <Setter Property="Padding" Value="8,4"/>
-                <Setter Property="FontFamily" Value="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
+                <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
                 <Setter Property="FontSize" Value="12"/>
                 <Setter Property="HasDropShadow" Value="False"/>
                 <Setter Property="Template">

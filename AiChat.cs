@@ -24,6 +24,7 @@ namespace KillerPDF
         private bool _aiCaptureMode;
         private bool _aiSending;
         private List<AiModelProfile> _aiProfiles = [];
+        private string? _aiConversationId;
 
         private void AiChat_Click(object sender, RoutedEventArgs e)
         {
@@ -53,6 +54,88 @@ namespace KillerPDF
             var dialog = new AiModelSettingsWindow { Owner = this };
             dialog.ShowDialog();
             ReloadAiProfiles();
+        }
+
+        private void AiSaveConversation_Click(object sender, RoutedEventArgs e)
+        {
+            if (_aiHistory.Count == 0)
+            {
+                KillerDialog.Show(this, "There is no conversation to save yet.");
+                return;
+            }
+
+            try
+            {
+                AiConversationRecord? previous = string.IsNullOrWhiteSpace(_aiConversationId)
+                    ? null
+                    : AiConversationStore.Load().FirstOrDefault(item => item.Id == _aiConversationId);
+                DateTime now = DateTime.Now;
+                var record = new AiConversationRecord
+                {
+                    Id = previous?.Id ?? Guid.NewGuid().ToString("N"),
+                    CreatedAt = previous?.CreatedAt ?? now,
+                    UpdatedAt = now,
+                    Title = CreateConversationTitle(),
+                    DocumentPath = _originalFile ?? _currentFile ?? "",
+                    ModelProfileId = (AiModelPicker.SelectedItem as AiModelProfile)?.Id ?? "",
+                    ModelName = (AiModelPicker.SelectedItem as AiModelProfile)?.Name ?? "Unknown model",
+                    Messages = _aiHistory.Select(message => new AiConversationMessage
+                    {
+                        Role = message.role,
+                        Content = message.content
+                    }).ToList()
+                };
+                AiConversationStore.Save(record);
+                _aiConversationId = record.Id;
+                SetStatus("AI conversation saved locally");
+            }
+            catch (Exception ex)
+            {
+                KillerDialog.Show(this, "Could not save the conversation:\n" + ex.Message,
+                    "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void AiConversationHistory_Click(object sender, RoutedEventArgs e)
+        {
+            if (_aiSending) return;
+            var dialog = new AiConversationHistoryWindow { Owner = this };
+            if (dialog.ShowDialog() != true || dialog.SelectedConversation is not AiConversationRecord record) return;
+
+            _aiHistory.Clear();
+            AiMessagesPanel.Children.Clear();
+            foreach (AiConversationMessage message in record.Messages)
+            {
+                if (message.Role is not ("user" or "assistant")) continue;
+                _aiHistory.Add((message.Role, message.Content));
+                AddAiBubble(message.Role, GetConversationBubbleText(message));
+            }
+            _aiConversationId = record.Id;
+            int profileIndex = _aiProfiles.FindIndex(profile => profile.Id == record.ModelProfileId);
+            if (profileIndex >= 0) AiModelPicker.SelectedIndex = profileIndex;
+            AiChatPanel.Visibility = Visibility.Visible;
+            AiMessagesScroll.ScrollToEnd();
+            SetStatus("AI conversation restored: " + record.Title);
+        }
+
+        private string CreateConversationTitle()
+        {
+            string document = Path.GetFileNameWithoutExtension(_originalFile ?? _currentFile ?? "");
+            string question = _aiHistory.FirstOrDefault(message => message.role == "user").content ?? "AI conversation";
+            int contextStart = question.IndexOf("\n\nThe following text was OCR-recognized", StringComparison.Ordinal);
+            if (contextStart >= 0) question = question.Substring(0, contextStart);
+            question = string.Join(" ", question.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+            if (question.Length > 55) question = question.Substring(0, 55) + "…";
+            return string.IsNullOrWhiteSpace(document) ? question : document + " — " + question;
+        }
+
+        private static string GetConversationBubbleText(AiConversationMessage message)
+        {
+            if (message.Role != "user") return message.Content;
+            int contextStart = message.Content.IndexOf("\n\nThe following text was OCR-recognized", StringComparison.Ordinal);
+            return contextStart < 0
+                ? message.Content
+                : message.Content.Substring(0, contextStart) + "\n[PDF screenshot context]";
         }
 
         private void AiModelPicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -129,6 +212,7 @@ namespace KillerPDF
             _aiSending = true;
             AiSendBtn.IsEnabled = false;
             AiSaveNoteBtn.IsEnabled = false;
+            ShowAiProgress("正在生成笔记…");
             SetStatus("AI is summarizing the conversation into a Markdown note...");
             try
             {
@@ -154,7 +238,19 @@ namespace KillerPDF
                 _aiSending = false;
                 AiSendBtn.IsEnabled = true;
                 AiSaveNoteBtn.IsEnabled = true;
+                HideAiProgress();
             }
+        }
+
+        private void ShowAiProgress(string message)
+        {
+            AiProgressText.Text = message;
+            AiProgressPanel.Visibility = Visibility.Visible;
+        }
+
+        private void HideAiProgress()
+        {
+            AiProgressPanel.Visibility = Visibility.Collapsed;
         }
 
         private async Task<string> GenerateMarkdownNoteAsync(AiModelProfile profile, string documentName)
@@ -241,6 +337,8 @@ namespace KillerPDF
             AiClearCapture_Click(this, new RoutedEventArgs());
             _aiSending = true;
             AiSendBtn.IsEnabled = false;
+            AiSaveNoteBtn.IsEnabled = false;
+            ShowAiProgress("正在思考中…");
             SetStatus("AI is thinking...");
             try
             {
@@ -301,7 +399,13 @@ namespace KillerPDF
                 AddAiBubble("error", "Request failed: " + ex.Message);
                 SetStatus("AI request failed");
             }
-            finally { _aiSending = false; AiSendBtn.IsEnabled = true; }
+            finally
+            {
+                _aiSending = false;
+                AiSendBtn.IsEnabled = true;
+                AiSaveNoteBtn.IsEnabled = true;
+                HideAiProgress();
+            }
         }
 
         private static string ReadApiError(string body)
@@ -322,7 +426,7 @@ namespace KillerPDF
                 StreamingThrottle = 50,
                 EnableSyntaxHighlighting = true,
                 UseTransparentCanvas = true,
-                FontFamily = new FontFamily("Microsoft YaHei UI, Segoe UI"),
+                FontFamily = UiKit.UiFont,
                 FontSize = 13,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,

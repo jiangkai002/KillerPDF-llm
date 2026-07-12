@@ -679,6 +679,7 @@ namespace KillerPDF
             TryDeleteDir(Path.Combine(localKp, "tessdata"));   // downloaded language packs + bundled English
             TryDeleteDir(Path.Combine(localKp, "ocr"));        // native Tesseract cache
             TryDeleteDir(Path.Combine(localKp, "MarkdownMath")); // rendered LaTeX formula cache
+            try { File.Delete(Path.Combine(localKp, "AiConversations.json")); } catch { } // saved AI chats
             TryDeleteDir(TempDir);                              // temp working files
 
             // Legacy temp PDFs that may linger in %TEMP%.
@@ -1123,7 +1124,7 @@ namespace KillerPDF
                 {
                     var tb = new TextBlock
                     {
-                        FontFamily = valueFont ?? new FontFamily("Segoe UI"),
+                        FontFamily = valueFont ?? UiKit.UiFont,
                         FontSize = 12,
                         Cursor = Cursors.Hand
                     };
@@ -1141,7 +1142,7 @@ namespace KillerPDF
                     sp.Children.Add(new TextBlock
                     {
                         Text = value, Foreground = valueBrush,
-                        FontFamily = valueFont ?? new FontFamily("Segoe UI"),
+                        FontFamily = valueFont ?? UiKit.UiFont,
                         FontSize = 12,
                         TextWrapping = wrap ? TextWrapping.Wrap : TextWrapping.NoWrap
                     });

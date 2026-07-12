@@ -1,129 +1,157 @@
-# KillerPDF
+# KillerPDF-llm
 
-Free and open-source PDF editor for Windows. View, annotate, OCR, merge, split, edit text, draw, sign, fill forms, print, flatten, and open password-protected PDFs without an Adobe subscription or a phone-home. Install or run portable. Self-contained Windows EXE, no runtime install required.
+一款面向 Windows 的本地 PDF 阅读、编辑与 AI 辅助工具。本项目基于开源项目 [KillerPDF](https://github.com/SteveTheKiller/KillerPDF) 二次开发，在原有 PDF 查看、编辑、标注和 OCR 能力之上，增加了大模型对话、截图提问、Markdown 渲染、笔记总结及历史会话等功能。
 
-Landing page is hosted at [KillerPDF.net](https://killerpdf.net)
+> 本仓库是经过修改的社区 Fork，并非 KillerPDF 上游官方版本。
 
-## Why this exists
+## 项目特点
 
-I hate Adobe. Acrobat is bloated, wants a subscription to do basic things, and phones home constantly. Most of the "free" alternatives are either ad-riddled, cloud-based, or rebrands of the same PDF engine sold under three different names.
+- 使用 WPF 和 .NET 8 开发，界面基于 WPF UI 优化
+- 支持发布为 Windows x64 自包含单文件 EXE
+- PDF 阅读、编辑、标注、合并、拆分、签名和表单填写
+- 内置 PP-OCRv5，增强中文、英文及中英混排识别效果
+- 支持 Tesseract 作为备用 OCR 引擎
+- 可框选 PDF 页面区域，截图并识别文字后向大模型提问
+- 支持多个 OpenAI 兼容模型配置，并可在对话框中随时切换
+- 大模型回答采用流式输出
+- 支持 Markdown、代码块、表格和 LaTeX 数学公式渲染
+- 可让大模型根据当前对话重新归纳并生成 Markdown 笔记
+- 支持本地保存、查看、删除和回放历史对话
+- 中文界面统一使用微软雅黑
 
-KillerPDF is what I wanted: local-only, portable, no account, no telemetry. The PDF equivalent of Notepad.
+## AI PDF 助手
 
-## Features
+打开右侧的 AI PDF Assistant 后，可以直接针对文档提问，也可以使用“Screenshot & OCR”框选 PDF 内容。识别出的文字会作为文档上下文发送给当前选择的大模型。
 
-### Viewing & navigation
+模型配置支持以下字段：
 
-- High-quality rendering via PDFium
-- Four view modes - Single Page, Continuous scroll, Two-Page, and Grid - that persist across sessions
-- Tabbed documents: open several PDFs at once, each restoring its page, zoom, and view mode
-- Full-text search across the whole document with highlighting; drag-select to copy text
-- Outline/bookmark navigation and clickable links, including internal cross-references and TOC back-links
-- Zoom presets with scroll-wheel sync; Fit to Width and Fit Page re-apply on resize
-- Full-screen mode (F11) hides all chrome so only the document fills the screen
-- Recent files on the start screen and Open menu, each with its real Windows file-type icon
+- 配置名称
+- API Endpoint
+- Model Name
+- API Key
 
-### Annotate & edit
+可以保存多个配置，例如 OpenAI、兼容 OpenAI Chat Completions API 的本地模型服务或第三方模型服务。
 
-- Inline text editing with font matching against the original document
-- Resizable, word-wrapping text boxes with an optional whiteout background fill
-- Freehand draw, a straight-line tool, and highlight - each with its own color, opacity, and width
-- Full RGB color picker: saturation/value square, hue strip, hex input, screen eyedropper, and editable palette
-- Select tool to move, resize, multi-select, and restyle any annotation in place
-- Insert images as resizable annotations, burned into the PDF on save
-- Page-number and watermark stamping across a page range, applied as one undo
+默认请求地址由配置的 Endpoint 加上 `/chat/completions` 组成。例如：
 
-### OCR (built in, no cloud)
-
-- OCR a whole page or a dragged region straight to the clipboard
-- Make Searchable PDF: lay an invisible text layer over a scan
-- Extract All Text to a `.txt` or `.md` file
-- PP-OCRv5/ONNX is the default for high-quality Chinese, English and mixed-language recognition
-- Tesseract remains available as an alternate engine; extra Tesseract languages download on demand
-
-### Organize pages
-
-- Merge multiple PDFs and split out selected pages, with drag-and-drop reordering
-- Right-click sidebar: insert blank page, rotate, move, extract, or delete - on multi-page selections
-- Crop with corner handles; remove crop from one page or all
-- Transform: rotate by 90 degrees or a fine angle, scale, flip, and straighten a crooked scan by drawing a level line - live preview, with annotations following the transform
-- Drop a folder or `.zip` onto the window to merge the PDFs and images inside into one, or open each separately
-
-### Forms & signing
-
-- Fill PDF forms (text, checkbox, radio) as live controls and save back to the PDF
-- Digital signatures with a cloud certificate (Certum SimplySign), including click-to-sign form fields
-- Draw and reuse signatures and initials, or import a PNG/JPG/BMP to place anywhere
-
-### Output
-
-- Print with annotations flattened, a real in-app preview, and scale / position / margins / pages-per-sheet / color / two-sided options, rendered at 300 DPI
-- Save Flattened PDF: rasterize every page into a fully uneditable document
-- Document Info: view and edit title, author, subject, keywords, and creator metadata
-
-### Customize
-
-- Six themes - Dark, Light, Black, Blood, Greed, Cyanotic - with per-theme accent colors, switchable live
-- Toolbar style (icon size, text placement) and a resizable sidebar that docks left or right
-- Localized UI in 8 languages (English, Spanish, Traditional and Simplified Chinese, German, French, Turkish, Bengali); contribute via `Strings/TRANSLATING.md`
-- Full keyboard shortcut overlay (Ctrl+?) with a link to the online guide
-
-### App & files
-
-- Single portable, self-contained Windows EXE (~115 MiB with PP-OCRv5), no runtime install
-- Self-installs per-user to %LOCALAPPDATA% (no UAC), registers as a PDF handler with a branded file icon, and uninstalls cleanly via Add/Remove Programs
-- Opens password-protected PDFs (prompts instead of erroring) and repairs damaged ones
-- Local-only: no account, no telemetry, no phone-home
-
-## Screenshots
-
-<p align="center">
-  <img src="pdf-landing/screenshots/02.png" width="32%" alt="KillerPDF" />
-  <img src="pdf-landing/screenshots/04.png" width="32%" alt="KillerPDF" />
-  <img src="pdf-landing/screenshots/06.png" width="32%" alt="KillerPDF" />
-  <img src="pdf-landing/screenshots/07.png" width="32%" alt="KillerPDF" />
-  <img src="pdf-landing/screenshots/12.png" width="32%" alt="KillerPDF" />
-  <img src="pdf-landing/screenshots/13.png" width="32%" alt="KillerPDF" />
-</p>
-
-## Requirements
-
-- Windows 10 or 11 (x64)
-- No runtime install. The self-contained .NET 8 Windows Desktop runtime and native dependencies are bundled into the EXE.
-
-## Download
-
-WinGet:
-
-```powershell
-winget install killerpdf
+```text
+Endpoint: https://api.openai.com/v1
+Request:  https://api.openai.com/v1/chat/completions
 ```
 
-Chocolately:
+## OCR
 
-```powershell
-choco install killerpdf
+项目默认使用内置的 PP-OCRv5 ONNX 模型，模型和运行时会随单文件程序一起发布，首次使用时释放到本地缓存。它更适合中文文档、扫描件和中英混排内容。
+
+OCR 可用于：
+
+- 整页文字识别
+- 框选区域识别
+- PDF 截图后向大模型提问
+- 生成可搜索 PDF
+- 导出文档文字
+
+## Markdown 与数学公式
+
+AI 回答使用 MarkdView 渲染 Markdown，支持标题、列表、表格、引用和代码块。LaTeX 公式由 WpfMath 在本地渲染，可识别常见写法：
+
+```markdown
+行内公式：$E = mc^2$
+
+块级公式：
+$$
+x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}
+$$
 ```
 
-- Prebuilt binary: <https://github.com/SteveTheKiller/KillerPDF/releases/latest/download/KillerPDF.exe>
-- Source (GPL3 corresponding source for this release): <https://github.com/SteveTheKiller/KillerPDF/releases/download/v1.6.1/KillerPDF-1.6.1-src.zip>
+## AI 笔记
 
-## Build from source
+“Save note”不会直接复制聊天记录。应用会把当前问答再次交给所选模型，让模型去除寒暄和重复内容，并重新整理知识点、推理过程、代码、公式、注意事项与结论，最后保存为本地 `.md` 文件。
 
-```powershell
-git clone https://github.com/SteveTheKiller/KillerPDF.git
-cd KillerPDF
-dotnet publish -c Release
+## 历史对话
+
+AI 面板顶部提供保存和历史记录按钮。保存内容包括问题、回答、PDF 来源、模型配置 ID 和时间，但不会保存 API Key。
+
+历史文件默认位于：
+
+```text
+%LOCALAPPDATA%\KillerPDF\AiConversations.json
 ```
 
-Output lands in `bin/Release/net8.0-windows/win-x64/publish/`. The publish step uses .NET's native self-contained single-file bundler and produces `KillerPDF.exe` plus a versioned `KillerPDF-<version>-src.zip` for GPL3 source distribution.
+最多保留最近 100 条记录。打开历史记录后可以恢复完整上下文并继续提问。
 
-Requires the .NET 8 SDK or later to build. End users do not need to install the .NET runtime.
+## 隐私说明
 
-## Changelog
+PDF 编辑、OCR 和历史记录存储均在本地完成。使用 AI 功能时，用户问题以及所附加的 OCR 文本会发送到用户配置的模型 Endpoint。数据如何处理取决于对应的模型服务提供方，请勿向不受信任的服务发送敏感文档。
 
-See [CHANGELOG.md](CHANGELOG.md).
+模型配置保存在当前 Windows 用户的本地设置中，历史对话保存在 `%LOCALAPPDATA%\KillerPDF`。项目不会把 API Key 写入历史对话文件。
 
-## License
+## 系统要求
 
-GPLv3. See [LICENSE](LICENSE). If you fork, modify, or redistribute KillerPDF, your version must also be released under GPLv3 with source available. No exceptions for commercial rebrands.
+- Windows 10 或 Windows 11，x64
+- 源码编译需要 [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- 使用自包含发布的最终用户不需要安装 .NET Runtime
+
+## 从源码运行
+
+```powershell
+git clone https://github.com/jiangkai002/KillerPDF-llm.git
+cd KillerPDF-llm
+dotnet restore
+dotnet run --project KillerPDF.csproj
+```
+
+## 编译与测试
+
+```powershell
+dotnet build KillerPDF.csproj -c Release
+dotnet test KillerPDF.Tests\KillerPDF.Tests.csproj -c Release
+```
+
+## 发布单文件 EXE
+
+```powershell
+dotnet publish KillerPDF.csproj -c Release -r win-x64 --self-contained true
+```
+
+生成文件位于：
+
+```text
+bin\Release\net8.0-windows\win-x64\publish\KillerPDF.exe
+```
+
+项目已经在 `KillerPDF.csproj` 中启用单文件、自包含及原生库自动释放配置。也可以运行完整发布脚本：
+
+```powershell
+.\release.ps1
+```
+
+## 主要技术组件
+
+- .NET 8 / WPF
+- WPF UI
+- PDFium / Docnet.Core
+- PdfSharpCore / PDFsharp
+- RapidOcrNet / PP-OCRv5 / ONNX Runtime
+- Tesseract
+- MarkdView
+- WpfMath
+
+## 与上游项目的关系
+
+本项目基于 [SteveTheKiller/KillerPDF](https://github.com/SteveTheKiller/KillerPDF) 修改，并保留了上游的大部分 PDF 编辑能力。在此基础上，本 Fork 主要增加和调整了：
+
+- .NET 8 与单文件发布方案
+- WPF UI 界面适配和中文字体优化
+- PP-OCRv5 中文 OCR
+- 多模型配置及 OpenAI 兼容流式对话
+- PDF 截图 OCR 提问
+- Markdown 与 LaTeX 公式渲染
+- AI 总结生成 Markdown 笔记
+- 本地历史对话保存与回放
+
+感谢 KillerPDF 原作者及所有依赖项目的贡献。若需要原版功能说明、官方发行版或上游更新，请访问 [KillerPDF 上游仓库](https://github.com/SteveTheKiller/KillerPDF)。
+
+## 许可证
+
+本项目继承上游的 [GNU General Public License v3.0](LICENSE)。修改、分发或发布二进制版本时，需要继续遵守 GPLv3，并按许可证要求提供对应源代码和修改说明。

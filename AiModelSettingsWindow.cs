@@ -54,7 +54,7 @@ namespace KillerPDF
             Width = 620; Height = 410; MinWidth = 560; MinHeight = 360;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             Background = SystemColors.WindowBrush;
-            FontFamily = new FontFamily("Microsoft YaHei UI, Segoe UI");
+            FontFamily = UiKit.UiFont;
 
             var root = new Grid { Margin = new Thickness(16) };
             root.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });

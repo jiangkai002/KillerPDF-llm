@@ -124,7 +124,7 @@ namespace KillerPDF
                 // Section subheader: accent, semibold, 12px top gap except for the first section.
                 var header = new TextBlock
                 {
-                    FontFamily = new FontFamily("Segoe UI, Microsoft JhengHei UI, Nirmala UI"),
+                FontFamily = UiKit.UiFont,
                     FontSize   = 11,
                     FontWeight = FontWeights.SemiBold,
                     Margin     = new Thickness(0, s == 0 ? 0 : 12, 0, 4),
